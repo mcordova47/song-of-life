@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 
+import Control.Alternative (guard)
 import Data.Array (foldl, (..))
 import Data.Int as Int
 import Data.Set (Set)
@@ -135,13 +136,8 @@ step livingCells = foldl stepRow livingCells grid
     countLiving acc cell =
       if Set.member cell livingCells then acc + 1 else acc
 
-    neighbors (row /\ col) =
-      [ (row - 1) /\ (col - 1)
-      , (row - 1) /\ col
-      , (row - 1) /\ (col + 1)
-      , row /\ (col - 1)
-      , row /\ (col + 1)
-      , (row + 1) /\ (col - 1)
-      , (row + 1) /\ col
-      , (row + 1) /\ (col + 1)
-      ]
+    neighbors (row /\ col) = do
+      row' <- [row - 1, row, row + 1]
+      col' <- [col - 1, col, col + 1]
+      guard $ (row' /\ col') /= (row /\ col)
+      pure (row' /\ col')
