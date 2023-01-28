@@ -107,7 +107,12 @@ view state dispatch =
         H.div "" $
           row <#> \cell ->
             H.div_ ("d-inline-block bg-" <> if Set.member cell state.livingCells then "primary" else "light")
-              { style: H.css { width: 15, height: 15, cursor: "pointer", margin: "0.1rem" }
+              { style: H.css
+                  { width: 15
+                  , height: 15
+                  , cursor: "pointer"
+                  , margin: "0.1rem"
+                  }
               , onClick: dispatch <| ToggleCell cell
               }
               H.empty
