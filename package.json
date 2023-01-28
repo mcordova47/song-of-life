@@ -1,0 +1,27 @@
+{
+  "name": "song-of-life",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "spago build && esbuild ./output/Main/index.js --bundle --serve --servedir=. --outfile=output/index.js --global-name=Main",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcordova47/song-of-life.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mcordova47/song-of-life/issues"
+  },
+  "homepage": "https://github.com/mcordova47/song-of-life#readme",
+  "dependencies": {
+    "esbuild": "^0.17.5",
+    "purescript": "^0.15.7",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "spago": "^0.20.9"
+  }
+}
