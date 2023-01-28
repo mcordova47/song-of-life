@@ -17,7 +17,6 @@ import Elmish.HTML.Styled as H
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
 
--- Nothing happens in our UI so far, so there are no messages
 data Message
   = AutoStep
   | Pause
