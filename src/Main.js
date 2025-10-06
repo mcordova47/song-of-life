@@ -11,16 +11,17 @@ export const ensureAudio = () => {
 
       setTimeout(() => {
         if (ctx.state === 'running') {
-          document.body.removeEventListener('touchend', resume, false);
+          document.body.removeEventListener('click', resume, false);
         }
       }, 0)
     }
 
-    document.body.addEventListener('touchend', resume, false);
+    document.body.addEventListener('click', resume, false);
   }
 }
 
 const playNote = (freq, durationMs) => {
+  displayState(ctx.state)
   const duration = durationMs / 1000
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
@@ -44,4 +45,19 @@ const playNote = (freq, durationMs) => {
   osc.connect(gain).connect(ctx.destination)
   osc.start(now)
   osc.stop(now + duration)
+}
+
+const displayState = (state) => {
+  const debugDiv = findOrCreateDivWithId('debug')
+  debugDiv.innerText = state
+}
+
+const findOrCreateDivWithId = (id) => {
+  const found = document.getElementById(id)
+  if (found) return found
+
+  const elem = document.createElement('div')
+  elem.setAttribute('id', id)
+  document.body.appendChild(elem)
+  return elem
 }
