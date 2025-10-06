@@ -32,15 +32,14 @@ const playNote = (freq, durationMs) => {
   osc.frequency.value = freq
   osc.type = "sine"
 
-  // gain.gain.setValueAtTime(0, now);
-  // gain.gain.linearRampToValueAtTime(0.2, now + attack)
+  // gain.gain.setValueAtTime(0.001, now)
+  // gain.gain.exponentialRampToValueAtTime(0.2, now + attack)
   // gain.gain.setValueAtTime(0.2, now + duration - release)
-  // gain.gain.linearRampToValueAtTime(0, now + duration)
-
-  gain.gain.setValueAtTime(0.001, now)
-  gain.gain.exponentialRampToValueAtTime(0.2, now + attack)
+  // gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+  gain.gain.setValueAtTime(0, now)
+  gain.gain.linearRampToValueAtTime(0.2, now + attack)
   gain.gain.setValueAtTime(0.2, now + duration - release)
-  gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+  gain.gain.linearRampToValueAtTime(0, now + duration)
 
   osc.connect(gain).connect(ctx.destination)
   osc.start(now)
