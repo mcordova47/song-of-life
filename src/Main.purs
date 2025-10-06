@@ -114,7 +114,9 @@ view state dispatch = H.fragment
       [ H.p ""
         [ H.text "Click some cells to change the starting conditions, then press play and "
         , H.a_ ""
-            { href: "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life" }
+            { href: "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life"
+            , target: "_blank"
+            }
             [ H.text "Conway’s Game of Life "
             , F.externalLink { size: 16 }
             ]
