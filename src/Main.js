@@ -1,19 +1,16 @@
 export const playNotes_ = (notes, duration) => {
-  notes.forEach((note) => tryPlayNote(note, duration))
+  notes.forEach((note) => playNote(note, duration))
 }
 
 const ctx = new AudioContext()
 
-function tryPlayNote(freq, durationMs) {
+export const ensureAudio = () => {
   if (ctx.state === "suspended") {
-    ctx.resume().then(() => playNote(freq, durationMs))
-    return
+    ctx.resume()
   }
-
-  playNote(freq, durationMs)
 }
 
-function playNote(freq, durationMs) {
+const playNote = (freq, durationMs) => {
   const duration = durationMs / 1000
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()

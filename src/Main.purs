@@ -121,7 +121,10 @@ view state dispatch = H.fragment
       , gridView
       , H.div "mt-3"
         [ H.button_ "btn btn-primary"
-            { onClick: dispatch <| (if isJust state.play then Stop else Play) }
+            { onClick: E.handleEffect do
+                ensureAudio
+                dispatch if isJust state.play then Stop else Play
+            }
             if isJust state.play then
               "Stop"
             else
@@ -232,3 +235,5 @@ step livingCells = foldl stepRow livingCells grid
       pure (row' /\ col')
 
 foreign import playNotes_ :: EffectFn2 (Array Note) Milliseconds Unit
+
+foreign import ensureAudio :: Effect Unit
