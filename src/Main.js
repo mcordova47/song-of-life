@@ -6,7 +6,17 @@ const ctx = new AudioContext()
 
 export const ensureAudio = () => {
   if (ctx.state === "suspended") {
-    ctx.resume()
+    const resume = function () {
+      ctx.resume()
+
+      setTimeout(() => {
+        if (ctx.state === 'running') {
+          document.body.removeEventListener('touchend', resume, false);
+        }
+      }, 0)
+    }
+
+    document.body.addEventListener('touchend', resume, false);
   }
 }
 

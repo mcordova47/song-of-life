@@ -44,11 +44,13 @@ type State =
   }
 
 init :: Transition Message State
-init = pure
-  { livingCells: Presets.heart
-  , play: Nothing
-  , speed: 5
-  }
+init = do
+  forkVoid $ liftEffect ensureAudio
+  pure
+    { livingCells: Presets.heart
+    , play: Nothing
+    , speed: 5
+    }
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
@@ -121,9 +123,7 @@ view state dispatch = H.fragment
       , gridView
       , H.div "mt-3"
         [ H.button_ "btn btn-primary"
-            { onClick: E.handleEffect do
-                ensureAudio
-                dispatch if isJust state.play then Stop else Play
+            { onClick: dispatch <| if isJust state.play then Stop else Play
             }
             if isJust state.play then
               "Stop"
