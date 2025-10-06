@@ -32,7 +32,7 @@ main = defaultMain { def: { init, view, update }, elementId: "app" }
 data Message
   = AutoStep
   | Beat (Array Note) Milliseconds
-  | Stop
+  | Pause
   | Play
   | Reset
   | SetSpeed Int
@@ -63,7 +63,7 @@ update state = case _ of
   Beat notes' dur -> do
     forkVoid $ liftEffect $ runEffectFn2 playNotes_ notes' dur
     pure state { play = inc state.play }
-  Stop ->
+  Pause ->
     pure state { play = Nothing }
   Play -> do
     autoStep state.livingCells
@@ -126,40 +126,51 @@ view state dispatch = H.fragment
         ]
       , gridView
       , H.div "mt-3"
-        [ H.button_ "btn btn-primary"
-            { onClick: dispatch <| if isJust state.play then Stop else Play
+        [ H.div "d-flex" $
+            H.div "d-inline-flex mx-auto bg-lightblue rounded-pill py-2 px-4"
+            [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
+                { onClick: dispatch <| if isJust state.play then Pause else Play
+                , title: if isJust state.play then "Pause" else "Play"
+                }
+                if isJust state.play then
+                  F.pauseCircle { size: 32 }
+                else
+                  F.playCircle { size: 32 }
+              , H.button_ "btn text-salmon hover:text-salmon-highlight ms-2 p-0"
+                  { onClick: dispatch <| Step
+                  , title: "Step"
+                  } $
+                  F.arrowRightCircle { size: 32 }
+              , H.button_ "btn text-salmon hover:text-salmon-highlight ms-2 p-0"
+                  { onClick: dispatch <| Reset
+                  , title: "Reset"
+                  } $
+                  F.refreshCcw { size: 32 }
+              ]
+        , H.div "mt-3"
+          [ H.h5 "" "Configuration"
+          , H.div_ ""
+            { style: H.css { width: 200 }
             }
-            if isJust state.play then
-              "Stop"
-            else
-              "Play"
-        , H.button_ "btn btn-outline-primary ms-2"
-            { onClick: dispatch <| Step }
-            "Step"
-        , H.button_ "btn btn-outline-primary ms-2"
-            { onClick: dispatch <| Reset }
-            "Reset"
-        , H.div_ "mt-3"
-          { style: H.css { width: 200 }
-          }
-          [ H.label_ "form-label fw-bold"
-              { htmlFor: "speed-input" }
-              "Speed"
-          , H.input_ "form-range"
-              { type: "range"
-              , min: "1"
-              , max: "10"
-              , step: "1"
-              , value: show state.speed
-              , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
-              , id: "speed-input"
-              }
+            [ H.label_ "form-label fw-bold"
+                { htmlFor: "speed-input" }
+                "Speed"
+            , H.input_ "form-range"
+                { type: "range"
+                , min: "1"
+                , max: "10"
+                , step: "1"
+                , value: show state.speed
+                , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
+                , id: "speed-input"
+                }
+            ]
           ]
         ]
       ]
   ]
   where
-    gridView = H.div ("overflow-auto" <> M.guard (isJust state.play) " playing") $
+    gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
       grid <#> \row ->
         H.div "d-flex" $
           row <#> \cell ->
