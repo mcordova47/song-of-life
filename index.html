@@ -22,12 +22,16 @@
         font-family: 'Terminal Grotesque', 'Lucida Console', 'Courier New', monospace;
       }
 
-      .bg-lightblue {
+      .bg-lightblue, .grid-cell-container.active, .grid-cell-container.active .grid-cell {
         background-color: rgb(186, 213, 255) !important;
       }
 
-      .bg-salmon {
+      .bg-salmon, .playing .grid-cell-container.active .grid-cell.bg-salmon {
         background-color: #ff75aa !important;
+      }
+
+      .playing .grid-cell.bg-salmon {
+        background-color: #ffc7dd !important;
       }
 
       .text-salmon, a {
