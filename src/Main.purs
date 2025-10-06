@@ -45,13 +45,11 @@ type State =
   }
 
 init :: Transition Message State
-init = do
-  forkVoid $ liftEffect ensureAudio
-  pure
-    { livingCells: Presets.heart
-    , play: Nothing
-    , speed: 5
-    }
+init = pure
+  { livingCells: Presets.heart
+  , play: Nothing
+  , speed: 5
+  }
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
@@ -230,5 +228,3 @@ step livingCells = foldl stepRow livingCells grid
       pure (row' /\ col')
 
 foreign import playNotes_ :: EffectFn2 (Array Note) Milliseconds Unit
-
-foreign import ensureAudio :: Effect Unit
