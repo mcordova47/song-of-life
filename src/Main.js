@@ -1,8 +1,17 @@
 export const playNotes_ = (notes, duration) => {
-  notes.forEach((note) => playNote(note, duration))
+  notes.forEach((note) => tryPlayNote(note, duration))
 }
 
 const ctx = new AudioContext()
+
+function tryPlayNote(freq, durationMs) {
+  if (ctx.state === "suspended") {
+    ctx.resume().then(() => playNote(freq, durationMs))
+    return
+  }
+
+  playNote(freq, durationMs)
+}
 
 function playNote(freq, durationMs) {
   const duration = durationMs / 1000
