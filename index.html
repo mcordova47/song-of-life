@@ -20,6 +20,7 @@
 
       body {
         font-family: 'Terminal Grotesque', 'Lucida Console', 'Courier New', monospace;
+        padding-bottom: 2rem;
       }
 
       .bg-lightblue, .grid-cell-container.active, .grid-cell-container.active .grid-cell {
@@ -59,6 +60,47 @@
           width: 1rem;
           margin: 0.15rem;
         }
+      }
+
+      .form-range::-webkit-slider-runnable-track {
+        border-radius: 0 !important;
+      }
+
+      .form-range::-moz-range-track {
+        border-radius: 0 !important;
+      }
+
+      .form-range::-webkit-slider-thumb {
+        border-radius: 0 !important;
+        background-color: #ff75aa !important;
+      }
+
+      .form-range::-moz-range-thumb {
+        border-radius: 0 !important;
+        background-color: #ff75aa !important;
+      }
+
+      .preset-grid {
+        cursor: pointer;
+      }
+
+      .preset-grid:hover {
+        border-color: rgb(186, 213, 255) !important;
+      }
+
+      .preset-grid:hover,
+      .preset-grid:hover .preset-grid-cell {
+        background-color: rgb(226, 237, 255) !important;
+      }
+
+      .preset-grid:hover .preset-grid-cell.bg-salmon {
+        background-color: #fe98bf !important;
+      }
+
+      .preset-grid-cell {
+        height: 0.5rem;
+        width: 0.5rem;
+        margin: 0.05rem;
       }
     </style>
   </head>

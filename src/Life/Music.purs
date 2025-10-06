@@ -1,4 +1,4 @@
-module Music
+module Life.Music
   ( (<<)
   , (>>)
   , Note

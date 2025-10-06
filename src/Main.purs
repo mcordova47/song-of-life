@@ -2,7 +2,6 @@ module Main where
 
 import Prelude
 
-import Cell (Cell)
 import Control.Alternative (guard)
 import Data.Array (foldl, (..))
 import Data.Array as Array
@@ -22,9 +21,10 @@ import Elmish (Dispatch, ReactElement, Transition, forkVoid, forks, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
-import Feather as F
-import Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, (<<), (>>))
-import Presets as Presets
+import Life.Cell (Cell)
+import Life.Icons as I
+import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, (<<), (>>))
+import Life.Presets as Presets
 
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
@@ -32,6 +32,7 @@ main = defaultMain { def: { init, view, update }, elementId: "app" }
 data Message
   = AutoStep
   | Beat (Array Note) Milliseconds
+  | LoadPreset (Set Cell)
   | Pause
   | Play
   | Reset
@@ -76,6 +77,8 @@ update state = case _ of
     pure state { livingCells = step state.livingCells }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
+  LoadPreset cells ->
+    pure state { livingCells = cells }
   where
     autoStep cells =
       forks \{ dispatch } -> do
@@ -107,7 +110,7 @@ view state dispatch = H.fragment
             "Songs of Life"
       , H.a_ "hover:translucent"
           { href: "https://github.com/mcordova47/song-of-life", target: "_blank" } $
-          F.github { size: 32 }
+          I.github { size: 48 }
       ]
   , H.div_ "container" { style: H.css { maxWidth: "800px" } } $
       H.div "mt-3 mx-auto"
@@ -118,7 +121,7 @@ view state dispatch = H.fragment
             , target: "_blank"
             }
             [ H.text "Conway’s Game of Life "
-            , F.externalLink { size: 16 }
+            , I.externalLink { size: 16 }
             ]
         , H.text """
             will play out. Each row corresponds to a note and each column is a
@@ -126,7 +129,7 @@ view state dispatch = H.fragment
             will change and the next measure will play.
         """
         ]
-      , gridView
+      , gridView true state.livingCells
       , H.div "mt-3"
         [ H.div "d-flex" $
             H.div "d-inline-flex mx-auto bg-lightblue rounded-pill py-2 px-4"
@@ -135,19 +138,19 @@ view state dispatch = H.fragment
                 , title: if isJust state.play then "Pause" else "Play"
                 }
                 if isJust state.play then
-                  F.pauseCircle { size: 32 }
+                  I.pause { size: 32 }
                 else
-                  F.playCircle { size: 32 }
+                  I.play { size: 32 }
               , H.button_ "btn text-salmon hover:text-salmon-highlight ms-2 p-0"
                   { onClick: dispatch <| Step
                   , title: "Step"
                   } $
-                  F.arrowRightCircle { size: 32 }
+                  I.arrowBarRight { size: 32 }
               , H.button_ "btn text-salmon hover:text-salmon-highlight ms-2 p-0"
                   { onClick: dispatch <| Reset
                   , title: "Reset"
                   } $
-                  F.refreshCcw { size: 32 }
+                  I.trash { size: 32 }
               ]
         , H.div "mt-3"
           [ H.h5 "" "Configuration"
@@ -168,18 +171,40 @@ view state dispatch = H.fragment
                 }
             ]
           ]
+        , H.div "mt-3"
+          [ H.h5 "" "Presets"
+          , presets
+          ]
         ]
       ]
   ]
   where
-    gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
+    gridView full cells = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
       grid <#> \row ->
-        H.div "d-flex" $
+        H.div_ "d-flex"
+          { style: H.css { lineHeight: 0 } } $
           row <#> \cell ->
-            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just (snd cell)) " active") $
-              H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
-                { onClick: dispatch <| ToggleCell cell }
+            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (full && state.play == Just (snd cell)) " active") $
+              H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell cells then "salmon" else "light")
+                { onClick: dispatch' $ ToggleCell cell }
                 H.empty
+      where
+        dispatch' msg =
+          dispatch <?| if full then Just msg else Nothing
+
+    presets =
+      H.div "row" $ Presets.all <#> \cells ->
+        H.div "col-6 col-sm-4 col-md-3 pb-3" $
+          H.div_ "preset-grid d-flex rounded overflow-hidden border"
+            { onClick: dispatch <| LoadPreset cells } $
+            H.div "mx-auto" $
+              grid <#> \row ->
+                H.div_ "d-flex"
+                  { style: H.css { lineHeight: 0 } } $
+                  row <#> \cell ->
+                    H.div "d-inline-block m-0 preset-grid-cell-container" $
+                      H.div ("d-inline-block preset-grid-cell bg-" <> if Set.member cell cells then "salmon" else "light")
+                        H.empty
 
 grid :: Array (Array Cell)
 grid =
