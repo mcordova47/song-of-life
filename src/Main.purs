@@ -22,6 +22,7 @@ import Elmish (Dispatch, ReactElement, Transition, forkVoid, forks, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
+import Feather as F
 import Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, (<<), (>>))
 import Presets as Presets
 
@@ -106,13 +107,17 @@ view state dispatch = H.fragment
             "Songs of Life"
       , H.a_ "hover:translucent"
           { href: "https://github.com/mcordova47/song-of-life", target: "_blank" } $
-          H.img_ "img-fluid" { src: "/assets/images/github-mark.svg", style: H.css { height: "2.5rem" } }
+          F.github { size: 32 }
       ]
   , H.div_ "container" { style: H.css { maxWidth: "800px" } } $
       H.div "mt-3 mx-auto"
       [ H.p ""
         [ H.text "Click some cells to change the starting conditions, then press play and "
-        , H.a_ "" { href: "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life" } "Conway’s Game of Life"
+        , H.a_ ""
+            { href: "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life" }
+            [ H.text "Conway’s Game of Life "
+            , F.externalLink { size: 16 }
+            ]
         , H.text """
             will play out. Each row corresponds to a note and each column is a
             beat in a measure. Each beat will play and then the living cells
