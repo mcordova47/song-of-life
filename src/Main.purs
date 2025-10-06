@@ -155,19 +155,13 @@ view state dispatch = H.fragment
       ]
   ]
   where
-    gridView = H.div "" $
+    gridView = H.div "overflow-auto" $
       grid <#> \row ->
-        H.div "" $
+        H.div "d-flex" $
           row <#> \cell ->
-            H.div ("d-inline-block m-0 p-1" <> if state.play == Just (snd cell) then " bg-lightblue" else "") $
-              H.div_ ("d-inline-block bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
-                { style: H.css
-                    { width: 30
-                    , height: 30
-                    , cursor: "pointer"
-                    }
-                , onClick: dispatch <| ToggleCell cell
-                }
+            H.div ("d-inline-block m-0" <> if state.play == Just (snd cell) then " bg-lightblue" else "") $
+              H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
+                { onClick: dispatch <| ToggleCell cell }
                 H.empty
 
 grid :: Array (Array Cell)
