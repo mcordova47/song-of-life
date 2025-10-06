@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 
+import Cell (Cell)
 import Control.Alternative (guard)
 import Data.Array (foldl, (..))
 import Data.Array as Array
@@ -11,7 +12,7 @@ import Data.Maybe (Maybe(..), isJust)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (fst, snd)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -21,6 +22,7 @@ import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, (<<), (>>))
+import Presets as Presets
 
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
@@ -41,11 +43,9 @@ type State =
   , speed :: Int
   }
 
-type Cell = Int /\ Int
-
 init :: Transition Message State
 init = pure
-  { livingCells: Set.empty
+  { livingCells: Presets.heart
   , play: Nothing
   , speed: 5
   }
@@ -96,52 +96,68 @@ update state = case _ of
       Nothing -> Nothing
 
 view :: State -> Dispatch Message -> ReactElement
-view state dispatch =
-  H.div "container" $
-    H.div "mt-3 mx-auto"
-    [ gridView
-    , H.div "mt-3"
-      [ H.button_ "btn btn-primary"
-          { onClick: dispatch <| (if isJust state.play then Stop else Play) }
-          if isJust state.play then
-            "Stop"
-          else
-            "Play"
-      , H.button_ "btn btn-outline-primary ms-2"
-          { onClick: dispatch <| Step }
-          "Step"
-      , H.button_ "btn btn-outline-primary ms-2"
-          { onClick: dispatch <| Reset }
-          "Reset"
-      , H.div_ "mt-3"
-        { style: H.css { width: 200 }
-        }
-        [ H.label_ "form-label fw-bold"
-            { htmlFor: "speed-input" }
-            "Speed"
-        , H.input_ "form-range"
-            { type: "range"
-            , min: "1"
-            , max: "10"
-            , step: "1"
-            , value: show state.speed
-            , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
-            , id: "speed-input"
-            }
+view state dispatch = H.fragment
+  [ H.div "w-100 bg-lightblue" $
+      H.div "container d-flex justify-content-between align-items-center py-2"
+      [ H.h1 "d-inline-block mb-0" $
+          H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none"
+            { href: "/" }
+            "Songs of Life"
+      , H.a_ "hover:translucent"
+          { href: "https://github.com/mcordova47/song-of-life", target: "_blank" } $
+          H.img_ "img-fluid" { src: "/assets/images/github-mark.svg", style: H.css { height: "2.5rem" } }
+      ]
+  , H.div_ "container" { style: H.css { maxWidth: "800px" } } $
+      H.div "mt-3 mx-auto"
+      [ H.p ""
+        [ H.text "Click some cells to change the starting conditions, then press play and "
+        , H.a_ "" { href: "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life" } "Conway’s Game of Life"
+        , H.text """
+            will play out. Each row corresponds to a note and each column is a
+            beat in a measure. Each beat will play and then the living cells
+            will change and the next measure will play.
+        """
+        ]
+      , gridView
+      , H.div "mt-3"
+        [ H.button_ "btn btn-primary"
+            { onClick: dispatch <| (if isJust state.play then Stop else Play) }
+            if isJust state.play then
+              "Stop"
+            else
+              "Play"
+        , H.button_ "btn btn-outline-primary ms-2"
+            { onClick: dispatch <| Step }
+            "Step"
+        , H.button_ "btn btn-outline-primary ms-2"
+            { onClick: dispatch <| Reset }
+            "Reset"
+        , H.div_ "mt-3"
+          { style: H.css { width: 200 }
+          }
+          [ H.label_ "form-label fw-bold"
+              { htmlFor: "speed-input" }
+              "Speed"
+          , H.input_ "form-range"
+              { type: "range"
+              , min: "1"
+              , max: "10"
+              , step: "1"
+              , value: show state.speed
+              , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
+              , id: "speed-input"
+              }
+          ]
         ]
       ]
-    ]
+  ]
   where
     gridView = H.div "" $
       grid <#> \row ->
         H.div "" $
           row <#> \cell ->
-            H.div_ "d-inline-block m-0 p-1"
-              { style: case state.play of
-                  Just n | n == snd cell -> H.css { backgroundColor: "#ffedf4" }
-                  _ -> H.css {}
-              } $
-              H.div_ ("d-inline-block bg-" <> if Set.member cell state.livingCells then "primary" else "light")
+            H.div ("d-inline-block m-0 p-1" <> if state.play == Just (snd cell) then " bg-lightblue" else "") $
+              H.div_ ("d-inline-block bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
                 { style: H.css
                     { width: 30
                     , height: 30

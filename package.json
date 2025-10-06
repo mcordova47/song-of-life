@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "spago build && esbuild ./output/Main/index.js --bundle --outfile=public/index.js --global-name=Main && cp index.html public/index.html",
+    "build": "spago build && esbuild ./output/Main/index.js --bundle --outfile=public/index.js --global-name=Main && cp index.html public/index.html && cp -r assets/ public/assets",
     "start": "spago build && esbuild ./output/Main/index.js --bundle --serve --servedir=. --outfile=index.js --global-name=Main",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
