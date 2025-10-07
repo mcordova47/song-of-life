@@ -80,20 +80,26 @@
         background-color: #ff75aa !important;
       }
 
-      .preset-grid {
+      .preset {
         cursor: pointer;
+        background-color: var(--bs-light);
       }
 
-      .preset-grid:hover {
+      .preset:hover {
         border-color: rgb(186, 213, 255) !important;
       }
 
-      .preset-grid:hover,
-      .preset-grid:hover .preset-grid-cell {
+      .preset-grid {
+        background-color: white;
+      }
+
+      .preset:hover,
+      .preset:hover .preset-grid,
+      .preset:hover .preset-grid-cell {
         background-color: rgb(226, 237, 255) !important;
       }
 
-      .preset-grid:hover .preset-grid-cell.bg-salmon {
+      .preset:hover .preset-grid-cell.bg-salmon {
         background-color: #fe98bf !important;
       }
 
