@@ -13,7 +13,6 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
-import Debug (traceM)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -23,7 +22,6 @@ import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Cell (Cell)
-import Life.Debug (displayCells)
 import Life.Icons as I
 import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, (<<), (>>))
 import Life.Presets as Presets
@@ -69,7 +67,6 @@ update state = case _ of
   Pause ->
     pure state { play = Nothing }
   Play -> do
-    traceM $ displayCells state.livingCells
     autoStep state.livingCells
     pure state { play = Just (-1) }
   Reset ->
