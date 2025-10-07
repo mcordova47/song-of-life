@@ -73,11 +73,71 @@ export const trash_ = props =>
     `)
   )
 
+// Custom
+
+export const sineWave_ = props =>
+  svg(
+    { ...props, viewBox: "0 0 17 17" },
+    path(`
+      M1 9
+      v-2h1v-2h1v-1h1v-1h2
+      v1h1v1h1v2h1v3h1v2h1v1h2
+      v-1h1v-2h1v-2h1
+      v2h-1v2h-1v1h-1v1h-2
+      v-1h-1v-1h-1v-2h-1v-3h-1v-2h-1v-1h-2
+      v1h-1v2h-1v2h-1z
+    `)
+  )
+
+export const squareWave_ = props =>
+  svg(
+    { ...props, viewBox: "0 0 17 17" },
+    path(`
+      M1 9
+      v-5h8
+      v8h6
+      v-4h1
+      v5h-8
+      v-8h-6
+      v4z
+    `)
+  )
+
+export const triangleWave_ = props =>
+  svg(
+    { ...props, viewBox: "0 0 17 17" },
+    path(`
+      M2 9
+      v-1h1v-1h1v-1h1v-1h1
+      v1h1v1h1v1h1v1h1v1h1v1h1
+      v-1h1v-1h1v-1h1
+      v1h-1v1h-1v1h-1v1h-1
+      v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1
+      v1h-1v1h-1v1h-1z
+    `)
+  )
+
+export const sawtoothWave_ = props =>
+  svg(
+    { ...props, viewBox: "0 0 17 17" },
+    path(`
+      M1 9
+      v-1h2v-1h2v-1h2v-1h2
+      v6h1
+      v-1h2v-1h2v-1h2
+      v1h-2v1h-2v1h-2v1h-2
+      v-6h-1
+      v1h-2v1h-2v1h-2z
+    `)
+  )
+
+// Utils
+
 const svg = (props, children) => e(
   "svg",
   {
     xmlns: "http://www.w3.org/2000/svg",
-    viewBox: "0 0 24 24",
+    viewBox: props.viewBox || "0 0 24 24",
     width: props.size,
     height: props.size
   },

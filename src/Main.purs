@@ -16,15 +16,16 @@ import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
-import Effect.Uncurried (EffectFn2, runEffectFn2)
 import Elmish (Dispatch, ReactElement, Transition, forkVoid, forks, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Cell (Cell)
 import Life.Icons as I
-import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, (<<), (>>))
+import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, playNote, (<<), (>>))
 import Life.Presets as Presets
+import Life.Wave (Wave)
+import Life.Wave as Wave
 
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
@@ -37,6 +38,7 @@ data Message
   | Play
   | Reset
   | SetSpeed Int
+  | SetWave Wave
   | Step
   | ToggleCell Cell
 
@@ -44,6 +46,7 @@ type State =
   { livingCells :: Set Cell
   , play :: Maybe Int
   , speed :: Int
+  , wave :: Wave
   }
 
 init :: Transition Message State
@@ -51,6 +54,7 @@ init = pure
   { livingCells: Presets.heart
   , play: Nothing
   , speed: 5
+  , wave: Wave.sine
   }
 
 update :: State -> Message -> Transition Message State
@@ -62,7 +66,7 @@ update state = case _ of
   AutoStep ->
     pure state
   Beat notes' dur -> do
-    forkVoid $ liftEffect $ runEffectFn2 playNotes_ notes' dur
+    forkVoid $ liftEffect $ for_ notes' $ playNote dur state.wave
     pure state { play = inc state.play }
   Pause ->
     pure state { play = Nothing }
@@ -73,6 +77,8 @@ update state = case _ of
     pure state { livingCells = Set.empty }
   SetSpeed speed ->
     pure state { speed = speed }
+  SetWave wave ->
+    pure state { wave = wave }
   Step ->
     pure state { livingCells = step state.livingCells }
   ToggleCell cell ->
@@ -132,25 +138,25 @@ view state dispatch = H.fragment
       , gridView true state.livingCells
       , H.div "mt-3"
         [ H.div "d-flex" $
-            H.div "d-inline-flex mx-auto bg-lightblue rounded-pill py-2 px-4"
+            H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
             [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
-                { onClick: dispatch <| if isJust state.play then Pause else Play
-                , title: if isJust state.play then "Pause" else "Play"
-                }
-                if isJust state.play then
-                  I.pause { size: 32 }
-                else
-                  I.play { size: 32 }
-              , H.button_ "btn text-salmon hover:text-salmon-highlight ms-2 p-0"
-                  { onClick: dispatch <| Step
-                  , title: "Step"
-                  } $
-                  I.arrowBarRight { size: 32 }
-              , H.button_ "btn text-salmon hover:text-salmon-highlight ms-2 p-0"
                   { onClick: dispatch <| Reset
                   , title: "Reset"
                   } $
                   I.trash { size: 32 }
+            , H.button_ "btn text-salmon hover:text-salmon-highlight ms-3 me-2 p-0"
+                { onClick: dispatch <| if isJust state.play then Pause else Play
+                , title: if isJust state.play then "Pause" else "Play"
+                }
+                if isJust state.play then
+                  I.pause { size: 64 }
+                else
+                  I.play { size: 64 }
+              , H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
+                  { onClick: dispatch <| Step
+                  , title: "Step"
+                  } $
+                  I.arrowBarRight { size: 32 }
               ]
         , H.div "mt-3"
           [ H.h5 "" "Configuration"
@@ -169,6 +175,67 @@ view state dispatch = H.fragment
                 , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
                 , id: "speed-input"
                 }
+            ]
+          , H.label "mb-2" "Wave Type"
+          , H.div "row" $ Wave.all <#> \wave ->
+              H.div "col-6 col-sm-3 col-lg-2" $
+                H.div_ ("border rounded card-btn mb-3" <> M.guard (wave == state.wave) " active")
+                  { onClick: dispatch <| SetWave wave } $
+                  H.div "mx-auto text-center"
+                  [ H.div "" $
+                      Wave.icon { size: 48 } wave
+                  , H.div "" $ Wave.display wave
+                  ]
+          ]
+        , H.div "mt-3"
+          [ H.h5 "" "Rules"
+          , H.p ""
+            [ H.text "The "
+            , H.strong "text-salmon" "Game of Life"
+            , H.text """
+                is often referred to as a zero-player game. Each
+                step of the game is determined by the previous step and consists
+                of changing the state of each of the cells.
+              """
+            ]
+          , H.ol ""
+            [ H.li ""
+              [ H.text "A cell is either "
+              , H.strong "text-salmon" "alive"
+              , H.text " or "
+              , H.strong "text-salmon" "dead"
+              ]
+            , H.li ""
+              [ H.text "A cell’s "
+              , H.strong "text-salmon" "neighbors"
+              , H.text " are the cells adjacent to that cell (vertically, horizontally, or diagonally)"
+              ]
+            , H.li "" "The state of a given cell is determined by its neighbors’ previous state"
+            , H.li ""
+              [ H.text "A cell with "
+              , H.strong "text-salmon" "fewer than 2"
+              , H.text " living neighbors will die"
+              ]
+            , H.li ""
+              [ H.text "A cell with "
+              , H.strong "text-salmon" "2"
+              , H.text " living neighbors will stay alive (or dead)"
+              ]
+            , H.li ""
+              [ H.text "A cell with "
+              , H.strong "text-salmon" "3"
+              , H.text " living neighbors will come to life"
+              ]
+            , H.li ""
+              [ H.text "A cell with "
+              , H.strong "text-salmon" "more than 3"
+              , H.text " living neighbors will die"
+              ]
+            ]
+          , H.p ""
+            [ H.text "This is a "
+            , H.strong "text-salmon" "bounded"
+            , H.text " Game of Life, whereas it is often played on an infinite grid."
             ]
           ]
         , H.div "mt-3"
@@ -269,5 +336,3 @@ step livingCells = foldl stepRow livingCells grid
       col' <- [col - 1, col, col + 1]
       guard $ (row' /\ col') /= (row /\ col)
       pure (row' /\ col')
-
-foreign import playNotes_ :: EffectFn2 (Array Note) Milliseconds Unit

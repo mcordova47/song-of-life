@@ -5,7 +5,11 @@ module Life.Icons
   , github
   , pause
   , play
+  , sawtoothWave
+  , sineWave
+  , squareWave
   , trash
+  , triangleWave
   )
   where
 
@@ -32,9 +36,30 @@ play = runFn1 play_
 trash ∷ Props -> ReactElement
 trash = runFn1 trash_
 
+-- Custom
+
+sineWave :: Props -> ReactElement
+sineWave = runFn1 sineWave_
+
+squareWave :: Props -> ReactElement
+squareWave = runFn1 squareWave_
+
+triangleWave :: Props -> ReactElement
+triangleWave = runFn1 triangleWave_
+
+sawtoothWave :: Props -> ReactElement
+sawtoothWave = runFn1 sawtoothWave_
+
+-- Foreign
+
 foreign import arrowBarRight_ :: Fn1 Props ReactElement
 foreign import externalLink_ :: Fn1 Props ReactElement
 foreign import github_ :: Fn1 Props ReactElement
 foreign import pause_ :: Fn1 Props ReactElement
 foreign import play_ :: Fn1 Props ReactElement
 foreign import trash_ :: Fn1 Props ReactElement
+
+foreign import sineWave_ :: Fn1 Props ReactElement
+foreign import squareWave_ :: Fn1 Props ReactElement
+foreign import triangleWave_ :: Fn1 Props ReactElement
+foreign import sawtoothWave_ :: Fn1 Props ReactElement

@@ -23,6 +23,7 @@ module Life.Music
   , pentatonic
   , perfect4th
   , perfect5th
+  , playNote
   , subtractStep
   , tritone
   , wholeStep
@@ -36,6 +37,10 @@ import Data.Array as Array
 import Data.Foldable (fold)
 import Data.Monoid (power)
 import Data.Number as Number
+import Data.Time.Duration (Milliseconds)
+import Effect (Effect)
+import Effect.Uncurried (EffectFn3, runEffectFn3)
+import Life.Wave (Wave)
 
 newtype Note = Note Number
 
@@ -122,3 +127,8 @@ nthNote scale note n
       scaleStep = fold (scale !! mod (n - 1) (Array.length scale))
       additionalStep =
         power octave $ n / Array.length scale
+
+playNote :: Milliseconds -> Wave -> Note -> Effect Unit
+playNote = runEffectFn3 playNote_
+
+foreign import playNote_ :: EffectFn3 Milliseconds Wave Note Unit

@@ -1,10 +1,6 @@
-export const playNotes_ = (notes, duration) => {
-  notes.forEach((note) => playNote(note, duration))
-}
-
 const ctx = new AudioContext()
 
-const playNote = (freq, durationMs) => {
+export const playNote_ = (durationMs, wave, freq) => {
   const duration = durationMs / 1000
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
@@ -13,7 +9,7 @@ const playNote = (freq, durationMs) => {
   const now = ctx.currentTime
 
   osc.frequency.value = freq
-  osc.type = "sine"
+  osc.type = wave
 
   gain.gain.setValueAtTime(0.001, now)
   gain.gain.exponentialRampToValueAtTime(0.2, now + attack)
