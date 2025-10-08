@@ -24,9 +24,9 @@ derive newtype instance Eq Wave
 
 all :: Array Wave
 all =
-  [ sine
+  [ triangle
+  , sine
   , square
-  , triangle
   , sawtooth
   ]
 
