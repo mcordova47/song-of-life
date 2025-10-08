@@ -54,7 +54,7 @@ init = pure
   { livingCells: Presets.heart
   , play: Nothing
   , speed: 5
-  , wave: Wave.sine
+  , wave: Wave.triangle
   }
 
 update :: State -> Message -> Transition Message State
