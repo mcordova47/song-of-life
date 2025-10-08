@@ -262,6 +262,7 @@ view state dispatch = H.fragment
         dispatch' msg =
           dispatch <?| if full then Just msg else Nothing
 
+    -- TODO: show states change on hover
     presets =
       H.div "row" $ Presets.all <#> \cells ->
         H.div "col-6 col-sm-4 col-md-3 pb-3" $
@@ -286,6 +287,7 @@ grid =
 root :: Note
 root = a4 << octave
 
+-- TODO: make this configurable
 notes :: Array Note
 notes = ((>>) root) <$>
   [ mempty
@@ -305,9 +307,11 @@ notes = ((>>) root) <$>
 duration :: Number
 duration = 15_000.0
 
+-- TODO: make this configurable
 beatsPerMeasure :: Int
 beatsPerMeasure = 16
 
+-- TODO: move grid logic to its own module
 transpose :: forall a. Array (Array a) -> Array (Array a)
 transpose rows = case Array.head rows of
   Just row -> transpose' (Array.length row) rows
