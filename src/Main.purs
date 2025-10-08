@@ -59,6 +59,9 @@ init = pure
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
+  -- TODO: Refactor AutoStep logic:
+  --  - length - 1 hack
+  --  - let Beat drive the engine so that speed and notes can be changed in real time
   AutoStep | Just _ <- state.play -> do
     let livingCells = step state.livingCells
     autoStep livingCells
