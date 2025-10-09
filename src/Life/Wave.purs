@@ -1,6 +1,9 @@
+-- TODO: Move under Life.Types
 module Life.Wave
   ( Wave(..)
   , all
+  , codec
+  , default
   , display
   , icon
   , sawtooth
@@ -12,7 +15,12 @@ module Life.Wave
 
 import Prelude
 
+import Data.Argonaut (Json)
+import Data.Codec.Argonaut (Codec, JsonDecodeError)
+import Data.Codec.Argonaut as C
+import Data.Either (Either)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Profunctor (wrapIso)
 import Data.String as String
 import Elmish (ReactElement)
 import Elmish.HTML.Styled as H
@@ -22,6 +30,9 @@ newtype Wave = Wave String
 derive instance Newtype Wave _
 derive newtype instance Eq Wave
 
+codec ∷ Codec (Either JsonDecodeError) Json Json Wave Wave
+codec = wrapIso Wave C.string
+
 all :: Array Wave
 all =
   [ triangle
@@ -29,6 +40,9 @@ all =
   , square
   , sawtooth
   ]
+
+default :: Wave
+default = triangle
 
 sine :: Wave
 sine = Wave "sine"

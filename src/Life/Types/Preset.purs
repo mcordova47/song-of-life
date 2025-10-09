@@ -3,35 +3,103 @@ module Life.Types.Preset
   , PresetV1
   , all
   , bottomRightGlider
+  , codec
   , collision
+  , decode
+  , default
+  , encode
+  , encodeJson
+  , fromCells
+  , fromState
   , glider
   , heart
   , livingCells
   , musicNotes
   , octocat
   , pond
+  , urlCodec
+  , wave
   )
   where
 
 import Prelude
 
+import Data.Argonaut (Json)
+import Data.Argonaut as J
+import Data.Codec.Argonaut (Codec, JsonDecodeError, (>~>))
+import Data.Codec.Argonaut as C
+import Data.Codec.Argonaut.Common as CC
+import Data.Codec.Argonaut.Record as CR
+import Data.Codec.Argonaut.Variant as CAV
+import Data.Either (Either(..), hush)
+import Data.Maybe (Maybe)
+import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
+import Data.Variant as V
+import Life.Compression as Compression
+import Life.Json as Json
 import Life.Types.Cell (Cell)
+import Life.Types.Cell as Cell
+import Life.Wave (Wave)
+import Life.Wave as Wave
+import Type.Proxy (Proxy(..))
 
 data Preset
   = V1 PresetV1
 
 type PresetV1 =
   { livingCells :: Set Cell
+  , wave :: Wave
   }
+
+urlCodec ∷ Codec (Either JsonDecodeError) String String Preset Preset
+urlCodec = Compression.codec >~> Json.codec >~> codec
+
+codec :: Codec (Either JsonDecodeError) Json Json Preset Preset
+codec =
+  dimap toVariant fromVariant $ CAV.variantMatch
+    { v1: Right codecv1 }
+  where
+    toVariant = case _ of
+      V1 p -> V.inj (Proxy :: _ "v1") p
+    fromVariant = V.match
+      { v1: V1 }
+
+codecv1 :: Codec (Either JsonDecodeError) Json Json PresetV1 PresetV1
+codecv1 =
+  C.object "PresetV1" $ CR.record
+    { livingCells: CC.set Cell.codec
+    , wave: Wave.codec
+    }
+
+encode :: Preset -> String
+encode = C.encode urlCodec
+
+decode :: String -> Maybe Preset
+decode = C.decode urlCodec >>> hush
+
+encodeJson :: Preset -> String
+encodeJson = C.encode codec >>> J.stringify
+
+fromCells :: Set Cell -> Preset
+fromCells = V1 <<< { livingCells: _, wave: Wave.default }
+
+fromState :: forall r. { livingCells :: Set Cell, wave :: Wave | r } -> Preset
+fromState s = V1 { livingCells: s.livingCells, wave: s.wave }
 
 livingCells :: Preset -> Set Cell
 livingCells (V1 p) = p.livingCells
 
+wave :: Preset -> Wave
+wave (V1 p) = p.wave
+
 presetV1 :: Array Cell -> Preset
-presetV1 = V1 <<< { livingCells: _ } <<< Set.fromFoldable
+presetV1 = fromCells <<< Set.fromFoldable
+
+default :: Preset
+default = heart
 
 all :: Array Preset
 all = [heart, pond, octocat, musicNotes, glider, collision]

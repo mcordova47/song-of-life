@@ -5,18 +5,19 @@ import Prelude
 import Control.Alternative (guard)
 import Data.Array (foldl, (..))
 import Data.Array as Array
-import Data.Foldable (for_)
+import Data.Foldable (fold, for_)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Monoid as M
 import Data.Set (Set)
 import Data.Set as Set
+import Data.String as String
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
-import Elmish (Dispatch, ReactElement, Transition, forkVoid, forks, (<?|), (<|))
+import Elmish (Dispatch, ReactElement, Transition, fork, forkVoid, forks, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
@@ -26,39 +27,57 @@ import Life.Types.Cell (Cell)
 import Life.Types.Preset as Preset
 import Life.Wave (Wave)
 import Life.Wave as Wave
+import Web.HTML (window)
+import Web.HTML.Location as Loc
+import Web.HTML.Window (location)
 
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
 
 data Message
-  = AutoStep
+  = ApplyPreset String
+  | AutoStep
   | Beat (Array Note) Milliseconds
   | LoadPreset (Set Cell)
   | Pause
   | Play
   | Reset
   | SetSpeed Int
+  | SetShareInput String
   | SetWave Wave
+  | ShowShareInput
   | Step
   | ToggleCell Cell
 
 type State =
   { livingCells :: Set Cell
   , play :: Maybe Int
+  , shareInput :: Maybe String
   , speed :: Int
   , wave :: Wave
   }
 
 init :: Transition Message State
-init = pure
-  { livingCells: Preset.livingCells Preset.heart
-  , play: Nothing
-  , speed: 5
-  , wave: Wave.triangle
-  }
+init = do
+  fork $ liftEffect $
+    window >>= location >>= Loc.hash <#> String.drop 2 <#> ApplyPreset
+  pure
+    { livingCells: Set.empty
+    , play: Nothing
+    , shareInput: Nothing
+    , speed: 5
+    , wave: Wave.default
+    }
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
+  ApplyPreset hash ->
+    let preset = Preset.decode hash # fromMaybe Preset.default
+    in
+    pure state
+      { livingCells = Preset.livingCells preset
+      , wave = Preset.wave preset
+      }
   -- TODO: Refactor AutoStep logic:
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
@@ -80,8 +99,14 @@ update state = case _ of
     pure state { livingCells = Set.empty }
   SetSpeed speed ->
     pure state { speed = speed }
+  SetShareInput origin ->
+    pure state { shareInput = Just $ origin <> "/#/" <> (Preset.encode $ Preset.fromState state) }
   SetWave wave ->
     pure state { wave = wave }
+  ShowShareInput -> do
+    fork $ liftEffect $
+      window >>= location >>= Loc.origin <#> SetShareInput
+    pure state
   Step ->
     pure state { livingCells = step state.livingCells }
   ToggleCell cell ->
@@ -239,6 +264,23 @@ view state dispatch = H.fragment
             [ H.text "This is a "
             , H.strong "text-salmon" "bounded"
             , H.text " Game of Life, whereas it is often played on an infinite grid."
+            ]
+          ]
+        , H.div "mt-3"
+          [ H.h5 "" "Share"
+          , H.div "d-flex"
+            [ H.button_ "btn btn-outline-theme"
+                { onClick: dispatch <| ShowShareInput
+                }
+                "Share"
+            , fold do
+                value <- state.shareInput
+                pure $
+                  H.input_ "form-control"
+                    { value
+                    , readOnly: true
+                    , autoFocus: true
+                    }
             ]
           ]
         , H.div "mt-3"
