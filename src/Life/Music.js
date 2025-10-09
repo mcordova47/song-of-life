@@ -8,7 +8,7 @@ export const playNote_ = (durationMs, wave, freq) => {
   const release = 0.05
   const now = ctx.currentTime
   const minGain = 0.001
-  const maxGain = // ["square", "sawtooth"].includes(wave) ? 0.1 : 0.2
+  const maxGain =
     wave === "square" ? 0.08
     : wave === "sawtooth" ? 0.13
     : wave === "triangle" ? 0.24
