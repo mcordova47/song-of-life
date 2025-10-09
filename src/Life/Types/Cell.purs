@@ -1,4 +1,4 @@
-module Life.Cell
+module Life.Types.Cell
   ( Cell
   )
   where

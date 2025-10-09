@@ -1,25 +1,43 @@
-module Life.Presets
-  ( all
+module Life.Types.Preset
+  ( Preset(..)
+  , PresetV1
+  , all
   , bottomRightGlider
   , collision
   , glider
   , heart
+  , livingCells
   , musicNotes
   , octocat
   , pond
   )
   where
 
+import Prelude
+
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
-import Life.Cell (Cell)
+import Life.Types.Cell (Cell)
 
-all :: Array (Set Cell)
+data Preset
+  = V1 PresetV1
+
+type PresetV1 =
+  { livingCells :: Set Cell
+  }
+
+livingCells :: Preset -> Set Cell
+livingCells (V1 p) = p.livingCells
+
+presetV1 :: Array Cell -> Preset
+presetV1 = V1 <<< { livingCells: _ } <<< Set.fromFoldable
+
+all :: Array Preset
 all = [heart, pond, octocat, musicNotes, glider, collision]
 
-heart :: Set Cell
-heart = Set.fromFoldable
+heart :: Preset
+heart = presetV1
   [ 0 /\ 3
   , 0 /\ 4
   , 0 /\ 5
@@ -56,8 +74,11 @@ heart = Set.fromFoldable
   , 10 /\ 7
   ]
 
-glider :: Set Cell
-glider = Set.fromFoldable
+glider :: Preset
+glider = presetV1 gliderCells
+
+gliderCells :: Array Cell
+gliderCells =
   [ 0 /\ 2
   , 1 /\ 0
   , 1 /\ 2
@@ -65,8 +86,11 @@ glider = Set.fromFoldable
   , 2 /\ 2
   ]
 
-bottomRightGlider :: Set Cell
-bottomRightGlider = Set.fromFoldable
+bottomRightGlider :: Preset
+bottomRightGlider = presetV1 bottomRightGliderCells
+
+bottomRightGliderCells :: Array Cell
+bottomRightGliderCells =
   [ 11 /\ 13
   , 10 /\ 15
   , 10 /\ 13
@@ -74,11 +98,11 @@ bottomRightGlider = Set.fromFoldable
   , 9 /\ 13
   ]
 
-collision :: Set Cell
-collision = Set.union glider bottomRightGlider
+collision :: Preset
+collision = presetV1 $ gliderCells <> bottomRightGliderCells
 
-octocat :: Set Cell
-octocat = Set.fromFoldable
+octocat :: Preset
+octocat = presetV1
   [ 1 /\ 5
   , 1 /\ 6
   , 1 /\ 10
@@ -109,8 +133,8 @@ octocat = Set.fromFoldable
   , 10 /\ 10
   ]
 
-musicNotes :: Set Cell
-musicNotes = Set.fromFoldable
+musicNotes :: Preset
+musicNotes = presetV1
   [ 1 /\ 9
   , 1 /\ 10
   , 2 /\ 7
@@ -139,8 +163,8 @@ musicNotes = Set.fromFoldable
   , 8 /\ 8
   ]
 
-pond :: Set Cell
-pond = Set.fromFoldable
+pond :: Preset
+pond = presetV1
   [ 0 /\ 9
   , 0 /\ 10
   , 1 /\ 3

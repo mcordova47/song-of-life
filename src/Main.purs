@@ -20,10 +20,10 @@ import Elmish (Dispatch, ReactElement, Transition, forkVoid, forks, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
-import Life.Cell (Cell)
 import Life.Icons as I
 import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, playNote, (<<), (>>))
-import Life.Presets as Presets
+import Life.Types.Cell (Cell)
+import Life.Types.Preset as Preset
 import Life.Wave (Wave)
 import Life.Wave as Wave
 
@@ -51,7 +51,7 @@ type State =
 
 init :: Transition Message State
 init = pure
-  { livingCells: Presets.heart
+  { livingCells: Preset.livingCells Preset.heart
   , play: Nothing
   , speed: 5
   , wave: Wave.triangle
@@ -264,7 +264,7 @@ view state dispatch = H.fragment
 
     -- TODO: show states change on hover
     presets =
-      H.div "row" $ Presets.all <#> \cells ->
+      H.div "row" $ Preset.all <#> Preset.livingCells <#> \cells ->
         H.div "col-6 col-sm-4 col-md-3 pb-3" $
           H.div_ "preset d-flex rounded overflow-hidden border"
             { onClick: dispatch <| LoadPreset cells } $
