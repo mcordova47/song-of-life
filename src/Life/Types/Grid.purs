@@ -133,7 +133,7 @@ fromCells cells = { bounds, instructions }
     minRow = cellArray <#> fst # minimum # fromMaybe 0
     cols = maxCol - minCol + 1
 
-    indices = cellArray <#> \(row /\ col) -> row * cols + col
+    indices = cellArray <#> \(row /\ col) -> (row - minRow) * cols + col - minCol
 
 toCells :: Grid -> Set Cell
 toCells { bounds, instructions } = indices <#> indexToCell # Set.fromFoldable
