@@ -8,7 +8,6 @@ module Life.Types.Preset
   , decode
   , default
   , encode
-  , encodeJson
   , fromCells
   , fromState
   , glider
@@ -17,34 +16,27 @@ module Life.Types.Preset
   , musicNotes
   , octocat
   , pond
-  , urlCodec
   , wave
   )
   where
 
 import Prelude
 
-import Data.Argonaut (Json)
 import Data.Argonaut as J
-import Data.Codec.Argonaut (Codec, JsonDecodeError, (>~>))
+import Data.Array ((!!))
+import Data.Codec.Argonaut (Codec, JsonDecodeError(..), (>~>))
 import Data.Codec.Argonaut as C
-import Data.Codec.Argonaut.Common as CC
-import Data.Codec.Argonaut.Record as CR
-import Data.Codec.Argonaut.Variant as CAV
 import Data.Either (Either(..), hush)
-import Data.Maybe (Maybe)
-import Data.Profunctor (dimap)
+import Data.Maybe (Maybe, maybe)
 import Data.Set (Set)
 import Data.Set as Set
+import Data.String (Pattern(..))
+import Data.String as String
 import Data.Tuple.Nested ((/\))
-import Data.Variant as V
-import Life.Compression as Compression
-import Life.Json as Json
 import Life.Types.Cell (Cell)
-import Life.Types.Cell as Cell
+import Life.Types.Grid as Grid
 import Life.Wave (Wave)
 import Life.Wave as Wave
-import Type.Proxy (Proxy(..))
 
 data Preset
   = V1 PresetV1
@@ -54,34 +46,30 @@ type PresetV1 =
   , wave :: Wave
   }
 
-urlCodec ∷ Codec (Either JsonDecodeError) String String Preset Preset
-urlCodec = Compression.codec >~> Json.codec >~> codec
-
-codec :: Codec (Either JsonDecodeError) Json Json Preset Preset
-codec =
-  dimap toVariant fromVariant $ CAV.variantMatch
-    { v1: Right codecv1 }
+codec ∷ Codec (Either JsonDecodeError) String String Preset Preset
+codec = codecV1 >~> C.codec (pure <<< V1) enc
   where
-    toVariant = case _ of
-      V1 p -> V.inj (Proxy :: _ "v1") p
-    fromVariant = V.match
-      { v1: V1 }
+    enc (V1 p) = p
 
-codecv1 :: Codec (Either JsonDecodeError) Json Json PresetV1 PresetV1
-codecv1 =
-  C.object "PresetV1" $ CR.record
-    { livingCells: CC.set Cell.codec
-    , wave: Wave.codec
-    }
+codecV1 :: Codec (Either JsonDecodeError) String String PresetV1 PresetV1
+codecV1 = C.codec decodeV1 encodeV1
+  where
+    decodeV1 s = do
+      let parts = String.split (Pattern "/") s
+      gridPart <- parts !! 0 # maybe (Left $ UnexpectedValue $ J.fromString s) Right
+      wavePart <- parts !! 1 # maybe (Left $ UnexpectedValue $ J.fromString s) Right
+      cells <- gridPart # Grid.decode <#> Grid.toCells
+      wave' <- Wave.decode wavePart
+      pure { livingCells: cells, wave: wave' }
+
+    encodeV1 p =
+      (p.livingCells # Grid.fromCells # Grid.encode) <> "/" <> Wave.encode p.wave
 
 encode :: Preset -> String
-encode = C.encode urlCodec
+encode = C.encode codec
 
 decode :: String -> Maybe Preset
-decode = C.decode urlCodec >>> hush
-
-encodeJson :: Preset -> String
-encodeJson = C.encode codec >>> J.stringify
+decode = C.decode codec >>> hush
 
 fromCells :: Set Cell -> Preset
 fromCells = V1 <<< { livingCells: _, wave: Wave.default }

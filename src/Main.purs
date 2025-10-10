@@ -163,7 +163,7 @@ view state dispatch = H.fragment
             will change and the next measure will play.
         """
         ]
-      , gridView true state.livingCells
+      , gridView
       , H.div "mt-3"
         [ H.div "d-flex" $
             H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
@@ -291,18 +291,15 @@ view state dispatch = H.fragment
       ]
   ]
   where
-    gridView full cells = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
+    gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
       grid <#> \row ->
         H.div_ "d-flex"
           { style: H.css { lineHeight: 0 } } $
           row <#> \cell ->
-            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (full && state.play == Just (snd cell)) " active") $
-              H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell cells then "salmon" else "light")
-                { onClick: dispatch' $ ToggleCell cell }
+            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just (snd cell)) " active") $
+              H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
+                { onClick: dispatch <| ToggleCell cell }
                 H.empty
-      where
-        dispatch' msg =
-          dispatch <?| if full then Just msg else Nothing
 
     -- TODO: show states change on hover
     presets =

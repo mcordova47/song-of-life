@@ -3,8 +3,10 @@ module Life.Wave
   ( Wave(..)
   , all
   , codec
+  , decode
   , default
   , display
+  , encode
   , icon
   , sawtooth
   , sine
@@ -15,12 +17,11 @@ module Life.Wave
 
 import Prelude
 
-import Data.Argonaut (Json)
-import Data.Codec.Argonaut (Codec, JsonDecodeError)
+import Data.Argonaut as J
+import Data.Codec.Argonaut (Codec, JsonDecodeError(..))
 import Data.Codec.Argonaut as C
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Newtype (class Newtype, unwrap)
-import Data.Profunctor (wrapIso)
 import Data.String as String
 import Elmish (ReactElement)
 import Elmish.HTML.Styled as H
@@ -30,8 +31,24 @@ newtype Wave = Wave String
 derive instance Newtype Wave _
 derive newtype instance Eq Wave
 
-codec ∷ Codec (Either JsonDecodeError) Json Json Wave Wave
-codec = wrapIso Wave C.string
+codec ∷ Codec (Either JsonDecodeError) String String Wave Wave
+codec = C.codec decode encode
+
+encode :: Wave -> String
+encode wave
+  | wave == sine = "S"
+  | wave == triangle = "W"
+  | wave == sawtooth = "Z"
+  | wave == square = "E"
+  | otherwise = ""
+
+decode :: String -> Either JsonDecodeError Wave
+decode s
+  | s == "S" = Right sine
+  | s == "W" = Right triangle
+  | s == "Z" = Right sawtooth
+  | s == "E" = Right square
+  | otherwise = Left $ UnexpectedValue $ J.fromString s
 
 all :: Array Wave
 all =
