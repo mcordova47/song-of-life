@@ -52,6 +52,9 @@ instance Show Instruction where
     Move n -> "m" <> show n
     TurnOn n -> "o" <> show n
 
+-- TODO: Debug "heart" encoding/decoding
+-- TODO: Expose uncompressed as another version
+-- TODO: Properly use codecs
 codec ∷ Codec (Either JsonDecodeError) String String Grid Grid
 codec = C.codec decode encode
 
