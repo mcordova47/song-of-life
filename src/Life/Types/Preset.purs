@@ -5,9 +5,7 @@ module Life.Types.Preset
   , bottomRightGlider
   , codec
   , collision
-  , decode
   , default
-  , encode
   , fromCells
   , fromState
   , glider
@@ -22,8 +20,6 @@ module Life.Types.Preset
 
 import Prelude
 
-import Data.Codec as C
-import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Profunctor (dimap, wrapIso)
 import Data.Set (Set)
@@ -53,12 +49,6 @@ codecV1 = dimap toTuple fromTuple (Codec.literal "1" /> Grid.codec </> Wave.code
   where
     fromTuple (g /\ w) = { livingCells: Grid.toCells g, wave: w }
     toTuple p = Grid.fromCells p.livingCells /\ p.wave
-
-encode :: Preset -> String
-encode = C.encode codec
-
-decode :: String -> Maybe Preset
-decode = C.decode codec
 
 fromCells :: Set Cell -> Preset
 fromCells = V1 <<< { livingCells: _, wave: Wave.default }

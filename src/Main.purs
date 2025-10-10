@@ -7,7 +7,7 @@ import Data.Array (foldl, (..))
 import Data.Array as Array
 import Data.Foldable (fold, for_)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
 import Data.Set (Set)
 import Data.Set as Set
@@ -25,6 +25,8 @@ import Life.Icons as I
 import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, playNote, (<<), (>>))
 import Life.Types.Cell (Cell)
 import Life.Types.Preset as Preset
+import Life.Types.Route (Route(..))
+import Life.Types.Route as Route
 import Life.Types.Wave (Wave)
 import Life.Types.Wave as Wave
 import Web.HTML (window)
@@ -35,10 +37,10 @@ main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
 
 data Message
-  = ApplyPreset String
-  | AutoStep
+  = AutoStep
   | Beat (Array Note) Milliseconds
   | LoadPreset (Set Cell)
+  | Navigate String
   | Pause
   | Play
   | Reset
@@ -60,7 +62,7 @@ type State =
 init :: Transition Message State
 init = do
   fork $ liftEffect $
-    window >>= location >>= Loc.hash <#> String.drop 2 <#> ApplyPreset
+    window >>= location >>= Loc.hash <#> String.drop 2 <#> Navigate
   pure
     { livingCells: Set.empty
     , play: Nothing
@@ -71,13 +73,6 @@ init = do
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
-  ApplyPreset hash ->
-    let preset = Preset.decode hash # fromMaybe Preset.default
-    in
-    pure state
-      { livingCells = Preset.livingCells preset
-      , wave = Preset.wave preset
-      }
   -- TODO: Refactor AutoStep logic:
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
@@ -90,6 +85,18 @@ update state = case _ of
   Beat notes' dur -> do
     forkVoid $ liftEffect $ for_ notes' $ playNote dur state.wave
     pure state { play = inc state.play }
+  Navigate hash ->
+    case Route.decode hash of
+      Just (Share preset) ->
+        pure state
+          { livingCells = Preset.livingCells preset
+          , wave = Preset.wave preset
+          }
+      Nothing ->
+        pure state
+          { livingCells = Preset.livingCells Preset.default
+          , wave = Preset.wave Preset.default
+          }
   Pause ->
     pure state { play = Nothing }
   Play -> do
@@ -100,7 +107,7 @@ update state = case _ of
   SetSpeed speed ->
     pure state { speed = speed }
   SetShareInput origin ->
-    pure state { shareInput = Just $ origin <> "/#/" <> (Preset.encode $ Preset.fromState state) }
+    pure state { shareInput = Just $ origin <> "/#/" <> (Route.encode $ Share $ Preset.fromState state) }
   SetWave wave ->
     pure state { wave = wave }
   ShowShareInput -> do

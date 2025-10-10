@@ -8,6 +8,7 @@
             "aff",
             "argonaut",
             "arrays",
+            "codec",
             "console",
             "control",
             "effect",
@@ -27,6 +28,7 @@
             "arrays",
             "assert",
             "bifunctors",
+            "codec",
             "console",
             "const",
             "contravariant",
@@ -767,6 +769,15 @@
         "newtype",
         "prelude",
         "tuples"
+      ]
+    },
+    "codec": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-6vMLNlsJxQarVQ9cn1FYfl5x6opfzxAza15SzRdxFxQ=",
+      "dependencies": [
+        "bifunctors",
+        "profunctor"
       ]
     },
     "console": {
