@@ -15,27 +15,24 @@ import Prelude
 import Data.Argonaut as J
 import Data.Array (foldMap, (..))
 import Data.Array as Array
+import Data.Char as Char
 import Data.Codec (Codec)
 import Data.Codec as C
 import Data.Codec.Argonaut (JsonDecodeError(..))
-import Data.Either (Either(..), hush)
+import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Int as Int
 import Data.List (List(..), (:))
-import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Nullable (Nullable)
 import Data.Nullable as N
 import Data.Set (Set)
 import Data.Set as Set
-import Data.String as String
-import Data.String.Regex (Regex)
-import Data.String.Regex as R
-import Data.String.Regex.Flags as RF
+import Data.String.CodeUnits as CU
 import Data.Traversable (fold, maximum, minimum, traverse)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
-import Partial.Unsafe (unsafePartial)
 
 type Grid = 
   { bounds :: Bounds
@@ -66,21 +63,31 @@ decode s = gridParts # maybe (Left $ UnexpectedValue $ J.fromString s) Right
       cols <- Int.fromString parts.cols
       row <- Int.fromString parts.row
       col <- Int.fromString parts.col
-      instructions <- decodeInstructions parts.instructions
+      instructions <- decodeCompressed parts.instructions
       pure
         { bounds: { start: row /\ col, cols }
         , instructions
         }
 
-    decodeInstructions str = str
-      # R.match instructionRegex
-      >>= traverse identity
-      <#> Array.fromFoldable
-      >>= traverse (String.splitAt 1 >>> decodeInstruction)
+    -- decodeInstructions str = str
+    --   # R.match instructionRegex
+    --   >>= traverse identity
+    --   <#> Array.fromFoldable
+    --   >>= traverse (String.splitAt 1 >>> decodeCompressed)
 
-    decodeInstruction { before, after }
-      | before == "m" = Move <$> Int.fromString after
-      | before == "o" = TurnOn <$> Int.fromString after
+    -- decodeInstruction { before, after }
+    --   | before == "m" = Move <$> Int.fromString after
+    --   | before == "o" = TurnOn <$> Int.fromString after
+    --   | otherwise = Nothing
+
+    decodeCompressed str = str
+      # CU.toCharArray
+      <#> Char.toCharCode
+      # traverse fromCharCode
+
+    fromCharCode c
+      | c >= 97, c <= 122 = Just $ Move $ c - 96
+      | c >= 65, c <= 90 = Just $ TurnOn $ c - 64
       | otherwise = Nothing
 
 encode ∷ Grid -> String
@@ -90,15 +97,21 @@ encode { bounds: { start: row /\ col, cols }, instructions } = fold
   , show row
   , "."
   , show col
-  , foldMap encodeInstruction instructions
+  , foldMap encodeCompressed instructions
   ]
   where
-    encodeInstruction = case _ of
-      Move n -> "m" <> show n
-      TurnOn n -> "o" <> show n
+    -- encodeInstruction = case _ of
+    --   Move n -> "m" <> show n
+    --   TurnOn n -> "o" <> show n
 
-instructionRegex ∷ Regex
-instructionRegex = unsafePartial fromJust $ hush $ R.regex "[mo][0-9]+" RF.global
+    encodeCompressed = case _ of
+      Move n | n > 26 -> "z" <> encodeCompressed (Move (n - 26))
+      Move n -> Char.fromCharCode (n + 96) # maybe "" CU.singleton
+      TurnOn n | n > 26 -> "Z" <> encodeCompressed (TurnOn (n - 26))
+      TurnOn n -> Char.fromCharCode (n + 64) # maybe "" CU.singleton
+
+-- instructionRegex ∷ Regex
+-- instructionRegex = unsafePartial fromJust $ hush $ R.regex "[mo][0-9]+" RF.global
 
 fromCells :: Set Cell -> Grid
 fromCells cells = { bounds, instructions }
