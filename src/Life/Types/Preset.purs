@@ -22,54 +22,43 @@ module Life.Types.Preset
 
 import Prelude
 
-import Data.Argonaut as J
-import Data.Array ((!!))
-import Data.Codec.Argonaut (Codec, JsonDecodeError(..), (>~>))
-import Data.Codec.Argonaut as C
-import Data.Either (Either(..), hush)
-import Data.Maybe (Maybe, maybe)
+import Data.Codec as C
+import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
+import Data.Profunctor (dimap, wrapIso)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.String (Pattern(..))
-import Data.String as String
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
+import Life.Types.Codec (Codec, (/>), (</>))
+import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
-import Life.Wave (Wave)
-import Life.Wave as Wave
+import Life.Types.Wave (Wave)
+import Life.Types.Wave as Wave
 
-data Preset
+newtype Preset
   = V1 PresetV1
+derive instance Newtype Preset _
 
 type PresetV1 =
   { livingCells :: Set Cell
   , wave :: Wave
   }
 
-codec ∷ Codec (Either JsonDecodeError) String String Preset Preset
-codec = codecV1 >~> C.codec (pure <<< V1) enc
-  where
-    enc (V1 p) = p
+codec ∷ Codec String Preset
+codec = wrapIso V1 codecV1
 
-codecV1 :: Codec (Either JsonDecodeError) String String PresetV1 PresetV1
-codecV1 = C.codec decodeV1 encodeV1
+codecV1 :: Codec String PresetV1
+codecV1 = dimap toTuple fromTuple (Codec.literal "1" /> Grid.codec </> Wave.codec)
   where
-    decodeV1 s = do
-      let parts = String.split (Pattern "/") s
-      gridPart <- parts !! 0 # maybe (Left $ UnexpectedValue $ J.fromString s) Right
-      wavePart <- parts !! 1 # maybe (Left $ UnexpectedValue $ J.fromString s) Right
-      cells <- gridPart # Grid.decode <#> Grid.toCells
-      wave' <- Wave.decode wavePart
-      pure { livingCells: cells, wave: wave' }
-
-    encodeV1 p =
-      (p.livingCells # Grid.fromCells # Grid.encode) <> "/" <> Wave.encode p.wave
+    fromTuple (g /\ w) = { livingCells: Grid.toCells g, wave: w }
+    toTuple p = Grid.fromCells p.livingCells /\ p.wave
 
 encode :: Preset -> String
 encode = C.encode codec
 
 decode :: String -> Maybe Preset
-decode = C.decode codec >>> hush
+decode = C.decode codec
 
 fromCells :: Set Cell -> Preset
 fromCells = V1 <<< { livingCells: _, wave: Wave.default }

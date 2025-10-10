@@ -3,7 +3,6 @@ package:
     - aff
     - argonaut
     - arrays
-    - codec-argonaut
     - console
     - control
     - effect

@@ -25,8 +25,8 @@ import Life.Icons as I
 import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, playNote, (<<), (>>))
 import Life.Types.Cell (Cell)
 import Life.Types.Preset as Preset
-import Life.Wave (Wave)
-import Life.Wave as Wave
+import Life.Types.Wave (Wave)
+import Life.Types.Wave as Wave
 import Web.HTML (window)
 import Web.HTML.Location as Loc
 import Web.HTML.Window (location)

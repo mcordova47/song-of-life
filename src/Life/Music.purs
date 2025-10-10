@@ -40,7 +40,7 @@ import Data.Number as Number
 import Data.Time.Duration (Milliseconds)
 import Effect (Effect)
 import Effect.Uncurried (EffectFn3, runEffectFn3)
-import Life.Wave (Wave)
+import Life.Types.Wave (Wave)
 
 newtype Note = Note Number
 

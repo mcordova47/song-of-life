@@ -12,14 +12,10 @@ module Life.Types.Grid
 
 import Prelude
 
-import Data.Argonaut as J
 import Data.Array (foldMap, (..))
 import Data.Array as Array
 import Data.Char as Char
-import Data.Codec (Codec)
 import Data.Codec as C
-import Data.Codec.Argonaut (JsonDecodeError(..))
-import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Int as Int
 import Data.List (List(..), (:))
@@ -33,6 +29,7 @@ import Data.Traversable (fold, maximum, minimum, traverse)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
+import Life.Types.Codec (Codec)
 
 type Grid = 
   { bounds :: Bounds
@@ -55,22 +52,21 @@ instance Show Instruction where
 -- TODO: Debug "heart" encoding/decoding
 -- TODO: Expose uncompressed as another version
 -- TODO: Properly use codecs
-codec ∷ Codec (Either JsonDecodeError) String String Grid Grid
+codec ∷ Codec String Grid
 codec = C.codec decode encode
 
-decode ∷ String → Either JsonDecodeError Grid
-decode s = gridParts # maybe (Left $ UnexpectedValue $ J.fromString s) Right
+decode ∷ String → Maybe Grid
+decode s = do
+  parts <- runFn1 decodeGridParts_ s # N.toMaybe
+  cols <- Int.fromString parts.cols
+  row <- Int.fromString parts.row
+  col <- Int.fromString parts.col
+  instructions <- decodeCompressed parts.instructions
+  pure
+    { bounds: { start: row /\ col, cols }
+    , instructions
+    }
   where
-    gridParts = do
-      parts <- runFn1 decodeGridParts_ s # N.toMaybe
-      cols <- Int.fromString parts.cols
-      row <- Int.fromString parts.row
-      col <- Int.fromString parts.col
-      instructions <- decodeCompressed parts.instructions
-      pure
-        { bounds: { start: row /\ col, cols }
-        , instructions
-        }
 
     -- decodeInstructions str = str
     --   # R.match instructionRegex

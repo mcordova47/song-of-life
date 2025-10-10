@@ -1,5 +1,4 @@
--- TODO: Move under Life.Types
-module Life.Wave
+module Life.Types.Wave
   ( Wave(..)
   , all
   , codec
@@ -17,21 +16,20 @@ module Life.Wave
 
 import Prelude
 
-import Data.Argonaut as J
-import Data.Codec.Argonaut (Codec, JsonDecodeError(..))
-import Data.Codec.Argonaut as C
-import Data.Either (Either(..))
+import Data.Codec as C
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.String as String
 import Elmish (ReactElement)
 import Elmish.HTML.Styled as H
 import Life.Icons as I
+import Life.Types.Codec (Codec)
 
 newtype Wave = Wave String
 derive instance Newtype Wave _
 derive newtype instance Eq Wave
 
-codec ∷ Codec (Either JsonDecodeError) String String Wave Wave
+codec ∷ Codec String Wave
 codec = C.codec decode encode
 
 encode :: Wave -> String
@@ -42,13 +40,13 @@ encode wave
   | wave == square = "E"
   | otherwise = ""
 
-decode :: String -> Either JsonDecodeError Wave
+decode :: String -> Maybe Wave
 decode s
-  | s == "S" = Right sine
-  | s == "W" = Right triangle
-  | s == "Z" = Right sawtooth
-  | s == "E" = Right square
-  | otherwise = Left $ UnexpectedValue $ J.fromString s
+  | s == "S" = Just sine
+  | s == "W" = Just triangle
+  | s == "Z" = Just sawtooth
+  | s == "E" = Just square
+  | otherwise = Nothing
 
 all :: Array Wave
 all =
