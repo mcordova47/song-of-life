@@ -1,5 +1,6 @@
 module Life.Types.Preset
   ( Preset(..)
+  , PresetV0
   , PresetV1
   , all
   , bottomRightGlider
@@ -20,35 +21,49 @@ module Life.Types.Preset
 
 import Prelude
 
-import Data.Newtype (class Newtype)
-import Data.Profunctor (dimap, wrapIso)
+import Control.Alt ((<|>))
+import Data.Codec as C
+import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Life.Types.Cell (Cell)
 import Life.Types.Codec (Codec, (/>), (</>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
+import Life.Types.Grid.Compressed as GridCompressed
 import Life.Types.Wave (Wave)
 import Life.Types.Wave as Wave
 
-newtype Preset
-  = V1 PresetV1
-derive instance Newtype Preset _
+data Preset
+  = V0 PresetV0
+  | V1 PresetV1
 
-type PresetV1 =
+type PresetV0 =
   { livingCells :: Set Cell
   , wave :: Wave
   }
 
-codec ∷ Codec String Preset
-codec = wrapIso V1 codecV1
+type PresetV1 = PresetV0
 
-codecV1 :: Codec String PresetV1
-codecV1 = dimap toTuple fromTuple (Codec.literal "1" /> Grid.codec </> Wave.codec)
+codec ∷ Codec String Preset
+codec = C.codec decode encode
   where
-    fromTuple (g /\ w) = { livingCells: Grid.toCells g, wave: w }
-    toTuple p = Grid.fromCells p.livingCells /\ p.wave
+    decode s = V0 <$> C.decode codecV0 s <|> V1 <$> C.decode codecV1 s
+
+    encode = case _ of
+      V0 p -> C.encode codecV0 p
+      V1 p -> C.encode codecV1 p
+
+    codecV0 = Codec.literal "0" /> codecV0' (Grid.cellsCodec </> Wave.codec)
+
+    codecV1 = Codec.literal "1" /> codecV0' (GridCompressed.cellsCodec </> Wave.codec)
+
+codecV0' :: Codec String (Set Cell /\ Wave) -> Codec String PresetV1
+codecV0' = dimap toTuple fromTuple
+  where
+    fromTuple (g /\ w) = { livingCells: g, wave: w }
+    toTuple p = p.livingCells /\ p.wave
 
 fromCells :: Set Cell -> Preset
 fromCells = V1 <<< { livingCells: _, wave: Wave.default }
@@ -57,10 +72,14 @@ fromState :: forall r. { livingCells :: Set Cell, wave :: Wave | r } -> Preset
 fromState s = V1 { livingCells: s.livingCells, wave: s.wave }
 
 livingCells :: Preset -> Set Cell
-livingCells (V1 p) = p.livingCells
+livingCells = case _ of
+  V0 p -> p.livingCells
+  V1 p -> p.livingCells
 
 wave :: Preset -> Wave
-wave (V1 p) = p.wave
+wave = case _ of
+  V0 p -> p.wave
+  V1 p -> p.wave
 
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable

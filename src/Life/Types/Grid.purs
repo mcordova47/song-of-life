@@ -1,10 +1,10 @@
 module Life.Types.Grid
   ( Bounds
   , Grid
-  , Instruction
+  , Instruction(..)
+  , cellsCodec
   , codec
-  , decode
-  , encode
+  , decodeGridParts
   , fromCells
   , toCells
   )
@@ -14,22 +14,27 @@ import Prelude
 
 import Data.Array (foldMap, (..))
 import Data.Array as Array
-import Data.Char as Char
 import Data.Codec as C
+import Data.Either (hush)
 import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Int as Int
 import Data.List (List(..), (:))
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.Nullable (Nullable)
 import Data.Nullable as N
+import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.String.CodeUnits as CU
+import Data.String as S
+import Data.String.Regex (Regex)
+import Data.String.Regex as R
+import Data.String.Regex.Flags as RF
 import Data.Traversable (fold, maximum, minimum, traverse)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
 import Life.Types.Codec (Codec)
+import Partial.Unsafe (unsafePartial)
 
 type Grid = 
   { bounds :: Bounds
@@ -44,6 +49,7 @@ type Bounds =
 data Instruction
   = Move Int
   | TurnOn Int
+
 instance Show Instruction where
   show = case _ of
     Move n -> "m" <> show n
@@ -51,66 +57,49 @@ instance Show Instruction where
 
 -- TODO: Debug "heart" encoding/decoding
 -- TODO: Expose uncompressed as another version
--- TODO: Properly use codecs
-codec ∷ Codec String Grid
+-- TODO: Abstract out cipher codec
+codec :: Codec String Grid
 codec = C.codec decode encode
 
-decode ∷ String → Maybe Grid
+cellsCodec :: Codec String (Set Cell)
+cellsCodec = dimap fromCells toCells codec
+
+decode :: String → Maybe Grid
 decode s = do
-  parts <- runFn1 decodeGridParts_ s # N.toMaybe
-  cols <- Int.fromString parts.cols
-  row <- Int.fromString parts.row
-  col <- Int.fromString parts.col
-  instructions <- decodeCompressed parts.instructions
+  parts <- decodeGridParts s
+  instructions <- decodeInstructions parts.instructions
   pure
-    { bounds: { start: row /\ col, cols }
+    { bounds: parts.bounds
     , instructions
     }
   where
+    decodeInstructions str = str
+      # R.match instructionRegex
+      >>= traverse identity
+      <#> Array.fromFoldable
+      >>= traverse (S.splitAt 1 >>> decodeInstruction)
 
-    -- decodeInstructions str = str
-    --   # R.match instructionRegex
-    --   >>= traverse identity
-    --   <#> Array.fromFoldable
-    --   >>= traverse (String.splitAt 1 >>> decodeCompressed)
-
-    -- decodeInstruction { before, after }
-    --   | before == "m" = Move <$> Int.fromString after
-    --   | before == "o" = TurnOn <$> Int.fromString after
-    --   | otherwise = Nothing
-
-    decodeCompressed str = str
-      # CU.toCharArray
-      <#> Char.toCharCode
-      # traverse fromCharCode
-
-    fromCharCode c
-      | c >= 97, c <= 122 = Just $ Move $ c - 96
-      | c >= 65, c <= 90 = Just $ TurnOn $ c - 64
+    decodeInstruction { before, after }
+      | before == "m" = Move <$> Int.fromString after
+      | before == "o" = TurnOn <$> Int.fromString after
       | otherwise = Nothing
 
-encode ∷ Grid -> String
+encode :: Grid -> String
 encode { bounds: { start: row /\ col, cols }, instructions } = fold
   [ show cols
   , "c"
   , show row
   , "."
   , show col
-  , foldMap encodeCompressed instructions
+  , foldMap encodeInstruction instructions
   ]
   where
-    -- encodeInstruction = case _ of
-    --   Move n -> "m" <> show n
-    --   TurnOn n -> "o" <> show n
+    encodeInstruction = case _ of
+      Move n -> "m" <> show n
+      TurnOn n -> "o" <> show n
 
-    encodeCompressed = case _ of
-      Move n | n > 26 -> "z" <> encodeCompressed (Move (n - 26))
-      Move n -> Char.fromCharCode (n + 96) # maybe "" CU.singleton
-      TurnOn n | n > 26 -> "Z" <> encodeCompressed (TurnOn (n - 26))
-      TurnOn n -> Char.fromCharCode (n + 64) # maybe "" CU.singleton
-
--- instructionRegex ∷ Regex
--- instructionRegex = unsafePartial fromJust $ hush $ R.regex "[mo][0-9]+" RF.global
+instructionRegex :: Regex
+instructionRegex = unsafePartial fromJust $ hush $ R.regex "[mo][0-9]+" RF.global
 
 fromCells :: Set Cell -> Grid
 fromCells cells = { bounds, instructions }
@@ -165,5 +154,19 @@ toCells { bounds, instructions } = indices <#> indexToCell # Set.fromFoldable
               { indices = acc.indices <> (acc.position .. (n + acc.position - 1))
               , position = acc.position + n - 1
               }
+
+decodeGridParts :: String -> Maybe { bounds :: Bounds, instructions :: String }
+decodeGridParts s = do
+  parts <- runFn1 decodeGridParts_ s # N.toMaybe
+  cols <- Int.fromString parts.cols
+  row <- Int.fromString parts.row
+  col <- Int.fromString parts.col
+  pure
+    { bounds:
+        { start: row /\ col
+        , cols
+        }
+    , instructions: parts.instructions
+    }
 
 foreign import decodeGridParts_ :: Fn1 String (Nullable { cols :: String, row :: String, col :: String, instructions :: String})

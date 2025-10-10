@@ -21,6 +21,7 @@ module Life.Types.Codec
 
 import Prelude hiding (join)
 
+import Control.Alternative (guard)
 import Data.Codec as C
 import Data.Maybe (Maybe)
 import Data.Profunctor (dimap)
@@ -92,5 +93,5 @@ discardSecond' = dimap toTuple fromTuple
     toTuple a' = a' /\ unit
     fromTuple (a' /\ _) = a'
 
-literal :: forall a. a -> Codec a Unit
-literal a = C.codec (const $ pure unit) (const a)
+literal :: forall a. Eq a => a -> Codec a Unit
+literal a = C.codec (\a' -> guard (a' == a) *> pure unit) (const a)
