@@ -41,6 +41,7 @@ import Data.Time.Duration (Milliseconds)
 import Effect (Effect)
 import Effect.Uncurried (EffectFn3, runEffectFn3)
 import Life.Types.Wave (Wave)
+import Life.Types.Wave as Wave
 
 newtype Note = Note Number
 
@@ -129,6 +130,6 @@ nthNote scale note n
         power octave $ n / Array.length scale
 
 playNote :: Milliseconds -> Wave -> Note -> Effect Unit
-playNote = runEffectFn3 playNote_
+playNote dur = Wave.toJs >>> runEffectFn3 playNote_ dur
 
-foreign import playNote_ :: EffectFn3 Milliseconds Wave Note Unit
+foreign import playNote_ :: EffectFn3 Milliseconds String Note Unit

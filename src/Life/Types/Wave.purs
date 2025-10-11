@@ -2,85 +2,72 @@ module Life.Types.Wave
   ( Wave(..)
   , all
   , codec
-  , decode
   , default
   , display
-  , encode
   , icon
-  , sawtooth
-  , sine
-  , square
-  , triangle
+  , toJs
   )
   where
 
 import Prelude
 
+import Data.Bounded.Generic (genericBottom)
 import Data.Codec as C
+import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
-import Data.String as String
 import Elmish (ReactElement)
-import Elmish.HTML.Styled as H
 import Life.Icons as I
 import Life.Types.Codec (Codec)
+import Life.Utils (allEnumValues)
 
-newtype Wave = Wave String
-derive instance Newtype Wave _
-derive newtype instance Eq Wave
+data Wave
+  = Triangle
+  | Sine
+  | Square
+  | Sawtooth
+derive instance Eq Wave
+derive instance Ord Wave
+derive instance Generic Wave _
 
 codec ∷ Codec String Wave
 codec = C.codec decode encode
+  where
+    encode = case _ of
+      Triangle -> "W"
+      Sine -> "S"
+      Square -> "E"
+      Sawtooth -> "Z"
 
-encode :: Wave -> String
-encode wave
-  | wave == sine = "S"
-  | wave == triangle = "W"
-  | wave == sawtooth = "Z"
-  | wave == square = "E"
-  | otherwise = ""
-
-decode :: String -> Maybe Wave
-decode s
-  | s == "S" = Just sine
-  | s == "W" = Just triangle
-  | s == "Z" = Just sawtooth
-  | s == "E" = Just square
-  | otherwise = Nothing
+    decode s
+      | s == "S" = Just Sine
+      | s == "W" = Just Triangle
+      | s == "Z" = Just Sawtooth
+      | s == "E" = Just Square
+      | otherwise = Nothing
 
 all :: Array Wave
-all =
-  [ triangle
-  , sine
-  , square
-  , sawtooth
-  ]
+all = allEnumValues
 
 default :: Wave
-default = triangle
-
-sine :: Wave
-sine = Wave "sine"
-
-square :: Wave
-square = Wave "square"
-
-triangle :: Wave
-triangle = Wave "triangle"
-
-sawtooth :: Wave
-sawtooth = Wave "sawtooth"
+default = genericBottom
 
 display :: Wave -> String
-display =
-  unwrap
-  >>> String.splitAt 1
-  >>> \{ before, after } -> String.toUpper before <> after
+display = case _ of
+  Triangle -> "Triangle"
+  Sine -> "Sine"
+  Square -> "Square"
+  Sawtooth -> "Sawtooth"
+
+toJs :: Wave -> String
+toJs = case _ of
+  Triangle -> "triangle"
+  Sine -> "sine"
+  Square -> "square"
+  Sawtooth -> "sawtooth"
 
 icon :: I.Props -> Wave -> ReactElement
-icon props wave
-  | wave == sine = I.sineWave props
-  | wave == square = I.squareWave props
-  | wave == triangle = I.triangleWave props
-  | wave == sawtooth = I.sawtoothWave props
-  | otherwise = H.empty
+icon props = case _ of
+  Triangle -> I.triangleWave props
+  Sine -> I.sineWave props
+  Square -> I.squareWave props
+  Sawtooth -> I.sawtoothWave props
