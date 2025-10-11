@@ -15,7 +15,7 @@ import Data.Tuple (fst, snd)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
-import Elmish (Dispatch, ReactElement, Transition, fork, forkVoid, forks, (<?|), (<|))
+import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, forks, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
@@ -23,8 +23,8 @@ import Life.Game as Game
 import Life.Icons as I
 import Life.Music (Note, playNote)
 import Life.Types.Cell (Cell)
+import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
-import Life.Types.Route (Route(..))
 import Life.Types.Route as Route
 import Life.Types.Wave (Wave)
 import Life.Types.Wave as Wave
@@ -40,8 +40,9 @@ main = defaultMain { def: { init, view, update }, elementId: "app" }
 data Message
   = AutoStep
   | Beat (Array Note) Milliseconds
+  | GenerateRandom
   | HideCopiedFeedback
-  | LoadPreset (Set Cell)
+  | LoadPreset Preset
   | Navigate String
   | Pause
   | Play
@@ -86,11 +87,14 @@ update state = case _ of
   Beat notes' dur -> do
     forkVoid $ liftEffect $ for_ notes' $ playNote dur state.wave
     pure state { play = inc state.play }
+  GenerateRandom -> do
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random
+    pure state
   HideCopiedFeedback ->
     pure state { showCopiedFeedback = false }
   Navigate hash ->
     case Route.decode hash of
-      Just (Share preset) ->
+      Just (Route.Share preset) ->
         pure state
           { livingCells = Preset.livingCells preset
           , wave = Preset.wave preset
@@ -120,8 +124,11 @@ update state = case _ of
     pure state { livingCells = Game.step state.livingCells }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
-  LoadPreset cells ->
-    pure state { livingCells = cells }
+  LoadPreset p ->
+    pure state
+      { livingCells = Preset.livingCells p
+      , wave = Preset.wave p
+      }
   where
     autoStep cells =
       forks \{ dispatch } -> do
@@ -177,11 +184,16 @@ view state dispatch = H.fragment
         [ H.div "d-flex" $
             H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
             [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
+                  { onClick: dispatch <| GenerateRandom
+                  , title: "Random"
+                  } $
+                  I.dice { size: 32 }
+            , H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2"
                   { onClick: dispatch <| Reset
                   , title: "Reset"
                   } $
                   I.trash { size: 32 }
-            , H.button_ "btn text-salmon hover:text-salmon-highlight ms-3 me-2 p-0"
+            , H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2 me-0"
                 { onClick: dispatch <| if isJust state.play then Pause else Play
                 , title: if isJust state.play then "Pause" else "Play"
                 }
@@ -194,6 +206,35 @@ view state dispatch = H.fragment
                   , title: "Step"
                   } $
                   I.arrowBarRight { size: 32 }
+              , H.div "position-relative ms-2"
+                [ H.button_ "btn text-salmon hover:text-salmon-highlight px-0"
+                    { onClick: E.handleEffect do
+                        let hash = Route.encode $ Route.Share $ Preset.fromState state
+                        origin <- window >>= location >>= Loc.origin
+                        _ <-
+                          window >>= navigator >>= Clipboard.clipboard
+                            >>= traverse \clipboard ->
+                              clipboard
+                                # Clipboard.writeText (origin <> "/#/" <> hash)
+                                >>= P.then_ \_ -> do
+                                  dispatch ShowCopiedFeedback
+                                  pure $ P.resolve unit
+                        pure unit
+                    , title: "Share"
+                    } $
+                    I.share { size: 32 }
+                , M.guard state.showCopiedFeedback $
+                    H.div_ "position-absolute d-flex align-items-center ms-2"
+                    { style: H.css
+                        { top: "50%"
+                        , left: "100%"
+                        , transform: "translateY(-50%)"
+                        }
+                    }
+                    [ H.div "callout-left callout-secondary translucent" H.empty
+                    , H.div "rounded py-2 px-3 bg-secondary text-white translucent text-nowrap" "Copied link to clipboard!"
+                    ]
+                ]
               ]
         , H.div "mt-3"
           [ H.h5 "" "Controls"
@@ -224,30 +265,6 @@ view state dispatch = H.fragment
                   , H.div "" $ Wave.display wave
                   ]
           ]
-          , H.div "d-flex align-items-center mb-3 mt-1"
-            [ H.button_ "btn text-salmon hover:text-salmon-highlight px-0"
-                { onClick: E.handleEffect do
-                    let hash = Route.encode $ Share $ Preset.fromState state
-                    origin <- window >>= location >>= Loc.origin
-                    _ <-
-                      window >>= navigator >>= Clipboard.clipboard
-                        >>= traverse \clipboard ->
-                          clipboard
-                            # Clipboard.writeText (origin <> "/#/" <> hash)
-                            >>= P.then_ \_ -> do
-                              dispatch ShowCopiedFeedback
-                              pure $ P.resolve unit
-                    pure unit
-                , title: "Share"
-                } $
-                I.share { size: 36 }
-            , M.guard state.showCopiedFeedback $
-                H.div "d-flex align-items-center ms-2"
-                [ H.div "callout-left" H.empty
-                , H.div "rounded py-2 px-3 bg-lighterblue text-salmon" "Copied link to clipboard!"
-                ]
-            ]
-          -- TODO: Randomize button
         , H.div "mt-3"
           [ H.h5 "" "Rules"
           , H.p ""
@@ -322,7 +339,7 @@ view state dispatch = H.fragment
       H.div "row" $ Preset.all <#> Preset.livingCells <#> \cells ->
         H.div "col-6 col-sm-4 col-md-3 pb-3" $
           H.div_ "preset d-flex rounded overflow-hidden border"
-            { onClick: dispatch <| LoadPreset cells } $
+            { onClick: dispatch <| LoadPreset $ Preset.fromState { livingCells: cells, wave: state.wave } } $
             H.div "preset-grid mx-auto" $
               Game.grid <#> \row ->
                 H.div_ "d-flex"

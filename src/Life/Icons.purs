@@ -1,6 +1,7 @@
 module Life.Icons
   ( Props
   , arrowBarRight
+  , dice
   , externalLink
   , github
   , pause
@@ -21,6 +22,9 @@ type Props = { size :: Int }
 
 arrowBarRight ∷ Props -> ReactElement
 arrowBarRight = runFn1 arrowBarRight_
+
+dice ∷ Props -> ReactElement
+dice = runFn1 dice_
 
 externalLink ∷ Props -> ReactElement
 externalLink = runFn1 externalLink_
@@ -57,6 +61,7 @@ sawtoothWave = runFn1 sawtoothWave_
 -- Foreign
 
 foreign import arrowBarRight_ :: Fn1 Props ReactElement
+foreign import dice_ :: Fn1 Props ReactElement
 foreign import externalLink_ :: Fn1 Props ReactElement
 foreign import github_ :: Fn1 Props ReactElement
 foreign import pause_ :: Fn1 Props ReactElement

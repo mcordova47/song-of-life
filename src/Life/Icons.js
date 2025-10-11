@@ -32,6 +32,19 @@ export const play_ = props =>
     `)
   )
 
+export const dice_ = props =>
+  svg(
+    props,
+    path(`
+      M5 3H3v18h18V3H5z
+      m14 2v14H5V5h14z
+      M9 7H7v2h2V7zm6 0h2v2h-2V7z
+      m-6 8H7v2h2v-2z
+      m6 0h2v2h-2v-2z
+      m-2-4h-2v2h2v-2z
+    `)
+  )
+
 export const externalLink_ = props =>
   svg(
     props,

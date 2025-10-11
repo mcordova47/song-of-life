@@ -5,16 +5,20 @@ module Life.Types.Wave
   , default
   , display
   , icon
+  , random
   , toJs
   )
   where
 
 import Prelude
 
-import Data.Bounded.Generic (genericBottom)
+import Data.Bounded.Generic (genericBottom, genericTop)
 import Data.Codec as C
+import Data.Enum.Generic (genericFromEnum, genericToEnum)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect (Effect)
+import Effect.Random as R
 import Elmish (ReactElement)
 import Life.Icons as I
 import Life.Types.Codec (Codec)
@@ -50,6 +54,13 @@ all = tags
 
 default :: Wave
 default = genericBottom
+
+random :: Effect (Maybe Wave)
+random =
+  R.randomInt
+    (genericFromEnum (genericBottom :: Wave))
+    (genericFromEnum (genericTop :: Wave))
+    <#> genericToEnum
 
 display :: Wave -> String
 display = case _ of

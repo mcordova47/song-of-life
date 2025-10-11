@@ -7,7 +7,6 @@ module Life.Types.Preset
   , codec
   , collision
   , default
-  , fromCells
   , fromState
   , glider
   , heart
@@ -15,6 +14,7 @@ module Life.Types.Preset
   , musicNotes
   , octocat
   , pond
+  , random
   , wave
   )
   where
@@ -23,10 +23,14 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Codec as C
+import Data.Maybe (Maybe)
 import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Set as Set
+import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
+import Effect (Effect)
+import Life.Game as Game
 import Life.Types.Cell (Cell)
 import Life.Types.Codec (Codec, (/>), (<\>))
 import Life.Types.Codec as Codec
@@ -83,6 +87,13 @@ wave = case _ of
 
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
+
+random :: Effect (Maybe Preset)
+random = do
+  cells <- Game.random
+  mWave <- Wave.random
+  for mWave \w ->
+    pure $ V1 { livingCells: cells, wave: w }
 
 default :: Preset
 default = heart
