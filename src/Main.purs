@@ -192,7 +192,7 @@ view state dispatch = H.fragment
                   I.arrowBarRight { size: 32 }
               ]
         , H.div "mt-3"
-          [ H.h5 "" "Configuration"
+          [ H.h5 "" "Controls"
           , H.div_ ""
             { style: H.css { width: 200 }
             }
@@ -220,6 +220,22 @@ view state dispatch = H.fragment
                   , H.div "" $ Wave.display wave
                   ]
           ]
+          -- TODO: Share icon
+          , H.div "d-flex mb-3"
+            [ H.button_ "btn btn-outline-theme"
+                { onClick: dispatch <| ShowShareInput
+                }
+                "Share"
+            , fold do
+                value <- state.shareInput
+                pure $
+                  H.input_ "form-control"
+                    { value
+                    , readOnly: true
+                    , autoFocus: true
+                    }
+            ]
+          -- TODO: Randomize button
         , H.div "mt-3"
           [ H.h5 "" "Rules"
           , H.p ""
@@ -269,23 +285,6 @@ view state dispatch = H.fragment
             [ H.text "This is a "
             , H.strong "text-salmon" "bounded"
             , H.text " Game of Life, whereas it is often played on an infinite grid."
-            ]
-          ]
-        , H.div "mt-3"
-          [ H.h5 "" "Share"
-          , H.div "d-flex"
-            [ H.button_ "btn btn-outline-theme"
-                { onClick: dispatch <| ShowShareInput
-                }
-                "Share"
-            , fold do
-                value <- state.shareInput
-                pure $
-                  H.input_ "form-control"
-                    { value
-                    , readOnly: true
-                    , autoFocus: true
-                    }
             ]
           ]
         , H.div "mt-3"
