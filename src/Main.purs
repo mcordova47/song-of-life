@@ -154,10 +154,14 @@ view :: State -> Dispatch Message -> ReactElement
 view state dispatch = H.fragment
   [ H.div "w-100 bg-lightblue" $
       H.div "container d-flex justify-content-between align-items-center py-2"
-      [ H.h1 "d-inline-block mb-0" $
-          H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none"
+      [ H.h1 "d-inline-flex align-items-center mb-0" $
+        [ H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none"
+            { href: "/" } $
+            I.logo { size: 48 }
+        , H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none ms-3"
             { href: "/" }
             "Songs of Life"
+        ]
       , H.a_ "hover:translucent"
           { href: "https://github.com/mcordova47/song-of-life", target: "_blank" } $
           I.github { size: 48 }

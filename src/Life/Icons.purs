@@ -4,6 +4,7 @@ module Life.Icons
   , dice
   , externalLink
   , github
+  , logo
   , pause
   , play
   , sawtoothWave
@@ -43,6 +44,9 @@ trash = runFn1 trash_
 
 -- Custom
 
+logo :: Props -> ReactElement
+logo = runFn1 logo_
+
 share :: Props -> ReactElement
 share = runFn1 share_
 
@@ -68,6 +72,7 @@ foreign import pause_ :: Fn1 Props ReactElement
 foreign import play_ :: Fn1 Props ReactElement
 foreign import trash_ :: Fn1 Props ReactElement
 
+foreign import logo_ :: Fn1 Props ReactElement
 foreign import share_ :: Fn1 Props ReactElement
 foreign import sineWave_ :: Fn1 Props ReactElement
 foreign import squareWave_ :: Fn1 Props ReactElement
