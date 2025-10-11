@@ -75,6 +75,18 @@ export const trash_ = props =>
 
 // Custom
 
+export const share_ = props =>
+  svg(
+    { ...props, viewBox: "0 0 24 24" },
+    path(`
+      M7 9v-2h2v-2h2v-2h2v2h2v2h2v2h-2v-2h-2v-2h-2v2h-2v2h-2
+      M11 5v13h2V5
+      M5 13v9h14v-9h-2v7H7v-7H5z
+      M9 11v2h-4v-2z
+      M15 11v2h4v-2z
+    `)
+  )
+
 export const sineWave_ = props =>
   svg(
     { ...props, viewBox: "0 0 17 17" },

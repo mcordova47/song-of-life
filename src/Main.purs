@@ -3,13 +3,14 @@ module Main where
 import Prelude
 
 import Data.Array as Array
-import Data.Foldable (fold, for_)
+import Data.Foldable (for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
 import Data.Set (Set)
 import Data.Set as Set
 import Data.String as String
+import Data.Traversable (traverse)
 import Data.Tuple (fst, snd)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
@@ -27,9 +28,11 @@ import Life.Types.Route (Route(..))
 import Life.Types.Route as Route
 import Life.Types.Wave (Wave)
 import Life.Types.Wave as Wave
+import Promise as P
+import Web.Clipboard as Clipboard
 import Web.HTML (window)
 import Web.HTML.Location as Loc
-import Web.HTML.Window (location)
+import Web.HTML.Window (location, navigator)
 
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
@@ -37,22 +40,22 @@ main = defaultMain { def: { init, view, update }, elementId: "app" }
 data Message
   = AutoStep
   | Beat (Array Note) Milliseconds
+  | HideCopiedFeedback
   | LoadPreset (Set Cell)
   | Navigate String
   | Pause
   | Play
   | Reset
   | SetSpeed Int
-  | SetShareInput String
   | SetWave Wave
-  | ShowShareInput
+  | ShowCopiedFeedback
   | Step
   | ToggleCell Cell
 
 type State =
   { livingCells :: Set Cell
   , play :: Maybe Int
-  , shareInput :: Maybe String
+  , showCopiedFeedback :: Boolean
   , speed :: Int
   , wave :: Wave
   }
@@ -64,7 +67,7 @@ init = do
   pure
     { livingCells: Set.empty
     , play: Nothing
-    , shareInput: Nothing
+    , showCopiedFeedback: false
     , speed: 5
     , wave: Wave.default
     }
@@ -83,6 +86,8 @@ update state = case _ of
   Beat notes' dur -> do
     forkVoid $ liftEffect $ for_ notes' $ playNote dur state.wave
     pure state { play = inc state.play }
+  HideCopiedFeedback ->
+    pure state { showCopiedFeedback = false }
   Navigate hash ->
     case Route.decode hash of
       Just (Share preset) ->
@@ -104,14 +109,13 @@ update state = case _ of
     pure state { livingCells = Set.empty }
   SetSpeed speed ->
     pure state { speed = speed }
-  SetShareInput origin ->
-    pure state { shareInput = Just $ origin <> "/#/" <> (Route.encode $ Share $ Preset.fromState state) }
   SetWave wave ->
     pure state { wave = wave }
-  ShowShareInput -> do
-    fork $ liftEffect $
-      window >>= location >>= Loc.origin <#> SetShareInput
-    pure state
+  ShowCopiedFeedback -> do
+    fork do
+      delay $ Milliseconds 2000.0
+      pure HideCopiedFeedback
+    pure state { showCopiedFeedback = true }
   Step ->
     pure state { livingCells = Game.step state.livingCells }
   ToggleCell cell ->
@@ -220,20 +224,28 @@ view state dispatch = H.fragment
                   , H.div "" $ Wave.display wave
                   ]
           ]
-          -- TODO: Share icon
-          , H.div "d-flex mb-3 mt-1"
-            [ H.button_ "btn btn-outline-theme"
-                { onClick: dispatch <| ShowShareInput
-                }
-                "Share"
-            , fold do
-                value <- state.shareInput
-                pure $
-                  H.input_ "form-control"
-                    { value
-                    , readOnly: true
-                    , autoFocus: true
-                    }
+          , H.div "d-flex align-items-center mb-3 mt-1"
+            [ H.button_ "btn text-salmon hover:text-salmon-highlight px-0"
+                { onClick: E.handleEffect do
+                    let hash = Route.encode $ Share $ Preset.fromState state
+                    origin <- window >>= location >>= Loc.origin
+                    _ <-
+                      window >>= navigator >>= Clipboard.clipboard
+                        >>= traverse \clipboard ->
+                          clipboard
+                            # Clipboard.writeText (origin <> "/#/" <> hash)
+                            >>= P.then_ \_ -> do
+                              dispatch ShowCopiedFeedback
+                              pure $ P.resolve unit
+                    pure unit
+                , title: "Share"
+                } $
+                I.share { size: 36 }
+            , M.guard state.showCopiedFeedback $
+                H.div "d-flex align-items-center ms-2"
+                [ H.div "callout-left" H.empty
+                , H.div "rounded py-2 px-3 bg-lighterblue text-salmon" "Copied link to clipboard!"
+                ]
             ]
           -- TODO: Randomize button
         , H.div "mt-3"

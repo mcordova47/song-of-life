@@ -17,7 +17,8 @@
             "integers",
             "ordered-collections",
             "prelude",
-            "tuples"
+            "tuples",
+            "web-clipboard"
           ],
           "build_plan": [
             "aff",
@@ -53,6 +54,7 @@
             "integers",
             "invariant",
             "js-date",
+            "js-promise",
             "lazy",
             "lists",
             "maybe",
@@ -83,6 +85,7 @@
             "undefined-is-not-a-problem",
             "unfoldable",
             "unsafe-coerce",
+            "web-clipboard",
             "web-dom",
             "web-events",
             "web-file",
@@ -1112,6 +1115,19 @@
         "now"
       ]
     },
+    "js-promise": {
+      "type": "registry",
+      "version": "1.0.0",
+      "integrity": "sha256-kXNo5g9RJgPdrTuKRe5oG2kBIwPp+j5VDPDplqZBJzQ=",
+      "dependencies": [
+        "effect",
+        "exceptions",
+        "foldable-traversable",
+        "functions",
+        "maybe",
+        "prelude"
+      ]
+    },
     "lazy": {
       "type": "registry",
       "version": "6.0.0",
@@ -1479,6 +1495,15 @@
       "version": "6.0.0",
       "integrity": "sha256-IqIYW4Vkevn8sI+6aUwRGvd87tVL36BBeOr0cGAE7t0=",
       "dependencies": []
+    },
+    "web-clipboard": {
+      "type": "registry",
+      "version": "6.0.0",
+      "integrity": "sha256-PBtjiekTFBRs2obkiwNAEs3f6e1daFGHeeG0pilug4c=",
+      "dependencies": [
+        "js-promise",
+        "web-html"
+      ]
     },
     "web-dom": {
       "type": "registry",

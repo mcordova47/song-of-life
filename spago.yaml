@@ -13,6 +13,7 @@ package:
     - ordered-collections
     - prelude
     - tuples
+    - web-clipboard
   name: my-project
 workspace:
   extraPackages: {}

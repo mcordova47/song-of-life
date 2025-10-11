@@ -6,6 +6,7 @@ module Life.Icons
   , pause
   , play
   , sawtoothWave
+  , share
   , sineWave
   , squareWave
   , trash
@@ -38,6 +39,9 @@ trash = runFn1 trash_
 
 -- Custom
 
+share :: Props -> ReactElement
+share = runFn1 share_
+
 sineWave :: Props -> ReactElement
 sineWave = runFn1 sineWave_
 
@@ -59,6 +63,7 @@ foreign import pause_ :: Fn1 Props ReactElement
 foreign import play_ :: Fn1 Props ReactElement
 foreign import trash_ :: Fn1 Props ReactElement
 
+foreign import share_ :: Fn1 Props ReactElement
 foreign import sineWave_ :: Fn1 Props ReactElement
 foreign import squareWave_ :: Fn1 Props ReactElement
 foreign import triangleWave_ :: Fn1 Props ReactElement
