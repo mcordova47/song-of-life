@@ -2,8 +2,6 @@ module Main where
 
 import Prelude
 
-import Control.Alternative (guard)
-import Data.Array (foldl, (..))
 import Data.Array as Array
 import Data.Foldable (fold, for_)
 import Data.Int as Int
@@ -13,7 +11,6 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.String as String
 import Data.Tuple (fst, snd)
-import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -21,8 +18,9 @@ import Elmish (Dispatch, ReactElement, Transition, fork, forkVoid, forks, (<?|),
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
+import Life.Game as Game
 import Life.Icons as I
-import Life.Music (Note, a4, major2nd, major3rd, major6th, octave, perfect4th, perfect5th, playNote, (<<), (>>))
+import Life.Music (Note, playNote)
 import Life.Types.Cell (Cell)
 import Life.Types.Preset as Preset
 import Life.Types.Route (Route(..))
@@ -77,7 +75,7 @@ update state = case _ of
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
   AutoStep | Just _ <- state.play -> do
-    let livingCells = step state.livingCells
+    let livingCells = Game.step state.livingCells
     autoStep livingCells
     pure state { livingCells = livingCells, play = Just (Array.length (measure livingCells) - 1) }
   AutoStep ->
@@ -115,7 +113,7 @@ update state = case _ of
       window >>= location >>= Loc.origin <#> SetShareInput
     pure state
   Step ->
-    pure state { livingCells = step state.livingCells }
+    pure state { livingCells = Game.step state.livingCells }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
   LoadPreset cells ->
@@ -132,10 +130,10 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      transpose grid
+      Game.transpose Game.grid
       <#> Array.filter (\cell -> Set.member cell cells)
       <#> map fst
-      <#> Array.mapMaybe (Array.index notes)
+      <#> Array.mapMaybe (Array.index Game.notes)
 
     inc = case _ of
       Just n -> Just $ mod (n + 1) (Array.length $ measure state.livingCells)
@@ -299,7 +297,7 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
-      grid <#> \row ->
+      Game.grid <#> \row ->
         H.div_ "d-flex"
           { style: H.css { lineHeight: 0 } } $
           row <#> \cell ->
@@ -315,7 +313,7 @@ view state dispatch = H.fragment
           H.div_ "preset d-flex rounded overflow-hidden border"
             { onClick: dispatch <| LoadPreset cells } $
             H.div "preset-grid mx-auto" $
-              grid <#> \row ->
+              Game.grid <#> \row ->
                 H.div_ "d-flex"
                   { style: H.css { lineHeight: 0 } } $
                   row <#> \cell ->
@@ -323,69 +321,5 @@ view state dispatch = H.fragment
                       H.div ("d-inline-block preset-grid-cell bg-" <> if Set.member cell cells then "salmon" else "light")
                         H.empty
 
-grid :: Array (Array Cell)
-grid =
-  rows <#> \row -> cols <#> \col -> row /\ col
-  where
-    rows = 0 .. (Array.length notes - 1)
-    cols = 0 .. (beatsPerMeasure - 1)
-
-root :: Note
-root = a4 << octave
-
--- TODO: make this configurable
-notes :: Array Note
-notes = ((>>) root) <$>
-  [ mempty
-  , major3rd
-  , perfect5th
-  , major2nd
-  , perfect4th
-  , major6th
-  , octave
-  , octave <> major3rd
-  , octave <> perfect5th
-  , octave <> major2nd
-  , octave <> perfect4th
-  , octave <> major6th
-  ]
-
 duration :: Number
 duration = 15_000.0
-
--- TODO: make this configurable
-beatsPerMeasure :: Int
-beatsPerMeasure = 16
-
--- TODO: move grid logic to its own module
-transpose :: forall a. Array (Array a) -> Array (Array a)
-transpose rows = case Array.head rows of
-  Just row -> transpose' (Array.length row) rows
-  Nothing -> []
-  where
-    transpose' n = Array.replicate n [] # Array.foldl \cols row ->
-      Array.zipWith (<>) cols (row <#> Array.singleton)
-
-step :: Set Cell -> Set Cell
-step livingCells = foldl stepRow livingCells grid
-  where
-    stepRow livingCells' row =
-      foldl stepCell livingCells' row
-
-    stepCell livingCells' cell =
-      case livingNeighbors cell of
-        3 -> Set.insert cell livingCells'
-        2 -> livingCells'
-        _ -> Set.delete cell livingCells'
-
-    livingNeighbors cell =
-      foldl countLiving 0 $ neighbors cell
-
-    countLiving acc cell =
-      if Set.member cell livingCells then acc + 1 else acc
-
-    neighbors (row /\ col) = do
-      row' <- [row - 1, row, row + 1]
-      col' <- [col - 1, col, col + 1]
-      guard $ (row' /\ col') /= (row /\ col)
-      pure (row' /\ col')
