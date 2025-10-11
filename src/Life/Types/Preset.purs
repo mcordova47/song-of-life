@@ -28,7 +28,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
 import Life.Types.Cell (Cell)
-import Life.Types.Codec (Codec, (/>), (</>))
+import Life.Types.Codec (Codec, (/>), (<\>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Compressed as GridCompressed
@@ -55,9 +55,9 @@ codec = C.codec decode encode
       V0 p -> C.encode codecV0 p
       V1 p -> C.encode codecV1 p
 
-    codecV0 = Codec.literal "0" /> codecV0' (Grid.cellsCodec </> Wave.codec)
+    codecV0 = codecV0' $ (Codec.literal "0" /> Grid.cellsCodec) <\> Wave.codec
 
-    codecV1 = Codec.literal "1" /> codecV0' (GridCompressed.cellsCodec </> Wave.codec)
+    codecV1 = codecV0' $ (Codec.literal "1" /> GridCompressed.cellsCodec) <\> Wave.codec
 
 codecV0' :: Codec String (Set Cell /\ Wave) -> Codec String PresetV1
 codecV0' = dimap toTuple fromTuple
@@ -66,7 +66,7 @@ codecV0' = dimap toTuple fromTuple
     toTuple p = p.livingCells /\ p.wave
 
 fromCells :: Set Cell -> Preset
-fromCells = V1 <<< { livingCells: _, wave: Wave.default }
+fromCells = fromState <<< { livingCells: _, wave: Wave.default }
 
 fromState :: forall r. { livingCells :: Set Cell, wave :: Wave | r } -> Preset
 fromState s = V1 { livingCells: s.livingCells, wave: s.wave }

@@ -8,9 +8,11 @@ module Life.Types.Codec
   , Codec
   , discardFirst
   , discardSecond
+  , int
   , join
   , literal
   , ljoin
+  , match
   , rdiscardFirst
   , rdiscardSecond
   , rjoin
@@ -22,10 +24,15 @@ module Life.Types.Codec
 import Prelude hiding (join)
 
 import Control.Alternative (guard)
+import Data.Array as Array
 import Data.Codec as C
+import Data.Int as Int
 import Data.Maybe (Maybe)
 import Data.Profunctor (dimap)
 import Data.String as S
+import Data.String.Regex (Regex)
+import Data.String.Regex as R
+import Data.Traversable (foldMap, traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 
 type Codec a b = C.Codec Maybe a a b b
@@ -95,3 +102,18 @@ discardSecond' = dimap toTuple fromTuple
 
 literal :: forall a. Eq a => a -> Codec a Unit
 literal a = C.codec (\a' -> guard (a' == a) *> pure unit) (const a)
+
+int :: Codec String Int
+int = C.codec Int.fromString show
+
+match :: forall a. Regex -> Codec String a -> Codec String (Array a)
+match regex codec = C.codec decode encode
+  where
+    decode =
+      R.match regex
+      >=> traverse identity
+      >>> map Array.fromFoldable
+      >=> traverse (C.decode codec)
+
+    encode =
+      foldMap (C.encode codec)

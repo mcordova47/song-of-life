@@ -1,10 +1,7 @@
 module Life.Types.Grid
-  ( Bounds
-  , Grid
-  , Instruction(..)
+  ( Grid
   , cellsCodec
   , codec
-  , decodeGridParts
   , fromCells
   , toCells
   )
@@ -12,94 +9,37 @@ module Life.Types.Grid
 
 import Prelude
 
-import Data.Array (foldMap, (..))
+import Data.Array ((..))
 import Data.Array as Array
-import Data.Codec as C
-import Data.Either (hush)
-import Data.Function.Uncurried (Fn1, runFn1)
-import Data.Int as Int
 import Data.List (List(..), (:))
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
-import Data.Nullable (Nullable)
-import Data.Nullable as N
+import Data.Maybe (fromMaybe)
 import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.String as S
-import Data.String.Regex (Regex)
-import Data.String.Regex as R
-import Data.String.Regex.Flags as RF
-import Data.Traversable (fold, maximum, minimum, traverse)
+import Data.Traversable (maximum, minimum)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
-import Life.Types.Codec (Codec)
-import Partial.Unsafe (unsafePartial)
+import Life.Types.Codec (Codec, (</>))
+import Life.Types.Grid.Bounds (Bounds)
+import Life.Types.Grid.Bounds as Bounds
+import Life.Types.Grid.Instruction (Instruction(..))
+import Life.Types.Grid.Instruction as Instructions
 
 type Grid = 
   { bounds :: Bounds
   , instructions :: Array Instruction
   }
 
-type Bounds =
-  { start :: Cell
-  , cols :: Int
-  }
-
-data Instruction
-  = Move Int
-  | TurnOn Int
-
-instance Show Instruction where
-  show = case _ of
-    Move n -> "m" <> show n
-    TurnOn n -> "o" <> show n
-
--- TODO: Debug "heart" encoding/decoding
--- TODO: Expose uncompressed as another version
--- TODO: Abstract out cipher codec
 codec :: Codec String Grid
-codec = C.codec decode encode
+codec = dimap toTuple fromTuple tupleCodec
+  where
+    toTuple { bounds, instructions } = bounds /\ instructions
+    fromTuple (bounds /\ instructions) = { bounds, instructions }
+    tupleCodec = Bounds.codec </> Instructions.arrayCodec
 
 cellsCodec :: Codec String (Set Cell)
 cellsCodec = dimap fromCells toCells codec
-
-decode :: String → Maybe Grid
-decode s = do
-  parts <- decodeGridParts s
-  instructions <- decodeInstructions parts.instructions
-  pure
-    { bounds: parts.bounds
-    , instructions
-    }
-  where
-    decodeInstructions str = str
-      # R.match instructionRegex
-      >>= traverse identity
-      <#> Array.fromFoldable
-      >>= traverse (S.splitAt 1 >>> decodeInstruction)
-
-    decodeInstruction { before, after }
-      | before == "m" = Move <$> Int.fromString after
-      | before == "o" = TurnOn <$> Int.fromString after
-      | otherwise = Nothing
-
-encode :: Grid -> String
-encode { bounds: { start: row /\ col, cols }, instructions } = fold
-  [ show cols
-  , "c"
-  , show row
-  , "."
-  , show col
-  , foldMap encodeInstruction instructions
-  ]
-  where
-    encodeInstruction = case _ of
-      Move n -> "m" <> show n
-      TurnOn n -> "o" <> show n
-
-instructionRegex :: Regex
-instructionRegex = unsafePartial fromJust $ hush $ R.regex "[mo][0-9]+" RF.global
 
 fromCells :: Set Cell -> Grid
 fromCells cells = { bounds, instructions }
@@ -154,19 +94,3 @@ toCells { bounds, instructions } = indices <#> indexToCell # Set.fromFoldable
               { indices = acc.indices <> (acc.position .. (n + acc.position - 1))
               , position = acc.position + n - 1
               }
-
-decodeGridParts :: String -> Maybe { bounds :: Bounds, instructions :: String }
-decodeGridParts s = do
-  parts <- runFn1 decodeGridParts_ s # N.toMaybe
-  cols <- Int.fromString parts.cols
-  row <- Int.fromString parts.row
-  col <- Int.fromString parts.col
-  pure
-    { bounds:
-        { start: row /\ col
-        , cols
-        }
-    , instructions: parts.instructions
-    }
-
-foreign import decodeGridParts_ :: Fn1 String (Nullable { cols :: String, row :: String, col :: String, instructions :: String})
