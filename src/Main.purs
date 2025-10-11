@@ -221,7 +221,7 @@ view state dispatch = H.fragment
                   ]
           ]
           -- TODO: Share icon
-          , H.div "d-flex mb-3"
+          , H.div "d-flex mb-3 mt-1"
             [ H.button_ "btn btn-outline-theme"
                 { onClick: dispatch <| ShowShareInput
                 }

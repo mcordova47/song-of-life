@@ -18,7 +18,7 @@ import Data.Maybe (Maybe(..))
 import Elmish (ReactElement)
 import Life.Icons as I
 import Life.Types.Codec (Codec)
-import Life.Utils (allEnumValues)
+import Life.Utils (tags)
 
 data Wave
   = Triangle
@@ -46,7 +46,7 @@ codec = C.codec decode encode
       | otherwise = Nothing
 
 all :: Array Wave
-all = allEnumValues
+all = tags
 
 default :: Wave
 default = genericBottom
