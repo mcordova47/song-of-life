@@ -1,30 +1,20 @@
 module Life.Types.Music.Note
   ( (\\)
-  , Degree
   , Note(..)
   , a4
   , codec
   , dec
   , diff
   , display
-  , fifth
-  , fourth
   , frequency
   , halfSteps
   , inc
-  , octave
   , play
-  , second
-  , seventh
-  , sixth
-  , third
-  , tonal
   )
   where
 
 import Prelude hiding (degree)
 
-import Control.Monad.Rec.Class (Step(..), loop3, tailRec3)
 import Data.Bounded.Generic (genericBottom, genericTop)
 import Data.Enum.Generic (genericPred, genericSucc)
 import Data.Int as Int
@@ -51,8 +41,6 @@ derive instance Eq Note
 
 infixr 6 Note as \\
 
-type Degree = PitchClass -> Note -> Note
-
 codec :: Codec String Note
 codec =
   dimap toTuple fromTuple $
@@ -78,38 +66,6 @@ halfSteps (pitchClass \\ octave') =
 diff :: Note -> Note -> Int
 diff a b =
   halfSteps a - halfSteps b
-
-degree :: Int -> Degree
-degree = tailRec3 go
-  where
-    go degrees key note@(pitchClass \\ octave')
-      | degrees > 0 = loop3 (degrees - 1) key (inc note)
-      | degrees < 0 = loop3 (degrees + 1) key (dec note)
-      | otherwise = Done $ PitchClass.fix key pitchClass \\ octave'
-
-tonal :: Degree
-tonal = degree 0
-
-second :: Degree
-second = degree 1
-
-third :: Degree
-third = degree 2
-
-fourth :: Degree
-fourth = degree 3
-
-fifth :: Degree
-fifth = degree 4
-
-sixth :: Degree
-sixth = degree 5
-
-seventh :: Degree
-seventh = degree 6
-
-octave :: Degree
-octave = degree 7
 
 inc :: Note -> Note
 inc (l // m \\ o) = l

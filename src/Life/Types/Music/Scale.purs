@@ -9,8 +9,9 @@ module Life.Types.Music.Scale
 
 import Prelude
 
-import Life.Types.Music.Note (Degree, Note, (\\))
-import Life.Types.Music.Note as Note
+import Life.Types.Music.Degree (Degree)
+import Life.Types.Music.Degree as Degree
+import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Utils ((>>>>))
 
@@ -22,58 +23,58 @@ scale degrees key octave =
 
 diatonic :: Scale
 diatonic = scale
-  [ Note.tonal
-  , Note.third
-  , Note.fifth
-  , Note.second
-  , Note.seventh
-  , Note.fourth
-  , Note.sixth
-  , Note.octave
-  , Note.octave >>>> Note.third
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.second
-  , Note.octave >>>> Note.fourth
-  , Note.octave >>>> Note.sixth
-  , Note.octave >>>> Note.seventh
+  [ Degree.tonal
+  , Degree.third
+  , Degree.fifth
+  , Degree.second
+  , Degree.seventh
+  , Degree.fourth
+  , Degree.sixth
+  , Degree.octave
+  , Degree.octave >>>> Degree.third
+  , Degree.octave >>>> Degree.fifth
+  , Degree.octave >>>> Degree.second
+  , Degree.octave >>>> Degree.fourth
+  , Degree.octave >>>> Degree.sixth
+  , Degree.octave >>>> Degree.seventh
   ]
 
 hexatonic :: Scale
 hexatonic = scale
-  [ Note.tonal
-  , Note.third
-  , Note.fifth
-  , Note.second
-  , Note.fourth
-  , Note.sixth
-  , Note.octave
-  , Note.octave >>>> Note.third
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.second
-  , Note.octave >>>> Note.fourth
-  , Note.octave >>>> Note.sixth
-  , Note.octave >>>> Note.octave
-  , Note.octave >>>> Note.octave >>>> Note.third
-  , Note.octave >>>> Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.octave >>>> Note.second
+  [ Degree.tonal
+  , Degree.third
+  , Degree.fifth
+  , Degree.second
+  , Degree.fourth
+  , Degree.sixth
+  , Degree.octave
+  , Degree.octave >>>> Degree.third
+  , Degree.octave >>>> Degree.fifth
+  , Degree.octave >>>> Degree.second
+  , Degree.octave >>>> Degree.fourth
+  , Degree.octave >>>> Degree.sixth
+  , Degree.octave >>>> Degree.octave
+  , Degree.octave >>>> Degree.octave >>>> Degree.third
+  , Degree.octave >>>> Degree.octave >>>> Degree.fifth
+  , Degree.octave >>>> Degree.octave >>>> Degree.second
   ]
 
 pentatonic :: Scale
 pentatonic = scale
-  [ Note.tonal
-  , Note.third
-  , Note.fifth
-  , Note.second
-  , Note.sixth
-  , Note.octave
-  , Note.octave >>>> Note.third
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.second
-  , Note.octave >>>> Note.sixth
-  , Note.octave >>>> Note.octave
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.octave
-  , Note.octave >>>> Note.octave >>>> Note.third
-  , Note.octave >>>> Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.octave >>>> Note.second
+  [ Degree.tonal
+  , Degree.third
+  , Degree.fifth
+  , Degree.second
+  , Degree.sixth
+  , Degree.octave
+  , Degree.octave >>>> Degree.third
+  , Degree.octave >>>> Degree.fifth
+  , Degree.octave >>>> Degree.second
+  , Degree.octave >>>> Degree.sixth
+  , Degree.octave >>>> Degree.octave
+  , Degree.octave >>>> Degree.fifth
+  , Degree.octave >>>> Degree.octave
+  , Degree.octave >>>> Degree.octave >>>> Degree.third
+  , Degree.octave >>>> Degree.octave >>>> Degree.fifth
+  , Degree.octave >>>> Degree.octave >>>> Degree.second
   ]
