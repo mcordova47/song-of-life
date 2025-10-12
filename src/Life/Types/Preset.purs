@@ -88,9 +88,9 @@ wave = case _ of
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
 
-random :: Effect (Maybe Preset)
-random = do
-  cells <- Game.random
+random :: forall a r. { notes :: Array a | r } -> Effect (Maybe Preset)
+random s = do
+  cells <- Game.random s
   mWave <- Wave.random
   for mWave \w ->
     pure $ V1 { livingCells: cells, wave: w }

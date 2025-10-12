@@ -97,7 +97,7 @@ update state = case _ of
     forkVoid $ liftEffect $ for_ notes' $ Note.play dur state.wave
     pure state { play = inc state.play }
   GenerateRandom -> do
-    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random state
     pure state
   HideCopiedFeedback ->
     pure state { showCopiedFeedback = false }
