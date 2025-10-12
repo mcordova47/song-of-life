@@ -10,6 +10,7 @@ module Life.Types.Preset
   , fromState
   , glider
   , heart
+  , key
   , livingCells
   , musicNotes
   , octocat
@@ -22,6 +23,8 @@ module Life.Types.Preset
 import Prelude
 
 import Control.Alt ((<|>))
+import Data.Array ((!!))
+import Data.Array as Array
 import Data.Codec as C
 import Data.Maybe (Maybe)
 import Data.Profunctor (dimap)
@@ -30,12 +33,15 @@ import Data.Set as Set
 import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
+import Effect.Random as R
 import Life.Game as Game
 import Life.Types.Cell (Cell)
-import Life.Types.Codec (Codec, (/>), (<\>))
+import Life.Types.Codec (Codec, (/>), (</>), (<\>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Compressed as GridCompressed
+import Life.Types.Music.PitchClass (PitchClass)
+import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 
@@ -44,7 +50,8 @@ data Preset
   | V1 PresetV1
 
 type PresetV0 =
-  { livingCells :: Set Cell
+  { key :: PitchClass
+  , livingCells :: Set Cell
   , wave :: Wave
   }
 
@@ -59,21 +66,26 @@ codec = C.codec decode encode
       V0 p -> C.encode codecV0 p
       V1 p -> C.encode codecV1 p
 
-    codecV0 = codecV0' $ (Codec.literal "0" /> Grid.cellsCodec) <\> Wave.codec
+    codecV0 = codecV0' $ (Codec.literal "0" /> PitchClass.codec </> Grid.cellsCodec) <\> Wave.codec
 
-    codecV1 = codecV0' $ (Codec.literal "1" /> GridCompressed.cellsCodec) <\> Wave.codec
+    codecV1 = codecV0' $ (Codec.literal "1" /> PitchClass.codec </> GridCompressed.cellsCodec) <\> Wave.codec
 
-codecV0' :: Codec String (Set Cell /\ Wave) -> Codec String PresetV1
+codecV0' :: Codec String ((PitchClass /\ Set Cell) /\ Wave) -> Codec String PresetV1
 codecV0' = dimap toTuple fromTuple
   where
-    fromTuple (g /\ w) = { livingCells: g, wave: w }
-    toTuple p = p.livingCells /\ p.wave
+    fromTuple ((k /\ g) /\ w) = { key: k, livingCells: g, wave: w }
+    toTuple p = (p.key /\ p.livingCells) /\ p.wave
 
 fromCells :: Set Cell -> Preset
-fromCells = fromState <<< { livingCells: _, wave: Wave.default }
+fromCells = fromState <<< { key: Game.defaultKey, livingCells: _, wave: Wave.default }
 
-fromState :: forall r. { livingCells :: Set Cell, wave :: Wave | r } -> Preset
-fromState s = V1 { livingCells: s.livingCells, wave: s.wave }
+fromState :: forall r. { key :: PitchClass, livingCells :: Set Cell, wave :: Wave | r } -> Preset
+fromState s = V1 { key: s.key, livingCells: s.livingCells, wave: s.wave }
+
+key :: Preset -> PitchClass
+key = case _ of
+  V0 p -> p.key
+  V1 p -> p.key
 
 livingCells :: Preset -> Set Cell
 livingCells = case _ of
@@ -88,12 +100,14 @@ wave = case _ of
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
 
-random :: forall a r. { notes :: Array a | r } -> Effect (Maybe Preset)
+random :: forall r. { key :: PitchClass | r } -> Effect (Maybe Preset)
 random s = do
   cells <- Game.random s
   mWave <- Wave.random
-  for mWave \w ->
-    pure $ V1 { livingCells: cells, wave: w }
+  keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)
+  let mKey = PitchClass.all !! keyIndex
+  for ((/\) <$> mWave <*> mKey) \(w /\ k) ->
+    pure $ V1 { key: k, livingCells: cells, wave: w }
 
 default :: Preset
 default = heart

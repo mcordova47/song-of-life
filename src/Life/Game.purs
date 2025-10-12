@@ -1,5 +1,6 @@
 module Life.Game
   ( defaultKey
+  , defaultOctave
   , diatonic
   , grid
   , random
@@ -24,14 +25,14 @@ import Effect (Effect)
 import Effect.Random as R
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
-import Life.Types.Musc.Letter (Letter(..))
-import Life.Types.Musc.Modifier (natural)
-import Life.Types.Musc.PitchClass (PitchClass, (//))
+import Life.Types.Music.Letter (Letter(..))
+import Life.Types.Music.Modifier (natural)
+import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.Note as Note
 import Life.Utils ((>>>>))
 
-step :: forall a r. { livingCells :: Set Cell, notes :: Array a | r } -> Set Cell
+step :: forall r. { livingCells :: Set Cell, key :: PitchClass | r } -> Set Cell
 step s = foldl stepRow s.livingCells $ grid s
   where
     stepRow livingCells' row =
@@ -55,11 +56,11 @@ step s = foldl stepRow s.livingCells $ grid s
       guard $ (row' /\ col') /= (row /\ col)
       pure (row' /\ col')
 
-grid :: forall a r. { notes :: Array a | r } -> Array (Array Cell)
-grid { notes } =
+grid :: forall r. { key :: PitchClass | r } -> Array (Array Cell)
+grid { key } =
   rows <#> \row -> cols <#> \col -> row /\ col
   where
-    rows = 0 .. (A.length notes - 1)
+    rows = 0 .. (A.length (diatonic key defaultOctave) - 1)
     cols = 0 .. (beatsPerMeasure - 1)
 
 transpose :: forall a. Array (Array a) -> Array (Array a)
@@ -70,11 +71,12 @@ transpose rows = case A.head rows of
     transpose' n = A.replicate n [] # foldl \cols row ->
       A.zipWith (<>) cols (row <#> A.singleton)
 
-random :: forall a r. { notes :: Array a | r } -> Effect (Set Cell)
-random { notes } = do
+random :: forall r. { key :: PitchClass | r } -> Effect (Set Cell)
+random { key } = do
   let
     x1 = 0
     x2 = beatsPerMeasure - 1
+    notes = diatonic key defaultOctave
   y1 <- R.randomInt 0 (A.length notes - 3)
   y2 <- R.randomInt (y1 + 2) (A.length notes - 1)
   numCells <- R.randomInt 5 $ Int.floor (Int.toNumber ((x2 - x1) * (y2 - y1)) * 0.75)
@@ -89,6 +91,9 @@ beatsPerMeasure = 16
 
 defaultKey :: PitchClass
 defaultKey = A // natural
+
+defaultOctave :: Int
+defaultOctave = 3
 
 diatonic :: PitchClass -> Int -> Array Note
 diatonic key octave =

@@ -1,4 +1,4 @@
-module Life.Types.Musc.PitchClass
+module Life.Types.Music.PitchClass
   ( (//)
   , PitchClass(..)
   , all
@@ -15,21 +15,23 @@ import Data.Profunctor (dimap)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Codec (Codec)
 import Life.Types.Codec as Codec
-import Life.Types.Musc.Letter (Letter(..))
-import Life.Types.Musc.Letter as Letter
-import Life.Types.Musc.Modifier (Modifier, natural, sharp)
-import Life.Types.Musc.Modifier as Modifier
+import Life.Types.Music.Letter (Letter(..))
+import Life.Types.Music.Letter as Letter
+import Life.Types.Music.Modifier (Modifier, natural, sharp)
+import Life.Types.Music.Modifier as Modifier
 
 data PitchClass
   = PitchClass Letter Modifier
 derive instance Eq PitchClass
+instance Show PitchClass where
+  show = display
 
 infixl 7 PitchClass as //
 
 codec :: Codec String PitchClass
 codec =
   dimap toTuple fromTuple $
-    Codec.ljoin "_" Letter.codec Modifier.codec
+    Codec.ljoin "." Letter.codec Modifier.codec
   where
     toTuple (l // m) = l /\ m
     fromTuple (l /\ m) = l // m

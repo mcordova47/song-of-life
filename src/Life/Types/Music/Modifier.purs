@@ -1,4 +1,4 @@
-module Life.Types.Musc.Modifier
+module Life.Types.Music.Modifier
   ( Modifier(..)
   , codec
   , display
@@ -11,7 +11,7 @@ module Life.Types.Musc.Modifier
 
 import Prelude
 
-import Data.Array (fold, (!!))
+import Data.Array (fold)
 import Data.Array as A
 import Data.Codec as C
 import Data.Int as Int
@@ -26,24 +26,29 @@ derive newtype instance Semiring Modifier
 codec :: Codec String Modifier
 codec = C.codec decode encode
   where
-    decode s = do
-      let parts = S.split (S.Pattern "_") s
-      first <- parts !! 0
-      let mSecond = parts !! 1 >>= Int.fromString
-      case first, mSecond of
-        "natural", _ ->
+    decode s =
+      let { before, after } = S.splitAt 1 s
+      in
+      case before, Int.fromString after of
+        "n", _ ->
           pure natural
-        "flat", Just n -> do
+        "f", Just n ->
           pure $ Modifier (-n)
-        "sharp", Just n -> do
+        "f", _ ->
+          pure $ Modifier (-1)
+        "s", Just n ->
           pure $ Modifier n
+        "s", _ ->
+          pure $ Modifier 1
         _, _ ->
           Nothing
 
     encode (Modifier n)
-      | n < 0 = "flat_" <> show n
-      | n > 0 = "sharp_" <> show n
-      | otherwise = "natural"
+      | n == -1 = "f"
+      | n == 1 = "s"
+      | n < 0 = "f" <> show n
+      | n > 0 = "s" <> show n
+      | otherwise = "n"
 
 halfSteps :: Modifier -> Int
 halfSteps (Modifier n) = n

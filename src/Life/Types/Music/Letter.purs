@@ -1,4 +1,4 @@
-module Life.Types.Musc.Letter
+module Life.Types.Music.Letter
   ( Letter(..)
   , codec
   , degree
@@ -15,7 +15,7 @@ import Data.Codec as C
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Life.Types.Codec (Codec)
-import Life.Types.Musc.Modifier (Modifier, flat, natural, sharp)
+import Life.Types.Music.Modifier (Modifier, flat, natural, sharp)
 
 data Letter
   = C
@@ -32,23 +32,23 @@ codec :: Codec String Letter
 codec = C.codec decode encode
   where
     decode = case _ of
-      "c" -> Just C
-      "d" -> Just D
-      "e" -> Just E
-      "f" -> Just F
-      "g" -> Just G
-      "a" -> Just A
-      "b" -> Just B
+      "C" -> Just C
+      "D" -> Just D
+      "E" -> Just E
+      "F" -> Just F
+      "G" -> Just G
+      "A" -> Just A
+      "B" -> Just B
       _ -> Nothing
 
     encode = case _ of
-      C -> "c"
-      D -> "d"
-      E -> "e"
-      F -> "f"
-      G -> "g"
-      A -> "a"
-      B -> "b"
+      C -> "C"
+      D -> "D"
+      E -> "E"
+      F -> "F"
+      G -> "G"
+      A -> "A"
+      B -> "B"
 
 halfSteps :: Letter -> Int
 halfSteps = case _ of

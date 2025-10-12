@@ -3,6 +3,7 @@ module Life.Types.Music.Note
   , Degree
   , Note(..)
   , a4
+  , codec
   , dec
   , diff
   , display
@@ -21,22 +22,26 @@ module Life.Types.Music.Note
   )
   where
 
-import Prelude
+import Prelude hiding (degree)
 
 import Data.Bounded.Generic (genericBottom, genericTop)
 import Data.Enum.Generic (genericPred, genericSucc)
 import Data.Int as Int
 import Data.Maybe (maybe)
 import Data.Number (pow)
+import Data.Profunctor (dimap)
 import Data.Time.Duration (Milliseconds)
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Uncurried (EffectFn3, runEffectFn3)
 import Elmish (ReactElement)
 import Elmish.HTML.Styled as H
-import Life.Types.Musc.Letter (Letter(..))
-import Life.Types.Musc.Modifier (natural)
-import Life.Types.Musc.PitchClass (PitchClass, (//))
-import Life.Types.Musc.PitchClass as PitchClass
+import Life.Types.Codec (Codec)
+import Life.Types.Codec as Codec
+import Life.Types.Music.Letter (Letter(..))
+import Life.Types.Music.Modifier (natural)
+import Life.Types.Music.PitchClass (PitchClass, (//))
+import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 
@@ -46,6 +51,14 @@ derive instance Eq Note
 infixr 6 Note as \\
 
 type Degree = PitchClass -> Note -> Note
+
+codec :: Codec String Note
+codec =
+  dimap toTuple fromTuple $
+    Codec.rjoin "_" PitchClass.codec Codec.int
+  where
+    toTuple (p \\ o) = (p /\ o)
+    fromTuple (p /\ o) = (p \\ o)
 
 display :: Note -> ReactElement
 display (p \\ o) = H.fragment

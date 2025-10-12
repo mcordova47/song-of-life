@@ -25,9 +25,9 @@ import Elmish.HTML.Styled as H
 import Life.Game as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
-import Life.Types.Musc.PitchClass (PitchClass)
-import Life.Types.Musc.PitchClass as PitchClass
-import Life.Types.Music.Note (Note, (\\))
+import Life.Types.Music.PitchClass (PitchClass)
+import Life.Types.Music.PitchClass as PitchClass
+import Life.Types.Music.Note (Note)
 import Life.Types.Music.Note as Note
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
@@ -61,8 +61,8 @@ data Message
   | ToggleCell Cell
 
 type State =
-  { livingCells :: Set Cell
-  , notes :: Array Note
+  { key :: PitchClass
+  , livingCells :: Set Cell
   , play :: Maybe Int
   , showCopiedFeedback :: Boolean
   , speed :: Int
@@ -74,8 +74,8 @@ init = do
   fork $ liftEffect $
     window >>= location >>= Loc.hash <#> String.drop 2 <#> Navigate
   pure
-    { livingCells: Set.empty
-    , notes: Game.diatonic Game.defaultKey 3
+    { key: Game.defaultKey
+    , livingCells: Set.empty
     , play: Nothing
     , showCopiedFeedback: false
     , speed: 5
@@ -104,15 +104,9 @@ update state = case _ of
   Navigate hash ->
     case Route.decode hash of
       Just (Route.Share preset) ->
-        pure state
-          { livingCells = Preset.livingCells preset
-          , wave = Preset.wave preset
-          }
+        pure $ loadPreset preset
       Nothing ->
-        pure state
-          { livingCells = Preset.livingCells Preset.default
-          , wave = Preset.wave Preset.default
-          }
+        pure state { livingCells = Preset.livingCells Preset.default }
   Pause ->
     pure state { play = Nothing }
   Play -> do
@@ -121,7 +115,7 @@ update state = case _ of
   Reset ->
     pure state { livingCells = Set.empty }
   SetKey key ->
-    pure state { notes = Game.diatonic key 3 }
+    pure state { key = key }
   SetSpeed speed ->
     pure state { speed = speed }
   SetWave wave ->
@@ -136,10 +130,7 @@ update state = case _ of
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
   LoadPreset p ->
-    pure state
-      { livingCells = Preset.livingCells p
-      , wave = Preset.wave p
-      }
+    pure $ loadPreset p
   where
     autoStep cells =
       forks \{ dispatch } -> do
@@ -155,11 +146,18 @@ update state = case _ of
       Game.transpose (Game.grid state)
       <#> Array.filter (\cell -> Set.member cell cells)
       <#> map fst
-      <#> Array.mapMaybe (Array.index state.notes)
+      <#> Array.mapMaybe (Array.index $ Game.diatonic state.key Game.defaultOctave)
 
     inc = case _ of
       Just n -> Just $ mod (n + 1) (Array.length $ measure state.livingCells)
       Nothing -> Nothing
+
+    loadPreset p =
+      state
+        { key = Preset.key p
+        , livingCells = Preset.livingCells p
+        , wave = Preset.wave p
+        }
 
 view :: State -> Dispatch Message -> ReactElement
 view state dispatch = H.fragment
@@ -284,12 +282,11 @@ view state dispatch = H.fragment
             , H.select_ "form-select"
                 { onChange: dispatch <?| \e ->
                     SetKey <$> C.decode PitchClass.codec (E.selectSelectedValue e)
+                , value: C.encode PitchClass.codec state.key
                 } $
                 PitchClass.all <#> \key ->
                   H.option_ ""
-                    { value: C.encode PitchClass.codec key
-                    , selected: Just (key \\ 3) == Array.head state.notes
-                    } $
+                    { value: C.encode PitchClass.codec key } $
                     PitchClass.display key
             ]
           ]
@@ -358,7 +355,7 @@ view state dispatch = H.fragment
         { style: H.css { lineHeight: 0.5 } }
         [ fold do
             (i /\ _) <- Array.head row
-            n <- state.notes !! i
+            n <- Game.diatonic state.key Game.defaultOctave !! i
             pure $
               H.div_ "text-secondary text-center align-content-center me-2"
                 { style: H.css { height: "2rem", width: "2rem" } }$
@@ -376,7 +373,7 @@ view state dispatch = H.fragment
       H.div "row" $ Preset.all <#> Preset.livingCells <#> \cells ->
         H.div "col-6 col-sm-4 col-md-3 pb-3" $
           H.div_ "preset d-flex rounded overflow-hidden border"
-            { onClick: dispatch <| LoadPreset $ Preset.fromState { livingCells: cells, wave: state.wave } } $
+            { onClick: dispatch <| LoadPreset $ Preset.fromState state { livingCells = cells } } $
             H.div "preset-grid mx-auto" $
               Game.grid state <#> \row ->
                 H.div_ "d-flex"
