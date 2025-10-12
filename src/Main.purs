@@ -403,9 +403,11 @@ view state dispatch = H.fragment
             # Array.mapWithIndex (/\)
             >>= instructionEmojis
             # U.chunksOf bounds.cols
-            <#> U.fill (min bounds.cols 6) "⬜️"
-            <#> (Array.take 6 >>> Array.intercalate "")
-            # (Array.take 6 >>> Array.intercalate "\n")
+            <#> (U.fill (min bounds.cols 6) "⬜️" >>> join "")
+            # join "\n"
+
+        join delimiter =
+          Array.take 6 >>> Array.intercalate delimiter
 
         instructionEmojis (index /\ instruction) = case instruction of
           Move n | index == 0 -> Array.replicate n "⬜️"
