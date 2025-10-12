@@ -2,12 +2,8 @@ module Life.Game
   ( defaultKey
   , defaultOctave
   , defaultScale
-  , diatonic
   , grid
-  , hexatonic
-  , pentatonic
   , random
-  , scale
   , step
   , transpose
   )
@@ -31,10 +27,9 @@ import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (natural)
-import Life.Types.Music.Note (Note, Degree, (\\))
-import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass, (//))
-import Life.Utils ((>>>>))
+import Life.Types.Music.Scale (Scale)
+import Life.Types.Music.Scale as Scale
 
 step :: forall r. { livingCells :: Set Cell, key :: PitchClass | r } -> Set Cell
 step s = foldl stepRow s.livingCells $ grid s
@@ -100,69 +95,5 @@ defaultKey = A // natural
 defaultOctave :: Int
 defaultOctave = 3
 
-type Scale = PitchClass -> Int -> Array Note
-
-scale :: Array Degree -> Scale
-scale degrees key octave =
-  degrees <@> key <@> (key \\ octave)
-
 defaultScale :: Scale
-defaultScale = hexatonic
-
-diatonic :: Scale
-diatonic = scale
-  [ Note.tonal
-  , Note.third
-  , Note.fifth
-  , Note.second
-  , Note.seventh
-  , Note.fourth
-  , Note.sixth
-  , Note.octave
-  , Note.octave >>>> Note.third
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.second
-  , Note.octave >>>> Note.fourth
-  , Note.octave >>>> Note.sixth
-  , Note.octave >>>> Note.seventh
-  ]
-
-hexatonic :: Scale
-hexatonic = scale
-  [ Note.tonal
-  , Note.third
-  , Note.fifth
-  , Note.second
-  , Note.fourth
-  , Note.sixth
-  , Note.octave
-  , Note.octave >>>> Note.third
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.second
-  , Note.octave >>>> Note.fourth
-  , Note.octave >>>> Note.sixth
-  , Note.octave >>>> Note.octave
-  , Note.octave >>>> Note.octave >>>> Note.third
-  , Note.octave >>>> Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.octave >>>> Note.second
-  ]
-
-pentatonic :: Scale
-pentatonic = scale
-  [ Note.tonal
-  , Note.third
-  , Note.fifth
-  , Note.second
-  , Note.sixth
-  , Note.octave
-  , Note.octave >>>> Note.third
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.second
-  , Note.octave >>>> Note.sixth
-  , Note.octave >>>> Note.octave
-  , Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.octave
-  , Note.octave >>>> Note.octave >>>> Note.third
-  , Note.octave >>>> Note.octave >>>> Note.fifth
-  , Note.octave >>>> Note.octave >>>> Note.second
-  ]
+defaultScale = Scale.hexatonic
