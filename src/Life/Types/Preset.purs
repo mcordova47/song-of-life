@@ -3,19 +3,11 @@ module Life.Types.Preset
   , PresetV0
   , PresetV1
   , all
-  , bottomRightGlider
   , codec
-  , collision
   , default
   , fromState
-  , galaxy
-  , glider
-  , heart
   , key
   , livingCells
-  , musicNotes
-  , octocat
-  , pond
   , random
   , wave
   )
@@ -113,8 +105,17 @@ random s = do
 default :: Preset
 default = heart
 
-all :: Array Preset
-all = [heart, pond, octocat, musicNotes, glider, collision, galaxy]
+all :: Array (String /\ Preset)
+all =
+  [ "Heart" /\ heart
+  , "Pond" /\ pond
+  , "Octocat" /\ octocat
+  , "Music Notes" /\ musicNotes
+  , "Glider" /\ glider
+  , "Collision" /\ collision
+  , "Galaxy" /\ galaxy
+  , "Flower" /\ flower
+  ]
 
 heart :: Preset
 heart = presetV1
@@ -155,10 +156,7 @@ heart = presetV1
   ]
 
 glider :: Preset
-glider = presetV1 gliderCells
-
-gliderCells :: Array Cell
-gliderCells =
+glider = presetV1
   [ 0 /\ 2
   , 1 /\ 0
   , 1 /\ 2
@@ -166,20 +164,19 @@ gliderCells =
   , 2 /\ 2
   ]
 
-bottomRightGlider :: Preset
-bottomRightGlider = presetV1 bottomRightGliderCells
-
-bottomRightGliderCells :: Array Cell
-bottomRightGliderCells =
-  [ 11 /\ 13
-  , 10 /\ 15
-  , 10 /\ 13
-  , 9 /\ 14
-  , 9 /\ 13
-  ]
-
 collision :: Preset
-collision = presetV1 $ gliderCells <> bottomRightGliderCells
+collision = presetV1
+  [ 2 /\ 1
+  , 2 /\ 3
+  , 3 /\ 2
+  , 3 /\ 3
+  , 4 /\ 2
+  , 13 /\ 12
+  , 13 /\ 13
+  , 14 /\ 12
+  , 14 /\ 14
+  , 15 /\ 12
+  ]
 
 octocat :: Preset
 octocat = presetV1
@@ -325,4 +322,37 @@ galaxy = presetV1
   , 11 /\ 5
   , 11 /\ 6
   , 11 /\ 7
+  ]
+
+flower :: Preset
+flower = presetV1
+  [ 0 /\ 7
+  , 1 /\ 6
+  , 1 /\ 8
+  , 2 /\ 6
+  , 2 /\ 8
+  , 3 /\ 7
+  , 5 /\ 2
+  , 5 /\ 3
+  , 5 /\ 7
+  , 5 /\ 11
+  , 5 /\ 12
+  , 6 /\ 1
+  , 6 /\ 4
+  , 6 /\ 6
+  , 6 /\ 7
+  , 6 /\ 8
+  , 6 /\ 10
+  , 6 /\ 13
+  , 7 /\ 2
+  , 7 /\ 3
+  , 7 /\ 7
+  , 7 /\ 11
+  , 7 /\ 12
+  , 9 /\ 7
+  , 10 /\ 6
+  , 10 /\ 8
+  , 11 /\ 6
+  , 11 /\ 8
+  , 12 /\ 7
   ]

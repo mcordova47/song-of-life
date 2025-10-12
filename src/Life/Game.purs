@@ -31,8 +31,8 @@ import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Types.Music.Scale (Scale)
 import Life.Types.Music.Scale as Scale
 
-step :: forall r. { livingCells :: Set Cell, key :: PitchClass | r } -> Set Cell
-step s = foldl stepRow s.livingCells $ grid s
+step :: forall r. { livingCells :: Set Cell | r } -> Int -> Set Cell
+step s = foldl stepRow s.livingCells <<< grid
   where
     stepRow livingCells' row =
       foldl stepCell livingCells' row
@@ -55,11 +55,11 @@ step s = foldl stepRow s.livingCells $ grid s
       guard $ (row' /\ col') /= (row /\ col)
       pure (row' /\ col')
 
-grid :: forall r. { key :: PitchClass | r } -> Array (Array Cell)
-grid { key } =
+grid :: Int -> Array (Array Cell)
+grid numRows =
   rows <#> \row -> cols <#> \col -> row /\ col
   where
-    rows = 0 .. (A.length (defaultScale key defaultOctave) - 1)
+    rows = 0 .. (numRows - 1)
     cols = 0 .. (beatsPerMeasure - 1)
 
 transpose :: forall a. Array (Array a) -> Array (Array a)

@@ -22,6 +22,7 @@ import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, fo
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
+import Life.Components.PresetButton as PresetButton
 import Life.Game as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
@@ -36,6 +37,7 @@ import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
+import Life.Utils (scrollIntoView)
 import Life.Utils as U
 import Promise as P
 import Web.Clipboard as Clipboard
@@ -91,7 +93,7 @@ update state = case _ of
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
   AutoStep | Just _ <- state.play -> do
-    let livingCells = Game.step state
+    let livingCells = Game.step state $ numRows state
     autoStep livingCells
     pure state { livingCells = livingCells, play = Just (Array.length (measure livingCells) - 1) }
   AutoStep ->
@@ -106,8 +108,8 @@ update state = case _ of
     pure state { showCopiedFeedback = false }
   Navigate hash ->
     case Route.decode hash of
-      Just (Route.Share preset) ->
-        pure $ loadPreset preset
+      Just (Route.Share p) ->
+        pure $ loadPreset p
       Nothing ->
         pure state { livingCells = Preset.livingCells Preset.default }
   Pause ->
@@ -129,7 +131,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { livingCells = Game.step state }
+    pure state { livingCells = Game.step state $ numRows state }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
   LoadPreset p ->
@@ -146,7 +148,7 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      Game.transpose (Game.grid state)
+      Game.transpose (gameGrid state)
       <#> Array.filter (\cell -> Set.member cell cells)
       <#> map fst
       <#> Array.mapMaybe (Array.index $ Game.defaultScale state.key Game.defaultOctave)
@@ -166,7 +168,8 @@ view :: State -> Dispatch Message -> ReactElement
 view state dispatch = H.fragment
   [ H.div "w-100 bg-lightblue" $
       H.div "container d-flex justify-content-between align-items-center py-2"
-      [ H.h1 "d-inline-flex align-items-center mb-0" $
+      [ H.h1_ "d-inline-flex align-items-center mb-0"
+        { id: headerId }$
         [ H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none"
             { href: "/" } $
             I.logo { size: 48 }
@@ -374,20 +377,18 @@ view state dispatch = H.fragment
                   H.empty
         ]
 
-    -- TODO: show states change on hover
     presets =
-      H.div "row" $ Preset.all <#> Preset.livingCells <#> \cells ->
-        H.div "col-6 col-sm-4 col-md-3 pb-3" $
-          H.div_ "preset d-flex rounded overflow-hidden border"
-            { onClick: dispatch <| LoadPreset $ Preset.fromState state { livingCells = cells } } $
-            H.div "preset-grid mx-auto" $
-              grid <#> \row ->
-                H.div_ "d-flex"
-                  { style: H.css { lineHeight: 0 } } $
-                  row <#> \cell ->
-                    H.div "d-inline-block m-0 preset-grid-cell-container" $
-                      H.div ("d-inline-block preset-grid-cell bg-" <> if Set.member cell cells then "salmon" else "light")
-                        H.empty
+      H.div "row" $ Preset.all <#> \(name /\ p) -> Preset.livingCells p # \cells ->
+        H.div_ "col-6 col-sm-4 col-md-3 pb-3"
+          { key: name } $
+          PresetButton.component
+            { name
+            , cells
+            , grid
+            , onClick: E.handleEffect do
+                dispatch $ LoadPreset $ Preset.fromState state { livingCells = cells }
+                scrollIntoView headerId
+            }
 
     shareText origin = fold
       [ "Made with Songs of Life\n\n"
@@ -417,7 +418,17 @@ view state dispatch = H.fragment
     shareUrl origin =
       origin <> "/#/" <> (Route.encode $ Route.Share $ Preset.fromState state)
 
-    grid = Game.grid state
+    grid = gameGrid state
+
+    headerId = "site-header"
+
+gameGrid :: forall r. { key :: PitchClass | r } -> Array (Array Cell)
+gameGrid =
+  Game.grid <<< numRows
+
+numRows :: forall r. { key :: PitchClass | r } -> Int
+numRows state =
+  Array.length $ Game.defaultScale state.key Game.defaultOctave
 
 duration :: Number
 duration = 15_000.0

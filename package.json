@@ -24,6 +24,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-feather": "^2.0.10",
-    "spago": "^0.93.44"
+    "spago": "^0.93.44",
+    "stacktrace-parser": "^0.1.11"
   }
 }

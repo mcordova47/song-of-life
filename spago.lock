@@ -13,6 +13,7 @@
             "control",
             "effect",
             "elmish",
+            "elmish-hooks",
             "elmish-html",
             "integers",
             "ordered-collections",
@@ -40,6 +41,7 @@
             "effect",
             "either",
             "elmish",
+            "elmish-hooks",
             "elmish-html",
             "enums",
             "exceptions",
@@ -917,6 +919,21 @@
         "unsafe-coerce",
         "web-dom",
         "web-html"
+      ]
+    },
+    "elmish-hooks": {
+      "type": "registry",
+      "version": "0.11.0",
+      "integrity": "sha256-wI8oAX9rG8im259wgcSNWrE1DOYysmz67VXXYAELFOc=",
+      "dependencies": [
+        "aff",
+        "debug",
+        "effect",
+        "elmish",
+        "maybe",
+        "prelude",
+        "tuples",
+        "undefined-is-not-a-problem"
       ]
     },
     "elmish-html": {

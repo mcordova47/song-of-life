@@ -3,6 +3,7 @@ module Life.Utils
   , chunksOf
   , compose2
   , fill
+  , scrollIntoView
   , tags
   )
   where
@@ -15,6 +16,8 @@ import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericSu
 import Data.Generic.Rep (class Generic)
 import Data.Tuple.Nested ((/\))
 import Data.Unfoldable (class Unfoldable1, unfoldr1)
+import Effect (Effect)
+import Effect.Uncurried (EffectFn1, runEffectFn1)
 
 tags :: forall f a rep
   . Generic a rep
@@ -41,3 +44,8 @@ chunksOf n xs = Array.splitAt n xs # go
 fill :: forall a. Int -> a -> Array a -> Array a
 fill n x xs =
   xs <> Array.replicate (n - Array.length xs) x
+
+scrollIntoView :: String -> Effect Unit
+scrollIntoView = runEffectFn1 scrollIntoView_
+
+foreign import scrollIntoView_ :: EffectFn1 String Unit
