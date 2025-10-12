@@ -251,21 +251,37 @@ view state dispatch = H.fragment
               ]
         , H.div "mt-3"
           [ H.h5 "" "Controls"
-          , H.div_ ""
-            { style: H.css { width: 200 }
-            }
-            [ H.label_ "form-label fw-bold"
-                { htmlFor: "speed-input" }
-                "Speed"
-            , H.input_ "form-range"
-                { type: "range"
-                , min: "1"
-                , max: "10"
-                , step: "1"
-                , value: show state.speed
-                , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
-                , id: "speed-input"
+          , H.div "row mb-3"
+            [ H.div "col-6 col-sm-3 col-lg-2" $
+                H.label ""
+                [ H.div "mb-2" "Key"
+                , H.select_ "form-select"
+                    { onChange: dispatch <?| \e ->
+                        SetKey <$> C.decode PitchClass.codec (E.selectSelectedValue e)
+                    , value: C.encode PitchClass.codec state.key
+                    } $
+                    PitchClass.all <#> \key ->
+                      H.option_ ""
+                        { value: C.encode PitchClass.codec key } $
+                        PitchClass.display key
+                ]
+            , H.div "col" $
+                H.div_ ""
+                { style: H.css { width: 200 }
                 }
+                [ H.label_ "form-label fw-bold mb-2"
+                    { htmlFor: "speed-input" }
+                    "Speed"
+                , H.input_ "form-range"
+                    { type: "range"
+                    , min: "1"
+                    , max: "10"
+                    , step: "1"
+                    , value: show state.speed
+                    , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
+                    , id: "speed-input"
+                    }
+                ]
             ]
           , H.label "mb-2" "Wave Type"
           , H.div "row" $ Wave.all <#> \wave ->
@@ -277,18 +293,6 @@ view state dispatch = H.fragment
                       Wave.icon { size: 48 } wave
                   , H.div "" $ Wave.display wave
                   ]
-          , H.label ""
-            [ H.div "mb-2" "Key"
-            , H.select_ "form-select"
-                { onChange: dispatch <?| \e ->
-                    SetKey <$> C.decode PitchClass.codec (E.selectSelectedValue e)
-                , value: C.encode PitchClass.codec state.key
-                } $
-                PitchClass.all <#> \key ->
-                  H.option_ ""
-                    { value: C.encode PitchClass.codec key } $
-                    PitchClass.display key
-            ]
           ]
         , H.div "mt-3"
           [ H.h5 "" "Rules"
@@ -352,13 +356,12 @@ view state dispatch = H.fragment
     gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
       Game.grid state <#> \row ->
         H.div_ "d-flex align-items-center"
-        { style: H.css { lineHeight: 0.5 } }
+        { style: H.css { lineHeight: 0 } }
         [ fold do
             (i /\ _) <- Array.head row
             n <- Game.diatonic state.key Game.defaultOctave !! i
             pure $
-              H.div_ "text-secondary text-center align-content-center me-2"
-                { style: H.css { height: "2rem", width: "2rem" } }$
+              H.div "text-secondary text-center align-content-center grid-row-label small me-2" $
                 Note.display n
         , H.fragment $
             row <#> \cell ->
