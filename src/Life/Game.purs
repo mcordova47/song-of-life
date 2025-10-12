@@ -71,6 +71,7 @@ transpose rows = case A.head rows of
     transpose' n = A.replicate n [] # foldl \cols row ->
       A.zipWith (<>) cols (row <#> A.singleton)
 
+-- TODO: instead of a bounding box, limit rows per column
 random :: forall r. { key :: PitchClass | r } -> Effect (Set Cell)
 random { key } = do
   let

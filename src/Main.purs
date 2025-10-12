@@ -225,6 +225,7 @@ view state dispatch = H.fragment
                         let hash = Route.encode $ Route.Share $ Preset.fromState state
                         origin <- window >>= location >>= Loc.origin
                         _ <-
+                          -- TODO: copy partial emoji grid
                           window >>= navigator >>= Clipboard.clipboard
                             >>= traverse \clipboard ->
                               clipboard
@@ -252,8 +253,8 @@ view state dispatch = H.fragment
         , H.div "mt-3"
           [ H.h5 "" "Controls"
           , H.div "row mb-3"
-            [ H.div "col-6 col-sm-3 col-lg-2" $
-                H.label ""
+            [ H.div "col-6 col-sm-3 col-lg-4" $
+                H.label "w-100"
                 [ H.div "mb-2" "Key"
                 , H.select_ "form-select"
                     { onChange: dispatch <?| \e ->
@@ -267,7 +268,7 @@ view state dispatch = H.fragment
                 ]
             , H.div "col" $
                 H.div_ ""
-                { style: H.css { width: 200 }
+                { style: H.css { maxWidth: 200 }
                 }
                 [ H.label_ "form-label fw-bold mb-2"
                     { htmlFor: "speed-input" }
@@ -353,7 +354,7 @@ view state dispatch = H.fragment
       ]
   ]
   where
-    gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
+    gridView = H.div ("grid" <> M.guard (isJust state.play) " playing") $
       Game.grid state <#> \row ->
         H.div_ "d-flex align-items-center"
         { style: H.css { lineHeight: 0 } }
