@@ -1,9 +1,13 @@
 module Life.Game
   ( defaultKey
   , defaultOctave
+  , defaultScale
   , diatonic
   , grid
+  , hexatonic
+  , pentatonic
   , random
+  , scale
   , step
   , transpose
   )
@@ -27,9 +31,9 @@ import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (natural)
-import Life.Types.Music.PitchClass (PitchClass, (//))
-import Life.Types.Music.Note (Note, (\\))
+import Life.Types.Music.Note (Note, Degree, (\\))
 import Life.Types.Music.Note as Note
+import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Utils ((>>>>))
 
 step :: forall r. { livingCells :: Set Cell, key :: PitchClass | r } -> Set Cell
@@ -60,7 +64,7 @@ grid :: forall r. { key :: PitchClass | r } -> Array (Array Cell)
 grid { key } =
   rows <#> \row -> cols <#> \col -> row /\ col
   where
-    rows = 0 .. (A.length (diatonic key defaultOctave) - 1)
+    rows = 0 .. (A.length (defaultScale key defaultOctave) - 1)
     cols = 0 .. (beatsPerMeasure - 1)
 
 transpose :: forall a. Array (Array a) -> Array (Array a)
@@ -77,7 +81,7 @@ random { key } = do
   let
     x1 = 0
     x2 = beatsPerMeasure - 1
-    notes = diatonic key defaultOctave
+    notes = defaultScale key defaultOctave
   y1 <- R.randomInt 0 (A.length notes - 3)
   y2 <- R.randomInt (y1 + 2) (A.length notes - 1)
   numCells <- R.randomInt 5 $ Int.floor (Int.toNumber ((x2 - x1) * (y2 - y1)) * 0.75)
@@ -96,8 +100,35 @@ defaultKey = A // natural
 defaultOctave :: Int
 defaultOctave = 3
 
-diatonic :: PitchClass -> Int -> Array Note
-diatonic key octave =
+type Scale = PitchClass -> Int -> Array Note
+
+scale :: Array Degree -> Scale
+scale degrees key octave =
+  degrees <@> key <@> (key \\ octave)
+
+defaultScale :: Scale
+defaultScale = hexatonic
+
+diatonic :: Scale
+diatonic = scale
+  [ Note.tonal
+  , Note.third
+  , Note.fifth
+  , Note.second
+  , Note.seventh
+  , Note.fourth
+  , Note.sixth
+  , Note.octave
+  , Note.octave >>>> Note.third
+  , Note.octave >>>> Note.fifth
+  , Note.octave >>>> Note.second
+  , Note.octave >>>> Note.fourth
+  , Note.octave >>>> Note.sixth
+  , Note.octave >>>> Note.seventh
+  ]
+
+hexatonic :: Scale
+hexatonic = scale
   [ Note.tonal
   , Note.third
   , Note.fifth
@@ -110,4 +141,28 @@ diatonic key octave =
   , Note.octave >>>> Note.second
   , Note.octave >>>> Note.fourth
   , Note.octave >>>> Note.sixth
-  ] <@> key <@> (key \\ octave)
+  , Note.octave >>>> Note.octave
+  , Note.octave >>>> Note.octave >>>> Note.third
+  , Note.octave >>>> Note.octave >>>> Note.fifth
+  , Note.octave >>>> Note.octave >>>> Note.second
+  ]
+
+pentatonic :: Scale
+pentatonic = scale
+  [ Note.tonal
+  , Note.third
+  , Note.fifth
+  , Note.second
+  , Note.sixth
+  , Note.octave
+  , Note.octave >>>> Note.third
+  , Note.octave >>>> Note.fifth
+  , Note.octave >>>> Note.second
+  , Note.octave >>>> Note.sixth
+  , Note.octave >>>> Note.octave
+  , Note.octave >>>> Note.fifth
+  , Note.octave >>>> Note.octave
+  , Note.octave >>>> Note.octave >>>> Note.third
+  , Note.octave >>>> Note.octave >>>> Note.fifth
+  , Note.octave >>>> Note.octave >>>> Note.second
+  ]

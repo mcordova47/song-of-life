@@ -149,7 +149,7 @@ update state = case _ of
       Game.transpose (Game.grid state)
       <#> Array.filter (\cell -> Set.member cell cells)
       <#> map fst
-      <#> Array.mapMaybe (Array.index $ Game.diatonic state.key Game.defaultOctave)
+      <#> Array.mapMaybe (Array.index $ Game.defaultScale state.key Game.defaultOctave)
 
     inc = case _ of
       Just n -> Just $ mod (n + 1) (Array.length $ measure state.livingCells)
@@ -362,7 +362,7 @@ view state dispatch = H.fragment
         { style: H.css { lineHeight: 0 } }
         [ fold do
             (i /\ _) <- Array.head row
-            n <- Game.diatonic state.key Game.defaultOctave !! i
+            n <- Game.defaultScale state.key Game.defaultOctave !! i
             pure $
               H.div "text-secondary text-center align-content-center grid-row-label small me-2" $
                 Note.display n
