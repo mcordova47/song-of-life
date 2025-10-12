@@ -1,4 +1,4 @@
-module Life.Types.Wave
+module Life.Types.Music.Wave
   ( Wave(..)
   , all
   , codec

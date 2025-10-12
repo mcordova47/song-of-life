@@ -1,5 +1,7 @@
 module Life.Utils
-  ( tags
+  ( (>>>>)
+  , compose2
+  , tags
   )
   where
 
@@ -19,3 +21,8 @@ tags :: forall f a rep
   => Unfoldable1 f
   => f a
 tags = genericBottom # unfoldr1 \w -> (w /\ genericSucc w)
+
+compose2 :: forall a b c d. (d -> a -> b) -> (d -> b -> c) -> d -> a -> c
+compose2 f g d = f d >>> g d
+
+infixr 9 compose2 as >>>>

@@ -2,8 +2,10 @@ module Main where
 
 import Prelude
 
+import Data.Array ((!!))
 import Data.Array as Array
-import Data.Foldable (for_)
+import Data.Codec as C
+import Data.Foldable (fold, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
@@ -12,6 +14,7 @@ import Data.Set as Set
 import Data.String as String
 import Data.Traversable (traverse)
 import Data.Tuple (fst, snd)
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -21,13 +24,16 @@ import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Game as Game
 import Life.Icons as I
-import Life.Music (Note, playNote)
 import Life.Types.Cell (Cell)
+import Life.Types.Musc.PitchClass (PitchClass)
+import Life.Types.Musc.PitchClass as PitchClass
+import Life.Types.Music.Note (Note, (\\))
+import Life.Types.Music.Note as Note
+import Life.Types.Music.Wave (Wave)
+import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
-import Life.Types.Wave (Wave)
-import Life.Types.Wave as Wave
 import Promise as P
 import Web.Clipboard as Clipboard
 import Web.HTML (window)
@@ -47,6 +53,7 @@ data Message
   | Pause
   | Play
   | Reset
+  | SetKey PitchClass
   | SetSpeed Int
   | SetWave Wave
   | ShowCopiedFeedback
@@ -55,6 +62,7 @@ data Message
 
 type State =
   { livingCells :: Set Cell
+  , notes :: Array Note
   , play :: Maybe Int
   , showCopiedFeedback :: Boolean
   , speed :: Int
@@ -67,6 +75,7 @@ init = do
     window >>= location >>= Loc.hash <#> String.drop 2 <#> Navigate
   pure
     { livingCells: Set.empty
+    , notes: Game.diatonic Game.defaultKey 3
     , play: Nothing
     , showCopiedFeedback: false
     , speed: 5
@@ -79,13 +88,13 @@ update state = case _ of
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
   AutoStep | Just _ <- state.play -> do
-    let livingCells = Game.step state.livingCells
+    let livingCells = Game.step state
     autoStep livingCells
     pure state { livingCells = livingCells, play = Just (Array.length (measure livingCells) - 1) }
   AutoStep ->
     pure state
   Beat notes' dur -> do
-    forkVoid $ liftEffect $ for_ notes' $ playNote dur state.wave
+    forkVoid $ liftEffect $ for_ notes' $ Note.play dur state.wave
     pure state { play = inc state.play }
   GenerateRandom -> do
     forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random
@@ -111,6 +120,8 @@ update state = case _ of
     pure state { play = Just (-1) }
   Reset ->
     pure state { livingCells = Set.empty }
+  SetKey key ->
+    pure state { notes = Game.diatonic key 3 }
   SetSpeed speed ->
     pure state { speed = speed }
   SetWave wave ->
@@ -121,7 +132,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { livingCells = Game.step state.livingCells }
+    pure state { livingCells = Game.step state }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
   LoadPreset p ->
@@ -141,10 +152,10 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      Game.transpose Game.grid
+      Game.transpose (Game.grid state)
       <#> Array.filter (\cell -> Set.member cell cells)
       <#> map fst
-      <#> Array.mapMaybe (Array.index Game.notes)
+      <#> Array.mapMaybe (Array.index state.notes)
 
     inc = case _ of
       Just n -> Just $ mod (n + 1) (Array.length $ measure state.livingCells)
@@ -268,6 +279,19 @@ view state dispatch = H.fragment
                       Wave.icon { size: 48 } wave
                   , H.div "" $ Wave.display wave
                   ]
+          , H.label ""
+            [ H.div "mb-2" "Key"
+            , H.select_ "form-select"
+                { onChange: dispatch <?| \e ->
+                    SetKey <$> C.decode PitchClass.codec (E.selectSelectedValue e)
+                } $
+                PitchClass.all <#> \key ->
+                  H.option_ ""
+                    { value: C.encode PitchClass.codec key
+                    , selected: Just (key \\ 3) == Array.head state.notes
+                    } $
+                    PitchClass.display key
+            ]
           ]
         , H.div "mt-3"
           [ H.h5 "" "Rules"
@@ -329,14 +353,23 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("d-flex flex-column align-items-center mx-auto overflow-auto" <> M.guard (isJust state.play) " playing") $
-      Game.grid <#> \row ->
-        H.div_ "d-flex"
-          { style: H.css { lineHeight: 0 } } $
-          row <#> \cell ->
-            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just (snd cell)) " active") $
-              H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
-                { onClick: dispatch <| ToggleCell cell }
-                H.empty
+      Game.grid state <#> \row ->
+        H.div_ "d-flex align-items-center"
+        { style: H.css { lineHeight: 0.5 } }
+        [ fold do
+            (i /\ _) <- Array.head row
+            n <- state.notes !! i
+            pure $
+              H.div_ "text-secondary text-center align-content-center me-2"
+                { style: H.css { height: "2rem", width: "2rem" } }$
+                Note.display n
+        , H.fragment $
+            row <#> \cell ->
+              H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just (snd cell)) " active") $
+                H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
+                  { onClick: dispatch <| ToggleCell cell }
+                  H.empty
+        ]
 
     -- TODO: show states change on hover
     presets =
@@ -345,7 +378,7 @@ view state dispatch = H.fragment
           H.div_ "preset d-flex rounded overflow-hidden border"
             { onClick: dispatch <| LoadPreset $ Preset.fromState { livingCells: cells, wave: state.wave } } $
             H.div "preset-grid mx-auto" $
-              Game.grid <#> \row ->
+              Game.grid state <#> \row ->
                 H.div_ "d-flex"
                   { style: H.css { lineHeight: 0 } } $
                   row <#> \cell ->

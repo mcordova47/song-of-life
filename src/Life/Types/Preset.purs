@@ -36,8 +36,8 @@ import Life.Types.Codec (Codec, (/>), (<\>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Compressed as GridCompressed
-import Life.Types.Wave (Wave)
-import Life.Types.Wave as Wave
+import Life.Types.Music.Wave (Wave)
+import Life.Types.Music.Wave as Wave
 
 data Preset
   = V0 PresetV0

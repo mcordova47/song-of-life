@@ -1,4 +1,12 @@
-module Life.Game where
+module Life.Game
+  ( defaultKey
+  , diatonic
+  , grid
+  , random
+  , step
+  , transpose
+  )
+  where
 
 import Prelude
 
@@ -14,13 +22,17 @@ import Data.Traversable (for)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Random as R
-import Life.Music (Note, (<<), (>>))
-import Life.Music as M
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
+import Life.Types.Musc.Letter (Letter(..))
+import Life.Types.Musc.Modifier (natural)
+import Life.Types.Musc.PitchClass (PitchClass, (//))
+import Life.Types.Music.Note (Note, (\\))
+import Life.Types.Music.Note as Note
+import Life.Utils ((>>>>))
 
-step :: Set Cell -> Set Cell
-step livingCells = foldl stepRow livingCells grid
+step :: forall a r. { livingCells :: Set Cell, notes :: Array a | r } -> Set Cell
+step s = foldl stepRow s.livingCells $ grid s
   where
     stepRow livingCells' row =
       foldl stepCell livingCells' row
@@ -35,7 +47,7 @@ step livingCells = foldl stepRow livingCells grid
       foldl countLiving 0 $ neighbors cell
 
     countLiving acc cell =
-      if Set.member cell livingCells then acc + 1 else acc
+      if Set.member cell s.livingCells then acc + 1 else acc
 
     neighbors (row /\ col) = do
       row' <- [row - 1, row, row + 1]
@@ -43,8 +55,8 @@ step livingCells = foldl stepRow livingCells grid
       guard $ (row' /\ col') /= (row /\ col)
       pure (row' /\ col')
 
-grid :: Array (Array Cell)
-grid =
+grid :: forall a r. { notes :: Array a | r } -> Array (Array Cell)
+grid { notes } =
   rows <#> \row -> cols <#> \col -> row /\ col
   where
     rows = 0 .. (A.length notes - 1)
@@ -58,8 +70,8 @@ transpose rows = case A.head rows of
     transpose' n = A.replicate n [] # foldl \cols row ->
       A.zipWith (<>) cols (row <#> A.singleton)
 
-random :: Effect (Set Cell)
-random = do
+random :: forall a r. { notes :: Array a | r } -> Effect (Set Cell)
+random { notes } = do
   let
     x1 = 0
     x2 = beatsPerMeasure - 1
@@ -75,21 +87,21 @@ random = do
 beatsPerMeasure :: Int
 beatsPerMeasure = 16
 
-notes :: Array Note
-notes = ((>>) root) <$>
-  [ mempty
-  , M.major3rd
-  , M.perfect5th
-  , M.major2nd
-  , M.perfect4th
-  , M.major6th
-  , M.octave
-  , M.octave <> M.major3rd
-  , M.octave <> M.perfect5th
-  , M.octave <> M.major2nd
-  , M.octave <> M.perfect4th
-  , M.octave <> M.major6th
-  ]
+defaultKey :: PitchClass
+defaultKey = A // natural
 
-root :: Note
-root = M.a4 << M.octave
+diatonic :: PitchClass -> Int -> Array Note
+diatonic key octave =
+  [ Note.tonal
+  , Note.third
+  , Note.fifth
+  , Note.second
+  , Note.fourth
+  , Note.sixth
+  , Note.octave
+  , Note.octave >>>> Note.third
+  , Note.octave >>>> Note.fifth
+  , Note.octave >>>> Note.second
+  , Note.octave >>>> Note.fourth
+  , Note.octave >>>> Note.sixth
+  ] <@> key <@> (key \\ octave)

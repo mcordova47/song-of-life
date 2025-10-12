@@ -1,6 +1,6 @@
-const ctx = new AudioContext()
+const ctx = typeof window === "undefined" ? null : new AudioContext()
 
-export const playNote_ = (durationMs, wave, freq) => {
+export const play_ = (durationMs, wave, freq) => {
   const duration = durationMs / 1000
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
