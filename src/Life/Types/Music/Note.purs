@@ -24,6 +24,7 @@ module Life.Types.Music.Note
 
 import Prelude hiding (degree)
 
+import Control.Monad.Rec.Class (Step(..), loop3, tailRec3)
 import Data.Bounded.Generic (genericBottom, genericTop)
 import Data.Enum.Generic (genericPred, genericSucc)
 import Data.Int as Int
@@ -79,10 +80,12 @@ diff a b =
   halfSteps a - halfSteps b
 
 degree :: Int -> Degree
-degree degrees key note@(pitchClass \\ octave')
-  | degrees > 0 = degree (degrees - 1) key (inc note)
-  | degrees < 0 = degree (degrees + 1) key (dec note)
-  | otherwise = PitchClass.fix key pitchClass \\ octave'
+degree = tailRec3 go
+  where
+    go degrees key note@(pitchClass \\ octave')
+      | degrees > 0 = loop3 (degrees - 1) key (inc note)
+      | degrees < 0 = loop3 (degrees + 1) key (dec note)
+      | otherwise = Done $ PitchClass.fix key pitchClass \\ octave'
 
 tonal :: Degree
 tonal = degree 0
