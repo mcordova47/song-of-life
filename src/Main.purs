@@ -25,15 +25,18 @@ import Elmish.HTML.Styled as H
 import Life.Game as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
-import Life.Types.Music.PitchClass (PitchClass)
-import Life.Types.Music.PitchClass as PitchClass
+import Life.Types.Grid as Grid
+import Life.Types.Grid.Instruction (Instruction(..))
 import Life.Types.Music.Note (Note)
 import Life.Types.Music.Note as Note
+import Life.Types.Music.PitchClass (PitchClass)
+import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
+import Life.Utils as U
 import Promise as P
 import Web.Clipboard as Clipboard
 import Web.HTML (window)
@@ -222,14 +225,13 @@ view state dispatch = H.fragment
               , H.div "position-relative ms-2"
                 [ H.button_ "btn text-salmon hover:text-salmon-highlight px-0"
                     { onClick: E.handleEffect do
-                        let hash = Route.encode $ Route.Share $ Preset.fromState state
                         origin <- window >>= location >>= Loc.origin
                         _ <-
                           -- TODO: copy partial emoji grid
                           window >>= navigator >>= Clipboard.clipboard
                             >>= traverse \clipboard ->
                               clipboard
-                                # Clipboard.writeText (origin <> "/#/" <> hash)
+                                # Clipboard.writeText (shareText origin)
                                 >>= P.then_ \_ -> do
                                   dispatch ShowCopiedFeedback
                                   pure $ P.resolve unit
@@ -355,7 +357,7 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("grid" <> M.guard (isJust state.play) " playing") $
-      Game.grid state <#> \row ->
+      grid <#> \row ->
         H.div_ "d-flex align-items-center"
         { style: H.css { lineHeight: 0 } }
         [ fold do
@@ -379,13 +381,41 @@ view state dispatch = H.fragment
           H.div_ "preset d-flex rounded overflow-hidden border"
             { onClick: dispatch <| LoadPreset $ Preset.fromState state { livingCells = cells } } $
             H.div "preset-grid mx-auto" $
-              Game.grid state <#> \row ->
+              grid <#> \row ->
                 H.div_ "d-flex"
                   { style: H.css { lineHeight: 0 } } $
                   row <#> \cell ->
                     H.div "d-inline-block m-0 preset-grid-cell-container" $
                       H.div ("d-inline-block preset-grid-cell bg-" <> if Set.member cell cells then "salmon" else "light")
                         H.empty
+
+    shareText origin = fold
+      [ "Made with Songs of Life\n\n"
+      , emojiGrid
+      , "\n"
+      , shareUrl origin
+      ]
+      where
+        { bounds, instructions } = Grid.fromCells state.livingCells
+
+        emojiGrid =
+          instructions
+            # Array.mapWithIndex (/\)
+            >>= instructionEmojis
+            # U.chunksOf bounds.cols
+            <#> U.fill (min bounds.cols 6) "⬜️"
+            <#> (Array.take 6 >>> Array.intercalate "")
+            # (Array.take 6 >>> Array.intercalate "\n")
+
+        instructionEmojis (index /\ instruction) = case instruction of
+          Move n | index == 0 -> Array.replicate n "⬜️"
+          Move n -> Array.replicate (n - 1) "⬜️"
+          TurnOn n -> Array.replicate n "🟪"
+
+    shareUrl origin =
+      origin <> "/#/" <> (Route.encode $ Route.Share $ Preset.fromState state)
+
+    grid = Game.grid state
 
 duration :: Number
 duration = 15_000.0
