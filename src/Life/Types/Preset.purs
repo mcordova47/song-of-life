@@ -8,6 +8,7 @@ module Life.Types.Preset
   , collision
   , default
   , fromState
+  , galaxy
   , glider
   , heart
   , key
@@ -113,7 +114,7 @@ default :: Preset
 default = heart
 
 all :: Array Preset
-all = [heart, pond, octocat, musicNotes, glider, collision]
+all = [heart, pond, octocat, musicNotes, glider, collision, galaxy]
 
 heart :: Preset
 heart = presetV1
@@ -280,4 +281,48 @@ pond = presetV1
   , 10 /\ 12
   , 11 /\ 1
   , 11 /\ 2
+  ]
+
+galaxy :: Preset
+galaxy = presetV1
+  [ 1 /\ 7
+  , 1 /\ 8
+  , 1 /\ 9
+  , 1 /\ 10
+  , 2 /\ 3
+  , 2 /\ 4
+  , 2 /\ 6
+  , 2 /\ 11
+  , 3 /\ 2
+  , 3 /\ 6
+  , 3 /\ 11
+  , 4 /\ 2
+  , 4 /\ 7
+  , 4 /\ 8
+  , 5 /\ 2
+  , 5 /\ 5
+  , 5 /\ 10
+  , 5 /\ 11
+  , 6 /\ 2
+  , 6 /\ 5
+  , 6 /\ 9
+  , 6 /\ 12
+  , 7 /\ 3
+  , 7 /\ 4
+  , 7 /\ 9
+  , 7 /\ 12
+  , 8 /\ 6
+  , 8 /\ 7
+  , 8 /\ 12
+  , 9 /\ 3
+  , 9 /\ 8
+  , 9 /\ 12
+  , 10 /\ 3
+  , 10 /\ 8
+  , 10 /\ 10
+  , 10 /\ 11
+  , 11 /\ 4
+  , 11 /\ 5
+  , 11 /\ 6
+  , 11 /\ 7
   ]
