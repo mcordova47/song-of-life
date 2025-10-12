@@ -17,7 +17,7 @@ import Life.Types.Codec (Codec)
 import Life.Types.Codec as Codec
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Letter as Letter
-import Life.Types.Music.Modifier (Modifier, natural, sharp)
+import Life.Types.Music.Modifier (Modifier, flat, natural, sharp)
 import Life.Types.Music.Modifier as Modifier
 
 data PitchClass
@@ -51,15 +51,15 @@ display (l // m) =
 all :: Array PitchClass
 all =
   [ C // natural
-  , C // sharp
+  , D // flat
   , D // natural
-  , D // sharp
+  , E // flat
   , E // natural
   , F // natural
   , F // sharp
   , G // natural
-  , G // sharp
+  , A // flat
   , A // natural
-  , A // sharp
+  , B // flat
   , B // natural
   ]
