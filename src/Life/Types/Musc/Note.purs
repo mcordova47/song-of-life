@@ -1,9 +1,8 @@
 module Life.Types.Music.Note
   ( (\\)
-  , Interval
+  , Degree
   , Note(..)
   , a4
-  , addDiatonic
   , dec
   , diff
   , display
@@ -46,7 +45,7 @@ derive instance Eq Note
 
 infixr 6 Note as \\
 
-type Interval = PitchClass -> Note -> Note
+type Degree = PitchClass -> Note -> Note
 
 display :: Note -> ReactElement
 display (p \\ o) = H.fragment
@@ -66,35 +65,35 @@ diff :: Note -> Note -> Int
 diff a b =
   halfSteps a - halfSteps b
 
-addDiatonic :: Int -> Interval
-addDiatonic degrees key note@(pitchClass \\ octave')
-  | degrees > 0 = addDiatonic (degrees - 1) key (inc note)
-  | degrees < 0 = addDiatonic (degrees + 1) key (dec note)
+degree :: Int -> Degree
+degree degrees key note@(pitchClass \\ octave')
+  | degrees > 0 = degree (degrees - 1) key (inc note)
+  | degrees < 0 = degree (degrees + 1) key (dec note)
   | otherwise = PitchClass.fix key pitchClass \\ octave'
 
-tonal :: Interval
-tonal = addDiatonic 0
+tonal :: Degree
+tonal = degree 0
 
-second :: Interval
-second = addDiatonic 1
+second :: Degree
+second = degree 1
 
-third :: Interval
-third = addDiatonic 2
+third :: Degree
+third = degree 2
 
-fourth :: Interval
-fourth = addDiatonic 3
+fourth :: Degree
+fourth = degree 3
 
-fifth :: Interval
-fifth = addDiatonic 4
+fifth :: Degree
+fifth = degree 4
 
-sixth :: Interval
-sixth = addDiatonic 5
+sixth :: Degree
+sixth = degree 5
 
-seventh :: Interval
-seventh = addDiatonic 6
+seventh :: Degree
+seventh = degree 6
 
-octave :: Interval
-octave = addDiatonic 7
+octave :: Degree
+octave = degree 7
 
 inc :: Note -> Note
 inc (l // m \\ o) = l
