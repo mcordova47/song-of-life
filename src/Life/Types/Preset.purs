@@ -1,6 +1,7 @@
 module Life.Types.Preset
   ( Preset(..)
   , PresetV0
+  , PresetV0'
   , PresetV1
   , all
   , codec
@@ -9,6 +10,7 @@ module Life.Types.Preset
   , key
   , livingCells
   , random
+  , root
   , wave
   )
   where
@@ -33,7 +35,9 @@ import Life.Types.Codec (Codec, (/>), (</>), (<\>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Compressed as GridCompressed
-import Life.Types.Music.PitchClass (PitchClass)
+import Life.Types.Music.Letter (Letter(..))
+import Life.Types.Music.Modifier (natural)
+import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
@@ -42,11 +46,15 @@ data Preset
   = V0 PresetV0
   | V1 PresetV1
 
-type PresetV0 =
+type PresetV0' r =
   { key :: PitchClass
   , livingCells :: Set Cell
+  , root :: Int
   , wave :: Wave
+  | r
   }
+
+type PresetV0 = PresetV0' ()
 
 type PresetV1 = PresetV0
 
@@ -59,48 +67,59 @@ codec = C.codec decode encode
       V0 p -> C.encode codecV0 p
       V1 p -> C.encode codecV1 p
 
-    codecV0 = codecV0' $ (Codec.literal "0" /> PitchClass.codec </> Grid.cellsCodec) <\> Wave.codec
+    codecV0 = codecV0' $ (Codec.literal "0" /> PitchClass.codec </> Codec.int </> Grid.cellsCodec) <\> Wave.codec
 
-    codecV1 = codecV0' $ (Codec.literal "1" /> PitchClass.codec </> GridCompressed.cellsCodec) <\> Wave.codec
+    codecV1 = codecV0' $ (Codec.literal "1" /> PitchClass.codec </> Codec.int </> GridCompressed.cellsCodec) <\> Wave.codec
 
-codecV0' :: Codec String ((PitchClass /\ Set Cell) /\ Wave) -> Codec String PresetV1
+codecV0' :: Codec String ((PitchClass /\ Int /\ Set Cell) /\ Wave) -> Codec String PresetV1
 codecV0' = dimap toTuple fromTuple
   where
-    fromTuple ((k /\ g) /\ w) = { key: k, livingCells: g, wave: w }
-    toTuple p = (p.key /\ p.livingCells) /\ p.wave
+    fromTuple ((k /\ r /\ g) /\ w) = { key: k, livingCells: g, wave: w, root: r }
+    toTuple p = (p.key /\ p.root /\ p.livingCells) /\ p.wave
 
 fromCells :: Set Cell -> Preset
-fromCells = fromState <<< { key: Game.defaultKey, livingCells: _, wave: Wave.default }
+fromCells = fromState <<< { key: Game.defaultKey, livingCells: _, wave: Wave.default, root: 0 }
 
-fromState :: forall r. { key :: PitchClass, livingCells :: Set Cell, wave :: Wave | r } -> Preset
-fromState s = V1 { key: s.key, livingCells: s.livingCells, wave: s.wave }
+fromState :: forall r. PresetV0' r -> Preset
+fromState s = V1 { key: s.key, livingCells: s.livingCells, wave: s.wave, root: s.root }
+
+unwrap :: Preset -> PresetV0
+unwrap = case _ of
+  V0 p -> p
+  V1 p -> p
 
 key :: Preset -> PitchClass
-key = case _ of
-  V0 p -> p.key
-  V1 p -> p.key
+key = unwrap >>> _.key
 
 livingCells :: Preset -> Set Cell
-livingCells = case _ of
-  V0 p -> p.livingCells
-  V1 p -> p.livingCells
+livingCells = unwrap >>> _.livingCells
 
 wave :: Preset -> Wave
-wave = case _ of
-  V0 p -> p.wave
-  V1 p -> p.wave
+wave = unwrap >>> _.wave
+
+root :: Preset -> Int
+root = unwrap >>> _.root
 
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
 
+presetV1' :: { key :: PitchClass, root :: Int, wave :: Wave } -> Array Cell -> Preset
+presetV1' p cells = fromState
+  { key: p.key
+  , root: p.root
+  , wave: p.wave
+  , livingCells: Set.fromFoldable cells
+  }
+
 random :: Effect (Maybe Preset)
 random = do
+  r <- R.randomInt (-6) 6
   cells <- Game.random
   mWave <- Wave.random
   keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)
   let mKey = PitchClass.all !! keyIndex
   for ((/\) <$> mWave <*> mKey) \(w /\ k) ->
-    pure $ V1 { key: k, livingCells: cells, wave: w }
+    pure $ V1 { key: k, livingCells: cells, wave: w, root: r }
 
 default :: Preset
 default = heart
@@ -108,13 +127,13 @@ default = heart
 all :: Array (String /\ Preset)
 all =
   [ "Heart" /\ heart
+  , "Flower" /\ flower
+  , "Galaxy" /\ galaxy
+  , "Glider" /\ glider
+  , "Collision" /\ collision
   , "Pond" /\ pond
   , "Octocat" /\ octocat
   , "Music Notes" /\ musicNotes
-  , "Glider" /\ glider
-  , "Collision" /\ collision
-  , "Galaxy" /\ galaxy
-  , "Flower" /\ flower
   ]
 
 heart :: Preset
@@ -241,7 +260,7 @@ musicNotes = presetV1
   ]
 
 pond :: Preset
-pond = presetV1
+pond = presetV1' { key: D // natural, root: 0, wave: Wave.Sawtooth }
   [ 0 /\ 9
   , 0 /\ 10
   , 1 /\ 3
@@ -281,7 +300,7 @@ pond = presetV1
   ]
 
 galaxy :: Preset
-galaxy = presetV1
+galaxy = presetV1' { key: A // natural, root: 3, wave: Wave.Sine }
   [ 1 /\ 7
   , 1 /\ 8
   , 1 /\ 9

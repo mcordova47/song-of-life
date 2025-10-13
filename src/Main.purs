@@ -167,6 +167,7 @@ update state = case _ of
       state
         { key = Preset.key p
         , livingCells = Preset.livingCells p
+        , root = Preset.root p
         , wave = Preset.wave p
         }
 
@@ -403,7 +404,7 @@ view state dispatch = H.fragment
             , cells
             , grid
             , onClick: E.handleEffect do
-                dispatch $ LoadPreset $ Preset.fromState state { livingCells = cells }
+                dispatch $ LoadPreset p
                 scrollIntoView headerId
             }
 
