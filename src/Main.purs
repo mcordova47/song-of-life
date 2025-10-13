@@ -28,7 +28,7 @@ import Life.Icons as I
 import Life.Types.Cell (Cell)
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Instruction (Instruction(..))
-import Life.Types.Music.Note (Note)
+import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.PitchClass as PitchClass
@@ -365,11 +365,12 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("grid py-4" <> M.guard (isJust state.play) " playing") $
-      notes # Array.mapWithIndex \row note ->
+      notes # Array.mapWithIndex \row note@(pitchClass \\ _) ->
         H.div_ "d-flex align-items-center"
         { style: H.css { lineHeight: 0 } }
         [ H.div "position-relative text-secondary text-center align-content-center grid-row-label small me-2"
-          [ Note.display note
+          [ H.span (M.guard (pitchClass == state.key) "text-salmon") $
+              Note.display note
           , M.guard (row == 0) $
               H.button_ "btn position-absolute"
                 { onClick: dispatch <| ChangeRoot (-1)
