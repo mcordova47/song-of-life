@@ -369,19 +369,19 @@ view state dispatch = H.fragment
       notes # Array.mapWithIndex \row note@(pitchClass \\ _) ->
         H.div_ "d-flex align-items-center"
         { style: H.css { lineHeight: 0 } }
-        [ H.div "position-relative text-secondary text-center align-content-center grid-row-label small me-2"
-          [ H.span (M.guard (pitchClass == state.key) "text-salmon") $
+        [ H.div "position-relative text-secondary text-end align-content-center grid-row-label small me-2"
+          [ H.div ("grid-row-label-text text-end" <> M.guard (pitchClass == state.key) " text-salmon") $
               Note.display note
           , M.guard (row == 0) $
               H.button_ "btn position-absolute"
                 { onClick: dispatch <| ChangeRoot (-1)
-                , style: H.css { bottom: "20px", left: "50%", transform: "translateX(-50%)" }
+                , style: H.css { bottom: "20px", right: "-35%" }
                 }
                 "▲"
           , M.guard (row == Array.length notes - 1) $
               H.button_ "btn position-absolute"
                 { onClick: dispatch <| ChangeRoot 1
-                , style: H.css { top: "20px", left: "50%", transform: "translateX(-50%)" }
+                , style: H.css { top: "20px", right: "-35%" }
                 }
                 "▼"
           ]
