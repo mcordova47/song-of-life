@@ -185,8 +185,11 @@ view state dispatch = H.fragment
             "Songs of Life"
         ]
       , H.a_ "hover:bright"
-          { href: "https://github.com/mcordova47/song-of-life", target: "_blank" } $
-          I.github { size: 48 }
+          { href: "https://github.com/mcordova47/song-of-life"
+          , target: "_blank"
+          , title: "GitHub"
+          } $
+          I.github { size: 32 }
       ]
   , H.div_ "container" { style: H.css { maxWidth: "800px" } } $
       H.div "mt-3 mx-auto"

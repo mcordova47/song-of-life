@@ -45,6 +45,8 @@ component { name, cells, grid, onClick } = Hooks.component Hooks.do
         { onClick
         , onMouseOver: setHovering <| true
         , onMouseLeave: setHovering <| false
+        , onTouchStart: setHovering <| true
+        , onTouchEnd: setHovering <| false
         } $
         H.div "preset-grid mx-auto" $
           grid <#> \row ->
