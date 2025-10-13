@@ -93,9 +93,9 @@ wave = case _ of
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
 
-random :: forall r. { key :: PitchClass | r } -> Effect (Maybe Preset)
-random s = do
-  cells <- Game.random s
+random :: Effect (Maybe Preset)
+random = do
+  cells <- Game.random
   mWave <- Wave.random
   keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)
   let mKey = PitchClass.all !! keyIndex

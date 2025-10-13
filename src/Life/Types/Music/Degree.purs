@@ -7,6 +7,7 @@ import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.PitchClass as PitchClass
+import Life.Utils ((>>>>))
 
 type Degree = PitchClass -> Note -> Note
 
@@ -41,3 +42,10 @@ seventh = degree 6
 
 octave :: Degree
 octave = degree 7
+
+pow :: Int -> Degree -> Degree
+pow = go tonal
+  where
+    go acc n deg
+      | n <= 0 = acc
+      | otherwise = go (deg >>>> acc) (n - 1) deg

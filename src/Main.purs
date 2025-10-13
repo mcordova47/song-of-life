@@ -2,7 +2,7 @@ module Main where
 
 import Prelude
 
-import Data.Array ((!!))
+import Data.Array ((..))
 import Data.Array as Array
 import Data.Codec as C
 import Data.Foldable (fold, for_)
@@ -13,7 +13,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.String as String
 import Data.Traversable (traverse)
-import Data.Tuple (fst, snd)
+import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
@@ -32,6 +32,7 @@ import Life.Types.Music.Note (Note)
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.PitchClass as PitchClass
+import Life.Types.Music.Scale as Scale
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
@@ -51,6 +52,7 @@ main = defaultMain { def: { init, view, update }, elementId: "app" }
 data Message
   = AutoStep
   | Beat (Array Note) Milliseconds
+  | ChangeRoot Int
   | GenerateRandom
   | HideCopiedFeedback
   | LoadPreset Preset
@@ -69,6 +71,7 @@ type State =
   { key :: PitchClass
   , livingCells :: Set Cell
   , play :: Maybe Int
+  , root :: Int
   , showCopiedFeedback :: Boolean
   , speed :: Int
   , wave :: Wave
@@ -82,6 +85,7 @@ init = do
     { key: Game.defaultKey
     , livingCells: Set.empty
     , play: Nothing
+    , root: 0
     , showCopiedFeedback: false
     , speed: 5
     , wave: Wave.default
@@ -101,8 +105,10 @@ update state = case _ of
   Beat notes' dur -> do
     forkVoid $ liftEffect $ for_ notes' $ Note.play dur state.wave
     pure state { play = inc state.play }
+  ChangeRoot degrees ->
+    pure state { root = state.root + degrees }
   GenerateRandom -> do
-    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random state
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random
     pure state
   HideCopiedFeedback ->
     pure state { showCopiedFeedback = false }
@@ -151,7 +157,7 @@ update state = case _ of
       Game.transpose (gameGrid state)
       <#> Array.filter (\cell -> Set.member cell cells)
       <#> map fst
-      <#> Array.mapMaybe (Array.index $ Game.defaultScale state.key Game.defaultOctave)
+      <#> Array.mapMaybe (Array.index $ scale state)
 
     inc = case _ of
       Just n -> Just $ mod (n + 1) (Array.length $ measure state.livingCells)
@@ -199,7 +205,7 @@ view state dispatch = H.fragment
         """
         ]
       , gridView
-      , H.div "mt-3"
+      , H.div ""
         [ H.div "d-flex" $
             H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
             [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
@@ -230,7 +236,6 @@ view state dispatch = H.fragment
                     { onClick: E.handleEffect do
                         origin <- window >>= location >>= Loc.origin
                         _ <-
-                          -- TODO: copy partial emoji grid
                           window >>= navigator >>= Clipboard.clipboard
                             >>= traverse \clipboard ->
                               clipboard
@@ -359,23 +364,34 @@ view state dispatch = H.fragment
       ]
   ]
   where
-    gridView = H.div ("grid" <> M.guard (isJust state.play) " playing") $
-      grid <#> \row ->
+    gridView = H.div ("grid py-4" <> M.guard (isJust state.play) " playing") $
+      notes # Array.mapWithIndex \row note ->
         H.div_ "d-flex align-items-center"
         { style: H.css { lineHeight: 0 } }
-        [ fold do
-            (i /\ _) <- Array.head row
-            n <- Game.defaultScale state.key Game.defaultOctave !! i
-            pure $
-              H.div "text-secondary text-center align-content-center grid-row-label small me-2" $
-                Note.display n
+        [ H.div "position-relative text-secondary text-center align-content-center grid-row-label small me-2"
+          [ Note.display note
+          , M.guard (row == 0) $
+              H.button_ "btn position-absolute"
+                { onClick: dispatch <| ChangeRoot (-1)
+                , style: H.css { bottom: "20px", left: "50%", transform: "translateX(-50%)" }
+                }
+                "▲"
+          , M.guard (row == Array.length notes - 1) $
+              H.button_ "btn position-absolute"
+                { onClick: dispatch <| ChangeRoot 1
+                , style: H.css { top: "20px", left: "50%", transform: "translateX(-50%)" }
+                }
+                "▼"
+          ]
         , H.fragment $
-            row <#> \cell ->
-              H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just (snd cell)) " active") $
-                H.div_ ("d-inline-block grid-cell bg-" <> if Set.member cell state.livingCells then "salmon" else "light")
-                  { onClick: dispatch <| ToggleCell cell }
+            0 .. (Game.beatsPerMeasure - 1) <#> \col ->
+              H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
+                H.div_ ("d-inline-block grid-cell bg-" <> if Set.member (row /\ col) state.livingCells then "salmon" else "light")
+                  { onClick: dispatch <| ToggleCell (row /\ col) }
                   H.empty
         ]
+
+    notes = scale state
 
     presets =
       H.div "row" $ Preset.all <#> \(name /\ p) -> Preset.livingCells p # \cells ->
@@ -399,6 +415,7 @@ view state dispatch = H.fragment
       where
         { bounds, instructions } = Grid.fromCells state.livingCells
 
+        -- TODO: Better method of finding clusters of living cells
         emojiGrid =
           instructions
             # Array.mapWithIndex (/\)
@@ -422,13 +439,21 @@ view state dispatch = H.fragment
 
     headerId = "site-header"
 
-gameGrid :: forall r. { key :: PitchClass | r } -> Array (Array Cell)
+gameGrid :: State -> Array (Array Cell)
 gameGrid =
   Game.grid <<< numRows
 
-numRows :: forall r. { key :: PitchClass | r } -> Int
+numRows :: State -> Int
 numRows state =
-  Array.length $ Game.defaultScale state.key Game.defaultOctave
+  Array.length $ scale state
+
+scale :: State -> Array Note
+scale state =
+  (Scale.shift state.root Game.defaultScale).notes
+    { key: state.key
+    , root: Game.defaultOctave
+    , length: Game.defaultNotes
+    }
 
 duration :: Number
 duration = 15_000.0
