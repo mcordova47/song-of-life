@@ -36,7 +36,7 @@ import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Compressed as GridCompressed
 import Life.Types.Music.Letter (Letter(..))
-import Life.Types.Music.Modifier (natural)
+import Life.Types.Music.Modifier (flat, natural)
 import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Wave (Wave)
@@ -122,18 +122,18 @@ random = do
     pure $ V1 { key: k, livingCells: cells, wave: w, root: r }
 
 default :: Preset
-default = heart
+default = headphones
 
 all :: Array (String /\ Preset)
 all =
-  [ "Heart" /\ heart
+  [ "Headphones" /\ headphones
   , "Flower" /\ flower
   , "Galaxy" /\ galaxy
   , "Glider" /\ glider
   , "Collision" /\ collision
   , "Pond" /\ pond
   , "Octocat" /\ octocat
-  , "Music Notes" /\ musicNotes
+  , "Heart" /\ heart
   ]
 
 heart :: Preset
@@ -229,34 +229,72 @@ octocat = presetV1
   , 10 /\ 10
   ]
 
-musicNotes :: Preset
-musicNotes = presetV1
-  [ 1 /\ 9
-  , 1 /\ 10
+headphones :: Preset
+headphones = presetV1' { key: A // flat, root: 0, wave: Wave.Square }
+  [ 2 /\ 5
+  , 2 /\ 6
   , 2 /\ 7
   , 2 /\ 8
+  , 2 /\ 9
   , 2 /\ 10
+  , 3 /\ 4
   , 3 /\ 5
   , 3 /\ 6
+  , 3 /\ 7
+  , 3 /\ 8
+  , 3 /\ 9
   , 3 /\ 10
+  , 3 /\ 11
   , 4 /\ 3
   , 4 /\ 4
-  , 4 /\ 6
-  , 4 /\ 10
   , 4 /\ 11
   , 4 /\ 12
-  , 5 /\ 6
-  , 5 /\ 10
-  , 5 /\ 13
-  , 6 /\ 6
-  , 6 /\ 7
-  , 6 /\ 8
-  , 6 /\ 11
+  , 5 /\ 3
+  , 5 /\ 12
+  , 6 /\ 3
+  , 6 /\ 9
+  , 6 /\ 10
   , 6 /\ 12
-  , 7 /\ 6
-  , 7 /\ 9
-  , 8 /\ 7
-  , 8 /\ 8
+  , 7 /\ 3
+  , 7 /\ 8
+  , 7 /\ 10
+  , 7 /\ 12
+  , 8 /\ 1
+  , 8 /\ 2
+  , 8 /\ 3
+  , 8 /\ 9
+  , 8 /\ 12
+  , 8 /\ 13
+  , 8 /\ 14
+  , 9 /\ 0
+  , 9 /\ 3
+  , 9 /\ 5
+  , 9 /\ 7
+  , 9 /\ 12
+  , 9 /\ 15
+  , 10 /\ 0
+  , 10 /\ 3
+  , 10 /\ 5
+  , 10 /\ 6
+  , 10 /\ 9
+  , 10 /\ 12
+  , 10 /\ 15
+  , 11 /\ 0
+  , 11 /\ 3
+  , 11 /\ 6
+  , 11 /\ 8
+  , 11 /\ 10
+  , 11 /\ 12
+  , 11 /\ 15
+  , 12 /\ 1
+  , 12 /\ 2
+  , 12 /\ 3
+  , 12 /\ 8
+  , 12 /\ 10
+  , 12 /\ 12
+  , 12 /\ 13
+  , 12 /\ 14
+  , 13 /\ 9
   ]
 
 pond :: Preset

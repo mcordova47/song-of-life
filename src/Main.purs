@@ -117,7 +117,7 @@ update state = case _ of
       Just (Route.Share p) ->
         pure $ loadPreset p
       Nothing ->
-        pure state { livingCells = Preset.livingCells Preset.default }
+        pure $ loadPreset Preset.default
   Pause ->
     pure state { play = Nothing }
   Play -> do
@@ -179,12 +179,12 @@ view state dispatch = H.fragment
         { id: headerId }$
         [ H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none"
             { href: "/" } $
-            I.logo { size: 48 }
+            H.img_ "hover:bright" { src: "/assets/images/logo.svg", style: H.css { height: "2.5rem" } }
         , H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none ms-3"
             { href: "/" }
             "Songs of Life"
         ]
-      , H.a_ "hover:translucent"
+      , H.a_ "hover:bright"
           { href: "https://github.com/mcordova47/song-of-life", target: "_blank" } $
           I.github { size: 48 }
       ]
