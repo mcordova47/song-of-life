@@ -131,7 +131,9 @@ all =
   , "Galaxy" /\ galaxy
   , "Glider" /\ glider
   , "Collision" /\ collision
-  , "Pond" /\ pond
+  , "Sky" /\ sky
+  , "Spaceship" /\ spaceship
+  , "Ships Passing" /\ shipsPassing
   , "Octocat" /\ octocat
   , "Heart" /\ heart
   ]
@@ -297,8 +299,8 @@ headphones = presetV1' { key: A // flat, root: 0, wave: Wave.Square }
   , 13 /\ 9
   ]
 
-pond :: Preset
-pond = presetV1' { key: D // natural, root: 0, wave: Wave.Sawtooth }
+sky :: Preset
+sky = presetV1' { key: D // natural, root: 0, wave: Wave.Sawtooth }
   [ 0 /\ 9
   , 0 /\ 10
   , 1 /\ 3
@@ -412,4 +414,39 @@ flower = presetV1
   , 11 /\ 6
   , 11 /\ 8
   , 12 /\ 7
+  ]
+
+spaceship :: Preset
+spaceship = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
+  [ 0 /\ 0
+  , 0 /\ 3
+  , 1 /\ 4
+  , 2 /\ 0
+  , 2 /\ 4
+  , 3 /\ 1
+  , 3 /\ 2
+  , 3 /\ 3
+  , 3 /\ 4
+  ]
+
+shipsPassing :: Preset
+shipsPassing = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
+  [ 0 /\ 0
+  , 0 /\ 3
+  , 1 /\ 4
+  , 2 /\ 0
+  , 2 /\ 4
+  , 3 /\ 1
+  , 3 /\ 2
+  , 3 /\ 3
+  , 3 /\ 4
+  , 12 /\ 11
+  , 12 /\ 12
+  , 12 /\ 13
+  , 12 /\ 14
+  , 13 /\ 11
+  , 13 /\ 15
+  , 14 /\ 11
+  , 15 /\ 12
+  , 15 /\ 15
   ]
