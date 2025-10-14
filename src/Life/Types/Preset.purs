@@ -418,15 +418,15 @@ flower = presetV1
 
 spaceship :: Preset
 spaceship = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
-  [ 0 /\ 0
-  , 0 /\ 3
-  , 1 /\ 4
-  , 2 /\ 0
-  , 2 /\ 4
-  , 3 /\ 1
-  , 3 /\ 2
-  , 3 /\ 3
-  , 3 /\ 4
+  [ 6 /\ 0
+  , 6 /\ 3
+  , 7 /\ 4
+  , 8 /\ 0
+  , 8 /\ 4
+  , 9 /\ 1
+  , 9 /\ 2
+  , 9 /\ 3
+  , 9 /\ 4
   ]
 
 shipsPassing :: Preset
