@@ -1,4 +1,4 @@
-module Main where
+module EntryPoints.Main where
 
 import Prelude
 
@@ -22,6 +22,7 @@ import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, fo
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
+import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Game as Game
 import Life.Icons as I
@@ -173,24 +174,7 @@ update state = case _ of
 
 view :: State -> Dispatch Message -> ReactElement
 view state dispatch = H.fragment
-  [ H.div "w-100 bg-lightblue" $
-      H.div "container d-flex justify-content-between align-items-center py-2"
-      [ H.h1_ "d-inline-flex align-items-center mb-0"
-        { id: headerId }$
-        [ H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none"
-            { href: "/" } $
-            H.img_ "hover:bright" { src: "/assets/images/logo.svg", style: H.css { height: "2.5rem" } }
-        , H.a_ "text-salmon hover:text-salmon-highlight text-decoration-none ms-3"
-            { href: "/" }
-            "Songs of Life"
-        ]
-      , H.a_ "hover:bright"
-          { href: "https://github.com/mcordova47/song-of-life"
-          , target: "_blank"
-          , title: "GitHub"
-          } $
-          I.github { size: 32 }
-      ]
+  [ Header.view
   , H.div_ "container" { style: H.css { maxWidth: "800px" } } $
       H.div "mt-3 mx-auto"
       [ H.p ""
@@ -408,7 +392,7 @@ view state dispatch = H.fragment
             , grid
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
-                scrollIntoView headerId
+                scrollIntoView Header.id
             }
 
     shareText origin = fold
@@ -441,8 +425,6 @@ view state dispatch = H.fragment
       origin <> "/#/" <> (Route.encode $ Route.Share $ Preset.fromState state)
 
     grid = gameGrid state
-
-    headerId = "site-header"
 
 gameGrid :: State -> Array (Array Cell)
 gameGrid =
