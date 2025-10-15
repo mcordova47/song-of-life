@@ -3,6 +3,7 @@ module Life.Utils
   , chunksOf
   , compose2
   , fill
+  , randomTag
   , scrollIntoView
   , tags
   )
@@ -11,12 +12,14 @@ module Life.Utils
 import Prelude
 
 import Data.Array as Array
-import Data.Bounded.Generic (class GenericBottom, genericBottom)
-import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericSucc)
+import Data.Bounded.Generic (class GenericBottom, class GenericTop, genericBottom, genericTop)
+import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericFromEnum, genericSucc, genericToEnum)
 import Data.Generic.Rep (class Generic)
+import Data.Maybe (fromMaybe)
 import Data.Tuple.Nested ((/\))
 import Data.Unfoldable (class Unfoldable1, unfoldr1)
 import Effect (Effect)
+import Effect.Random as R
 import Effect.Uncurried (EffectFn1, runEffectFn1)
 
 tags :: forall f a rep
@@ -27,6 +30,19 @@ tags :: forall f a rep
   => Unfoldable1 f
   => f a
 tags = genericBottom # unfoldr1 \w -> (w /\ genericSucc w)
+
+randomTag :: forall @a rep
+  . Generic a rep
+  => GenericBottom rep
+  => GenericTop rep
+  => GenericBoundedEnum rep
+  => Effect a
+randomTag =
+  R.randomInt
+    (genericFromEnum (genericBottom :: a))
+    (genericFromEnum (genericTop :: a))
+    <#> genericToEnum
+    <#> fromMaybe genericBottom
 
 compose2 :: forall a b c d. (d -> a -> b) -> (d -> b -> c) -> d -> a -> c
 compose2 f g d = f d >>> g d

@@ -24,6 +24,7 @@ import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
+import Life.Components.TagSelect as TagSelect
 import Life.Game.Bounded as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
@@ -34,6 +35,8 @@ import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Scale as Scale
+import Life.Types.Music.ScaleType (ScaleType)
+import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
@@ -62,6 +65,7 @@ data Message
   | Play
   | Reset
   | SetKey PitchClass
+  | SetScale ScaleType
   | SetSpeed Int
   | SetWave Wave
   | ShowCopiedFeedback
@@ -73,6 +77,7 @@ type State =
   , livingCells :: Set Cell
   , play :: Maybe Int
   , root :: Int
+  , scale :: ScaleType
   , showCopiedFeedback :: Boolean
   , speed :: Int
   , wave :: Wave
@@ -87,6 +92,7 @@ init = do
     , livingCells: Set.empty
     , play: Nothing
     , root: 0
+    , scale: ScaleType.default
     , showCopiedFeedback: false
     , speed: 5
     , wave: Wave.default
@@ -126,6 +132,8 @@ update state = case _ of
     pure state { play = Just (-1) }
   Reset ->
     pure state { livingCells = Set.empty }
+  SetScale s ->
+    pure state { scale = s }
   SetKey key ->
     pure state { key = key }
   SetSpeed speed ->
@@ -169,6 +177,7 @@ update state = case _ of
         { key = Preset.key p
         , livingCells = Preset.livingCells p
         , root = Preset.root p
+        , scale = Preset.scale p
         , wave = Preset.wave p
         }
 
@@ -251,8 +260,8 @@ view state dispatch = H.fragment
         , H.div "mt-3"
           [ H.h5 "" "Controls"
           , H.div "row mb-3"
-            [ H.div "col-6 col-sm-3 col-lg-4" $
-                H.label "w-100"
+            [ H.div "col-6 col-sm-3 col-lg-4 pt-2" $
+                H.label "form-label fw-bold w-100"
                 [ H.div "mb-2" "Key"
                 , H.select_ "form-select"
                     { onChange: dispatch <?| \e ->
@@ -264,7 +273,16 @@ view state dispatch = H.fragment
                         { value: C.encode PitchClass.codec key } $
                         PitchClass.display key
                 ]
-            , H.div "col" $
+            , H.div "col-6 col-sm-3 col-lg-4 pt-2" $
+                H.label "form-label w-100"
+                [ H.div "fw-bold mb-2" "Scale"
+                , TagSelect.view
+                    { value: state.scale
+                    , onChange: dispatch <<< SetScale
+                    , display: ScaleType.display
+                    }
+                ]
+            , H.div "col pt-2" $
                 H.div_ ""
                 { style: H.css { maxWidth: 200 }
                 }
@@ -282,7 +300,7 @@ view state dispatch = H.fragment
                     }
                 ]
             ]
-          , H.label "mb-2" "Wave Type"
+          , H.label "form-label mb-2" "Wave Type"
           , H.div "row" $ Wave.all <#> \wave ->
               H.div "col-6 col-sm-3 col-lg-2" $
                 H.div_ ("border rounded card-btn mb-3" <> M.guard (wave == state.wave) " active")
@@ -436,7 +454,7 @@ numRows state =
 
 scale :: State -> Array Note
 scale state =
-  (Scale.shift state.root Game.defaultScale).notes
+  (Scale.shift state.root $ ScaleType.toScale state.scale).notes
     { key: state.key
     , root: Game.defaultOctave
     , length: Game.defaultNotes

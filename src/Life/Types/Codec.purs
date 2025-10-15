@@ -6,6 +6,8 @@ module Life.Types.Codec
   , (<\>)
   , (\>)
   , Codec
+  , class Serializable
+  , codec
   , discardFirst
   , discardSecond
   , int
@@ -34,6 +36,9 @@ import Data.String.Regex (Regex)
 import Data.String.Regex as R
 import Data.Traversable (foldMap, traverse)
 import Data.Tuple.Nested (type (/\), (/\))
+
+class Serializable a where
+  codec :: Codec String a
 
 type Codec a b = C.Codec Maybe a a b b
 

@@ -3,7 +3,6 @@ module Life.Game.Bounded
   , defaultKey
   , defaultNotes
   , defaultOctave
-  , defaultScale
   , grid
   , random
   , step
@@ -30,8 +29,6 @@ import Life.Types.Cell as Cell
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (natural)
 import Life.Types.Music.PitchClass (PitchClass, (//))
-import Life.Types.Music.Scale (Scale)
-import Life.Types.Music.Scale as Scale
 
 step :: forall r. { livingCells :: Set Cell | r } -> Int -> Set Cell
 step s = foldl stepRow s.livingCells <<< grid
@@ -95,9 +92,6 @@ defaultKey = A // natural
 
 defaultOctave :: Int
 defaultOctave = 3
-
-defaultScale :: Scale
-defaultScale = Scale.hexatonic
 
 defaultNotes :: Int
 defaultNotes = 16

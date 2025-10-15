@@ -11,6 +11,7 @@ module Life.Types.Preset
   , livingCells
   , random
   , root
+  , scale
   , wave
   )
   where
@@ -39,6 +40,8 @@ import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat, natural)
 import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Types.Music.PitchClass as PitchClass
+import Life.Types.Music.ScaleType (ScaleType)
+import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 
@@ -50,6 +53,7 @@ type PresetV0' r =
   { key :: PitchClass
   , livingCells :: Set Cell
   , root :: Int
+  , scale :: ScaleType
   , wave :: Wave
   | r
   }
@@ -67,21 +71,33 @@ codec = C.codec decode encode
       V0 p -> C.encode codecV0 p
       V1 p -> C.encode codecV1 p
 
-    codecV0 = codecV0' $ (Codec.literal "0" /> PitchClass.codec </> Codec.int </> Grid.cellsCodec) <\> Wave.codec
+    codecV0 = codecV0' $ (Codec.literal "0" /> PitchClass.codec </> ScaleType.codec </> Codec.int </> Grid.cellsCodec) <\> Wave.codec
 
-    codecV1 = codecV0' $ (Codec.literal "1" /> PitchClass.codec </> Codec.int </> GridCompressed.cellsCodec) <\> Wave.codec
+    codecV1 = codecV0' $ (Codec.literal "1" /> PitchClass.codec </> ScaleType.codec </> Codec.int </> GridCompressed.cellsCodec) <\> Wave.codec
 
-codecV0' :: Codec String ((PitchClass /\ Int /\ Set Cell) /\ Wave) -> Codec String PresetV1
+codecV0' :: Codec String ((PitchClass /\ ScaleType /\ Int /\ Set Cell) /\ Wave) -> Codec String PresetV1
 codecV0' = dimap toTuple fromTuple
   where
-    fromTuple ((k /\ r /\ g) /\ w) = { key: k, livingCells: g, wave: w, root: r }
-    toTuple p = (p.key /\ p.root /\ p.livingCells) /\ p.wave
+    fromTuple ((k /\ s /\ r /\ g) /\ w) = { key: k, livingCells: g, wave: w, root: r, scale: s }
+    toTuple p = (p.key /\ p.scale /\ p.root /\ p.livingCells) /\ p.wave
 
 fromCells :: Set Cell -> Preset
-fromCells = fromState <<< { key: Game.defaultKey, livingCells: _, wave: Wave.default, root: 0 }
+fromCells = fromState <<<
+  { key: Game.defaultKey
+  , wave: Wave.default
+  , root: 0
+  , scale: ScaleType.default
+  , livingCells: _
+  }
 
 fromState :: forall r. PresetV0' r -> Preset
-fromState s = V1 { key: s.key, livingCells: s.livingCells, wave: s.wave, root: s.root }
+fromState s = V1
+  { key: s.key
+  , livingCells: s.livingCells
+  , wave: s.wave
+  , root: s.root
+  , scale: s.scale
+  }
 
 unwrap :: Preset -> PresetV0
 unwrap = case _ of
@@ -100,35 +116,47 @@ wave = unwrap >>> _.wave
 root :: Preset -> Int
 root = unwrap >>> _.root
 
+scale :: Preset -> ScaleType
+scale = unwrap >>> _.scale
+
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
 
-presetV1' :: { key :: PitchClass, root :: Int, wave :: Wave } -> Array Cell -> Preset
+presetV1' ::
+  { key :: PitchClass
+  , root :: Int
+  , scale :: ScaleType
+  , wave :: Wave
+  }
+  -> Array Cell
+  -> Preset
 presetV1' p cells = fromState
   { key: p.key
   , root: p.root
   , wave: p.wave
   , livingCells: Set.fromFoldable cells
+  , scale: p.scale
   }
 
 random :: Effect (Maybe Preset)
 random = do
   r <- R.randomInt (-6) 6
   cells <- Game.random
-  mWave <- Wave.random
+  w <- Wave.random
+  s <- ScaleType.random
   keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)
   let mKey = PitchClass.all !! keyIndex
-  for ((/\) <$> mWave <*> mKey) \(w /\ k) ->
-    pure $ V1 { key: k, livingCells: cells, wave: w, root: r }
+  for mKey \k ->
+    pure $ V1 { key: k, livingCells: cells, wave: w, root: r, scale: s }
 
 default :: Preset
-default = headphones
+default = galaxy
 
 all :: Array (String /\ Preset)
 all =
-  [ "Headphones" /\ headphones
+  [ "Galaxy" /\ galaxy
+  , "Headphones" /\ headphones
   , "Flower" /\ flower
-  , "Galaxy" /\ galaxy
   , "Glider" /\ glider
   , "Collision" /\ collision
   , "Sky" /\ sky
@@ -233,7 +261,12 @@ octocat = presetV1
   ]
 
 headphones :: Preset
-headphones = presetV1' { key: A // flat, root: 0, wave: Wave.Square }
+headphones = presetV1'
+  { key: A // flat
+  , root: 0
+  , scale: ScaleType.Hexatonic
+  , wave: Wave.Square
+  }
   [ 2 /\ 5
   , 2 /\ 6
   , 2 /\ 7
@@ -301,7 +334,12 @@ headphones = presetV1' { key: A // flat, root: 0, wave: Wave.Square }
   ]
 
 sky :: Preset
-sky = presetV1' { key: D // natural, root: 0, wave: Wave.Sawtooth }
+sky = presetV1'
+  { key: D // natural
+  , root: 0
+  , scale: ScaleType.Hexatonic
+  , wave: Wave.Sawtooth
+  }
   [ 0 /\ 9
   , 0 /\ 10
   , 1 /\ 3
@@ -341,7 +379,12 @@ sky = presetV1' { key: D // natural, root: 0, wave: Wave.Sawtooth }
   ]
 
 galaxy :: Preset
-galaxy = presetV1' { key: A // natural, root: 3, wave: Wave.Sine }
+galaxy = presetV1'
+  { key: A // natural
+  , root: 3
+  , scale: ScaleType.Pentatonic
+  , wave: Wave.Sine
+  }
   [ 1 /\ 7
   , 1 /\ 8
   , 1 /\ 9
@@ -418,7 +461,12 @@ flower = presetV1
   ]
 
 spaceship :: Preset
-spaceship = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
+spaceship = presetV1'
+  { key: G // natural
+  , root: 0
+  , scale: ScaleType.Hexatonic
+  , wave: Wave.Triangle
+  }
   [ 6 /\ 0
   , 6 /\ 3
   , 7 /\ 4
@@ -431,7 +479,12 @@ spaceship = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
   ]
 
 shipsPassing :: Preset
-shipsPassing = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
+shipsPassing = presetV1'
+  { key: G // natural
+  , root: 0
+  , scale: ScaleType.Hexatonic
+  , wave: Wave.Triangle
+  }
   [ 0 /\ 0
   , 0 /\ 3
   , 1 /\ 4
@@ -453,7 +506,12 @@ shipsPassing = presetV1' { key: G // natural, root: 0, wave: Wave.Triangle }
   ]
 
 pulsar :: Preset
-pulsar = presetV1' { key: A // flat, root: 2, wave: Wave.Triangle }
+pulsar = presetV1'
+  { key: A // flat
+  , root: 2
+  , scale: ScaleType.Hexatonic
+  , wave: Wave.Triangle
+  }
   [ 1 /\ 3
   , 1 /\ 4
   , 1 /\ 10

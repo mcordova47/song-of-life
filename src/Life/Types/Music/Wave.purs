@@ -12,17 +12,16 @@ module Life.Types.Music.Wave
 
 import Prelude
 
-import Data.Bounded.Generic (genericBottom, genericTop)
+import Data.Bounded.Generic (genericBottom)
 import Data.Codec as C
-import Data.Enum.Generic (genericFromEnum, genericToEnum)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Effect.Random as R
 import Elmish (ReactElement)
 import Life.Icons as I
-import Life.Types.Codec (Codec)
+import Life.Types.Codec (class Serializable, Codec)
 import Life.Utils (tags)
+import Life.Utils as U
 
 data Wave
   = Triangle
@@ -32,6 +31,9 @@ data Wave
 derive instance Eq Wave
 derive instance Ord Wave
 derive instance Generic Wave _
+
+instance Serializable Wave where
+  codec = codec
 
 codec ∷ Codec String Wave
 codec = C.codec decode encode
@@ -55,12 +57,8 @@ all = tags
 default :: Wave
 default = genericBottom
 
-random :: Effect (Maybe Wave)
-random =
-  R.randomInt
-    (genericFromEnum (genericBottom :: Wave))
-    (genericFromEnum (genericTop :: Wave))
-    <#> genericToEnum
+random :: Effect Wave
+random = U.randomTag
 
 display :: Wave -> String
 display = case _ of

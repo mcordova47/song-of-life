@@ -11,9 +11,10 @@ module Life.Types.Music.PitchClass
 
 import Prelude
 
+import Data.Generic.Rep (class Generic)
 import Data.Profunctor (dimap)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Codec (Codec)
+import Life.Types.Codec (class Serializable, Codec)
 import Life.Types.Codec as Codec
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Letter as Letter
@@ -23,8 +24,13 @@ import Life.Types.Music.Modifier as Modifier
 data PitchClass
   = PitchClass Letter Modifier
 derive instance Eq PitchClass
+derive instance Generic PitchClass _
+
 instance Show PitchClass where
   show = display
+
+instance Serializable PitchClass where
+  codec = codec
 
 infixl 7 PitchClass as //
 
