@@ -24,7 +24,7 @@ import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
-import Life.Game as Game
+import Life.Game.Bounded as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
 import Life.Types.Grid as Grid

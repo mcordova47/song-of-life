@@ -1,4 +1,4 @@
-module Life.Game
+module Life.Game.Bounded
   ( beatsPerMeasure
   , defaultKey
   , defaultNotes

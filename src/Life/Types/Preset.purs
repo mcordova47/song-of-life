@@ -29,7 +29,7 @@ import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Random as R
-import Life.Game as Game
+import Life.Game.Bounded as Game
 import Life.Types.Cell (Cell)
 import Life.Types.Codec (Codec, (/>), (</>), (<\>))
 import Life.Types.Codec as Codec

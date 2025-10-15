@@ -16,7 +16,7 @@ import Elmish (ReactElement, (<|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Game as Game
+import Life.Game.Bounded as Game
 import Life.Types.Cell (Cell)
 
 type Args =
