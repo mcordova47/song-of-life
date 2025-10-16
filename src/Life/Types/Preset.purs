@@ -4,8 +4,12 @@ module Life.Types.Preset
   , PresetV0'
   , PresetV1
   , all
+  , beatsPerMeasure
   , codec
   , default
+  , defaultKey
+  , defaultNotes
+  , defaultOctave
   , fromState
   , key
   , livingCells
@@ -83,7 +87,7 @@ codecV0' = dimap toTuple fromTuple
 
 fromCells :: Set Cell -> Preset
 fromCells = fromState <<<
-  { key: Game.defaultKey
+  { key: defaultKey
   , wave: Wave.default
   , root: 0
   , scale: ScaleType.default
@@ -138,10 +142,10 @@ presetV1' p cells = fromState
   , scale: p.scale
   }
 
-random :: Effect (Maybe Preset)
-random = do
+random :: Int -> Int -> Effect (Maybe Preset)
+random rows cols = do
   r <- R.randomInt (-6) 6
-  cells <- Game.random
+  cells <- Game.random rows cols
   w <- Wave.random
   s <- ScaleType.random
   keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)
@@ -585,3 +589,18 @@ pulsar = presetV1'
   , 13 /\ 10
   , 13 /\ 11
   ]
+
+-- Configuration
+-- TODO: Make all of these configurable
+
+beatsPerMeasure :: Int
+beatsPerMeasure = 16
+
+defaultKey :: PitchClass
+defaultKey = A // natural
+
+defaultOctave :: Int
+defaultOctave = 3
+
+defaultNotes :: Int
+defaultNotes = 16

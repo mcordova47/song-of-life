@@ -18,6 +18,7 @@ import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Life.Game.Bounded as Game
 import Life.Types.Cell (Cell)
+import Life.Types.Preset as Preset
 
 type Args =
   { name :: String
@@ -35,7 +36,7 @@ component { name, cells, grid, onClick } = Hooks.component Hooks.do
   Hooks.useEffect' { hovering, livingCells } \deps -> do
     if deps.hovering then do
       delay $ Milliseconds 200.0
-      liftEffect $ setLivingCells $ Game.step { livingCells } $ Array.length grid
+      liftEffect $ setLivingCells $ Game.step { livingCells } (Array.length grid) Preset.beatsPerMeasure
     else
       liftEffect $ setLivingCells cells
 

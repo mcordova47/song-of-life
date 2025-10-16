@@ -1,9 +1,5 @@
 module Life.Game.Bounded
-  ( beatsPerMeasure
-  , defaultKey
-  , defaultNotes
-  , defaultOctave
-  , grid
+  ( grid
   , random
   , step
   , transpose
@@ -26,12 +22,9 @@ import Effect (Effect)
 import Effect.Random as R
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
-import Life.Types.Music.Letter (Letter(..))
-import Life.Types.Music.Modifier (natural)
-import Life.Types.Music.PitchClass (PitchClass, (//))
 
-step :: forall r. { livingCells :: Set Cell | r } -> Int -> Set Cell
-step s = foldl stepRow s.livingCells <<< grid
+step :: forall r. { livingCells :: Set Cell | r } -> Int -> Int -> Set Cell
+step s rows cols = foldl stepRow s.livingCells $ grid rows cols
   where
     stepRow livingCells' row =
       foldl stepCell livingCells' row
@@ -54,12 +47,12 @@ step s = foldl stepRow s.livingCells <<< grid
       guard $ (row' /\ col') /= (row /\ col)
       pure (row' /\ col')
 
-grid :: Int -> Array (Array Cell)
-grid numRows =
+grid :: Int -> Int -> Array (Array Cell)
+grid numRows numCols =
   rows <#> \row -> cols <#> \col -> row /\ col
   where
     rows = 0 .. (numRows - 1)
-    cols = 0 .. (beatsPerMeasure - 1)
+    cols = 0 .. (numCols - 1)
 
 transpose :: forall a. Array (Array a) -> Array (Array a)
 transpose rows = case A.head rows of
@@ -70,28 +63,13 @@ transpose rows = case A.head rows of
       A.zipWith (<>) cols (row <#> A.singleton)
 
 -- TODO: instead of a bounding box, limit rows per column
-random :: Effect (Set Cell)
-random = do
+random :: Int -> Int -> Effect (Set Cell)
+random rows cols = do
   let
     x1 = 0
-    x2 = beatsPerMeasure - 1
-  y1 <- R.randomInt 0 (defaultNotes - 3)
-  y2 <- R.randomInt (y1 + 2) (defaultNotes - 1)
+    x2 = cols - 1
+  y1 <- R.randomInt 0 (rows - 3)
+  y2 <- R.randomInt (y1 + 2) (rows - 1)
   numCells <- R.randomInt 5 $ Int.floor (Int.toNumber ((x2 - x1) * (y2 - y1)) * 0.75)
   cells <- for (A.replicate numCells unit) \_ -> Cell.random { x1, x2, y1, y2 }
   pure $ Set.fromFoldable cells
-
--- Configuration
--- TODO: Make all of these configurable
-
-beatsPerMeasure :: Int
-beatsPerMeasure = 16
-
-defaultKey :: PitchClass
-defaultKey = A // natural
-
-defaultOctave :: Int
-defaultOctave = 3
-
-defaultNotes :: Int
-defaultNotes = 16

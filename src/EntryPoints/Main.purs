@@ -88,7 +88,7 @@ init = do
   fork $ liftEffect $
     window >>= location >>= Loc.hash <#> String.drop 2 <#> Navigate
   pure
-    { key: Game.defaultKey
+    { key: Preset.defaultKey
     , livingCells: Set.empty
     , play: Nothing
     , root: 0
@@ -104,7 +104,7 @@ update state = case _ of
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
   AutoStep | Just _ <- state.play -> do
-    let livingCells = Game.step state $ numRows state
+    let livingCells = Game.step state (numRows state) Preset.beatsPerMeasure
     autoStep livingCells
     pure state { livingCells = livingCells, play = Just (Array.length (measure livingCells) - 1) }
   AutoStep ->
@@ -115,7 +115,7 @@ update state = case _ of
   ChangeRoot degrees ->
     pure state { root = state.root + degrees }
   GenerateRandom -> do
-    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random (numRows state) Preset.beatsPerMeasure
     pure state
   HideCopiedFeedback ->
     pure state { showCopiedFeedback = false }
@@ -146,7 +146,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { livingCells = Game.step state $ numRows state }
+    pure state { livingCells = Game.step state (numRows state) Preset.beatsPerMeasure }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
   LoadPreset p ->
@@ -391,7 +391,7 @@ view state dispatch = H.fragment
                 "▼"
           ]
         , H.fragment $
-            0 .. (Game.beatsPerMeasure - 1) <#> \col ->
+            0 .. (Preset.beatsPerMeasure - 1) <#> \col ->
               H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
                 H.div_ ("d-inline-block grid-cell bg-" <> if Set.member (row /\ col) state.livingCells then "salmon" else "light")
                   { onClick: dispatch <| ToggleCell (row /\ col) }
@@ -445,8 +445,8 @@ view state dispatch = H.fragment
     grid = gameGrid state
 
 gameGrid :: State -> Array (Array Cell)
-gameGrid =
-  Game.grid <<< numRows
+gameGrid s =
+  Game.grid (numRows s) Preset.beatsPerMeasure
 
 numRows :: State -> Int
 numRows state =
@@ -456,8 +456,8 @@ scale :: State -> Array Note
 scale state =
   (Scale.shift state.root $ ScaleType.toScale state.scale).notes
     { key: state.key
-    , root: Game.defaultOctave
-    , length: Game.defaultNotes
+    , root: Preset.defaultOctave
+    , length: Preset.defaultNotes
     }
 
 duration :: Number
