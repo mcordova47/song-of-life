@@ -104,7 +104,7 @@ update state = case _ of
   --  - length - 1 hack
   --  - let Beat drive the engine so that speed and notes can be changed in real time
   AutoStep | Just _ <- state.play -> do
-    let livingCells = Game.step state (numRows state) Preset.beatsPerMeasure
+    let livingCells = step state
     autoStep livingCells
     pure state { livingCells = livingCells, play = Just (Array.length (measure livingCells) - 1) }
   AutoStep ->
@@ -146,7 +146,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { livingCells = Game.step state (numRows state) Preset.beatsPerMeasure }
+    pure state { livingCells = step state }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
   LoadPreset p ->
@@ -462,3 +462,7 @@ scale state =
 
 duration :: Number
 duration = 15_000.0
+
+step :: State -> Set Cell
+step state =
+  Game.step state (numRows state) Preset.beatsPerMeasure
