@@ -1,3 +1,9 @@
+const NEIGHBOR_OFFSETS = [
+  -0x10001, -0x10000, -0x0ffff,
+  -1,                 +1,
+  +0xffff,  +0x10000, +0x10001
+]
+
 export const steps_ = (n, cells) => {
   let set = cellSet(cells)
   for (let i = 0; i < n; i++) {
@@ -8,62 +14,41 @@ export const steps_ = (n, cells) => {
 
 const step = cells => {
   const next = new Set(cells)
-  relevantCells(cells).forEach(c => stepCell(c, cells, next))
-  return next
-}
-
-const stepCell = (cell, cells, next) => {
-  switch (livingNeighbors(cell, cells)) {
-    case 3:
-      next.add(cell)
-      break
-    case 2:
-      break
-    default:
-      next.delete(cell)
+  for (const c of relevantCells(cells)) {
+    stepCell(c, cells, next)
   }
   return next
 }
 
-const pack = ({ row, col }) => (row << 16) | col
+const stepCell = (cell, cells, next) => {
+  const ln = livingNeighbors(cell, cells)
+  if (ln === 3) next.add(cell)
+  else if (ln !== 2) next.delete(cell)
+}
 
-const unpack = i => ({ row: i >> 16, col: i << 16 >> 16 })
+const pack = ({ row, col }) => (row << 16) | (col & 0xffff)
+const unpack = i => ({ row: i >> 16, col: i & 0xffff })
 
 const cellSet = arr => new Set(arr.map(pack))
-
 const fromCellSet = set => [...set].map(unpack)
 
-const neighbors = cell => {
-  const neighborOffsets = [
-    -0x10001, -0x10000, -0x0ffff,
-    -1,                   +1,
-    +0xffff,  +0x10000,  +0x10001
-  ]
-
-  return neighborOffsets.map(offset => cell + offset)
-}
+const neighbors = cell => NEIGHBOR_OFFSETS.map(o => cell + o)
 
 const relevantCells = cells => {
   const rel = new Set(cells)
-  cells.forEach(c => {
-    union(rel, neighbors(c))
-  })
+  for (const c of cells) union(rel, neighbors(c))
   return rel
 }
 
-fromCellSet(neighbors(pack({ row: 1, col: 1 })))
-
 const union = (a, b) => {
-  b.forEach(x => a.add(x))
-  return b
+  for (const x of b) a.add(x)
+  return a
 }
 
 const livingNeighbors = (cell, cells) => {
   let acc = 0
-  neighbors(cell).forEach(c => {
-    if (cells.has(c)) {
-      acc += 1
-    }
-  })
+  for (const n of neighbors(cell)) {
+    if (cells.has(n)) acc++
+  }
   return acc
 }
