@@ -182,7 +182,7 @@ update state = case _ of
       Just { head, tail } -> (Array.zipWith smoosh cells head # Array.unzip # \(a /\ b) -> [a] <> [b]) <> tail
       where
         smoosh cella b@(nb /\ cellb)
-          | nb > 0 = case cellDuration cella of
+          | nb > 0, state.connectNotes = case cellDuration cella of
               na /\ _
                 | na > 0
                 , nb > 0 -> ((na + nb) /\ cella) /\ (0 /\ cellb)
