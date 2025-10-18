@@ -6,6 +6,7 @@ module Life.Types.Music.Note
   , dec
   , diff
   , display
+  , drone
   , frequency
   , halfSteps
   , inc
@@ -24,7 +25,7 @@ import Data.Profunctor (dimap)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
-import Effect.Uncurried (EffectFn3, runEffectFn3)
+import Effect.Uncurried (EffectFn2, EffectFn3, runEffectFn2, runEffectFn3)
 import Elmish (ReactElement)
 import Elmish.HTML.Styled as H
 import Life.Types.Codec (Codec)
@@ -90,4 +91,10 @@ play :: Milliseconds -> Wave -> Note -> Effect Unit
 play dur wave note =
   runEffectFn3 play_ dur (Wave.toJs wave) (frequency note)
 
+drone :: Wave -> Note -> Effect { stop :: Effect Unit }
+drone wave note =
+  runEffectFn2 drone_ (Wave.toJs wave) (frequency note)
+
 foreign import play_ :: EffectFn3 Milliseconds String Number Unit
+
+foreign import drone_ :: EffectFn2 String Number { stop :: Effect Unit }
