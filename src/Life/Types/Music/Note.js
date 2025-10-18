@@ -34,6 +34,40 @@ export const play_ = (durationMs, wave, freq) => {
   osc.stop(now + duration)
 }
 
+export const schedule_ = (durationMs, at, wave, freq) => {
+  console.log(durationMs, at)
+  const duration = durationMs / 1000
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  const attack = 0.01
+  const release = 0.05
+  const start = ctx.currentTime + duration * at
+  const minGain = 0.001
+  const maxGain =
+    wave === "square" ? 0.08
+    : wave === "sawtooth" ? 0.13
+    : wave === "triangle" ? 0.24
+    : 0.25
+  const pitchAdjustedGain = loudnessCompensation(freq) * maxGain
+  const randRelease = Math.random() * release
+  const decay = release - randRelease
+
+  osc.frequency.value = freq
+  osc.type = wave
+
+  gain.connect(reverb.input.dry)
+  gain.connect(reverb.input.wetIn)
+
+  gain.gain.setValueAtTime(minGain, start)
+  gain.gain.exponentialRampToValueAtTime(pitchAdjustedGain, start + attack)
+  gain.gain.setValueAtTime(pitchAdjustedGain, start + duration - randRelease)
+  gain.gain.exponentialRampToValueAtTime(minGain, start + duration + decay)
+
+  osc.connect(gain)
+  osc.start(start)
+  osc.stop(start + duration)
+}
+
 export const drone_ = (wave, freq) => {
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()

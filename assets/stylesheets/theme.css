@@ -66,6 +66,12 @@ body {
   cursor: pointer;
 }
 
+.connected .grid-cell {
+  width: 2.5rem;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .grid-row-label {
   height: 2rem;
   width: 2rem;
@@ -85,6 +91,12 @@ body {
     height: 1rem;
     width: 1rem;
     margin: 0.15rem;
+  }
+
+  .connected.playing .grid-cell {
+    width: 1.3rem;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .playing .grid-row-label {
@@ -182,4 +194,12 @@ button.btn-outline-theme:hover {
 
 .border-lightblue {
   border: 1px solid #bad5ff !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.scale-75 {
+  scale: 75%;
 }

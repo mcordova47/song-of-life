@@ -2,10 +2,10 @@ module EntryPoints.Main where
 
 import Prelude
 
-import Data.Array ((..))
+import Data.Array ((!!), (..))
 import Data.Array as Array
 import Data.Codec as C
-import Data.Foldable (fold, for_)
+import Data.Foldable (fold, foldr, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
@@ -13,8 +13,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.String as String
 import Data.Traversable (traverse)
-import Data.Tuple (fst)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -55,7 +54,7 @@ main = defaultMain { def: { init, view, update }, elementId: "app" }
 
 data Message
   = AutoStep
-  | Beat (Array Note) Milliseconds
+  | Beat (Array (Int /\ Note)) Milliseconds
   | ChangeRoot Int
   | GenerateRandom
   | HideCopiedFeedback
@@ -71,13 +70,16 @@ data Message
   | ShowCopiedFeedback
   | Step
   | ToggleCell Cell
+  | ToggleConnectNotes
 
 type State =
-  { key :: PitchClass
+  { connectNotes :: Boolean
+  , key :: PitchClass
   , livingCells :: Set Cell
   , play :: Maybe Int
   , root :: Int
   , scale :: ScaleType
+  , shareHash :: Maybe String
   , showCopiedFeedback :: Boolean
   , speed :: Int
   , wave :: Wave
@@ -88,11 +90,13 @@ init = do
   fork $ liftEffect $
     window >>= location >>= Loc.hash <#> String.drop 2 <#> Navigate
   pure
-    { key: Preset.defaultKey
+    { connectNotes: false
+    , key: Preset.defaultKey
     , livingCells: Set.empty
     , play: Nothing
     , root: 0
     , scale: ScaleType.default
+    , shareHash: Nothing
     , showCopiedFeedback: false
     , speed: 5
     , wave: Wave.default
@@ -101,21 +105,20 @@ init = do
 update :: State -> Message -> Transition Message State
 update state = case _ of
   -- TODO: Refactor AutoStep logic:
-  --  - length - 1 hack
-  --  - let Beat drive the engine so that speed and notes can be changed in real time
+  --  - numCols - 1 hack
   AutoStep | Just _ <- state.play -> do
     let livingCells = step state
     autoStep livingCells
-    pure state { livingCells = livingCells, play = Just (Array.length (measure livingCells) - 1) }
+    pure state { livingCells = livingCells, play = Just (numCols - 1) }
   AutoStep ->
     pure state
-  Beat notes' dur -> do
-    forkVoid $ liftEffect $ for_ notes' $ Note.play dur state.wave
+  Beat notes' (Milliseconds dur) -> do
+    forkVoid $ liftEffect $ for_ notes' \(n /\ note) -> Note.play (Milliseconds (dur * Int.toNumber n)) state.wave note
     pure state { play = inc state.play }
   ChangeRoot degrees ->
     pure state { root = state.root + degrees }
   GenerateRandom -> do
-    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random (numRows state) Preset.beatsPerMeasure
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random (numRows state) numCols
     pure state
   HideCopiedFeedback ->
     pure state { showCopiedFeedback = false }
@@ -126,10 +129,10 @@ update state = case _ of
       Nothing ->
         pure $ loadPreset Preset.default
   Pause ->
-    pure state { play = Nothing }
+    pure state { play = Nothing, shareHash = Nothing }
   Play -> do
     autoStep state.livingCells
-    pure state { play = Just (-1) }
+    pure state { play = Just (-1), shareHash = Just $ shareHash state }
   Reset ->
     pure state { livingCells = Set.empty }
   SetScale s ->
@@ -149,6 +152,8 @@ update state = case _ of
     pure state { livingCells = step state }
   ToggleCell cell ->
     pure state { livingCells = Set.toggle cell state.livingCells }
+  ToggleConnectNotes ->
+    pure state { connectNotes = not state.connectNotes }
   LoadPreset p ->
     pure $ loadPreset p
   where
@@ -162,14 +167,34 @@ update state = case _ of
           liftEffect $ dispatch $ Beat notes' $ Milliseconds durationMs
         liftEffect $ dispatch AutoStep
 
+    measure :: Set Cell -> Array (Array (Int /\ Note))
     measure cells =
       Game.transpose (gameGrid state)
-      <#> Array.filter (\cell -> Set.member cell cells)
-      <#> map fst
-      <#> Array.mapMaybe (Array.index $ scale state)
+      # foldr (connectCells cells) []
+      <#> Array.filter (\(_ /\ cell) -> Set.member cell cells)
+      <#> map (\(n /\ (row /\ _)) -> n /\ row)
+      <#> Array.mapMaybe \(n /\ row) -> (scale state !! row) <#> (/\) n
+
+    -- TODO: Make this conditional on state.connectNotes
+    connectCells :: Set Cell -> Array Cell -> Array (Array (Int /\ Cell)) -> Array (Array (Int /\ Cell))
+    connectCells living cells cols = case Array.uncons cols of
+      Nothing -> [cells <#> cellDuration]
+      Just { head, tail } -> (Array.zipWith smoosh cells head # Array.unzip # \(a /\ b) -> [a] <> [b]) <> tail
+      where
+        smoosh cella b@(nb /\ cellb)
+          | nb > 0 = case cellDuration cella of
+              na /\ _
+                | na > 0
+                , nb > 0 -> ((na + nb) /\ cella) /\ (0 /\ cellb)
+                | otherwise -> (na /\ cella) /\ b
+          | otherwise = cellDuration cella /\ b
+
+        cellDuration cell
+          | Set.member cell living = 1 /\ cell
+          | otherwise = 0 /\ cell
 
     inc = case _ of
-      Just n -> Just $ mod (n + 1) (Array.length $ measure state.livingCells)
+      Just n -> Just $ mod (n + 1) numCols
       Nothing -> Nothing
 
     loadPreset p =
@@ -300,6 +325,19 @@ view state dispatch = H.fragment
                     }
                 ]
             ]
+          , H.div "fw-bold mb-2" "Adjacent Notes"
+          , H.div "mb-3" $
+              H.div_ ("d-inline-block text-center card-btn border rounded py-1 px-3 hover:bg-lightblue" <> M.guard state.connectNotes " connected")
+              { onClick: dispatch <| ToggleConnectNotes
+              }
+              [ H.div "d-flex scale-75"
+                [ H.div "grid-cell-container" $
+                    H.div "grid-cell bg-salmon" H.empty
+                , H.div "grid-cell-container" $
+                    H.div "grid-cell bg-salmon" H.empty
+                ]
+              , H.div "" if state.connectNotes then "Connected" else "Disconnected"
+              ]
           , H.label "form-label mb-2" "Wave Type"
           , H.div "row" $ Wave.all <#> \wave ->
               H.div "col-6 col-sm-3 col-lg-2" $
@@ -370,7 +408,7 @@ view state dispatch = H.fragment
       ]
   ]
   where
-    gridView = H.div ("grid py-4" <> M.guard (isJust state.play) " playing") $
+    gridView = H.div ("grid py-4" <> M.guard (isJust state.play) " playing" <> M.guard state.connectNotes " connected") $
       notes # Array.mapWithIndex \row note@(pitchClass \\ _) ->
         H.div_ "d-flex align-items-center"
         { style: H.css { lineHeight: 0 } }
@@ -391,7 +429,7 @@ view state dispatch = H.fragment
                 "▼"
           ]
         , H.fragment $
-            0 .. (Preset.beatsPerMeasure - 1) <#> \col ->
+            0 .. (numCols - 1) <#> \col ->
               H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
                 H.div_ ("d-inline-block grid-cell bg-" <> if Set.member (row /\ col) state.livingCells then "salmon" else "light")
                   { onClick: dispatch <| ToggleCell (row /\ col) }
@@ -440,17 +478,26 @@ view state dispatch = H.fragment
           TurnOn n -> Array.replicate n "🟪"
 
     shareUrl origin =
-      origin <> "/#/" <> (Route.encode $ Route.Share $ Preset.fromState state)
+      origin <> "/#/" <> case state.shareHash of
+        Just hash -> hash
+        Nothing -> shareHash state
 
     grid = gameGrid state
 
 gameGrid :: State -> Array (Array Cell)
 gameGrid s =
-  Game.grid (numRows s) Preset.beatsPerMeasure
+  Game.grid (numRows s) numCols
+
+shareHash :: State -> String
+shareHash =
+  Route.encode <<< Route.Share <<< Preset.fromState
 
 numRows :: State -> Int
 numRows state =
   Array.length $ scale state
+
+numCols :: Int
+numCols = Preset.beatsPerMeasure
 
 scale :: State -> Array Note
 scale state =
@@ -465,4 +512,4 @@ duration = 15_000.0
 
 step :: State -> Set Cell
 step state =
-  Game.step state (numRows state) Preset.beatsPerMeasure
+  Game.step state (numRows state) numCols
