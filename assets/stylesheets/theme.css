@@ -179,3 +179,7 @@ button.btn-outline-theme:hover {
 .translucent {
   opacity: 0.75;
 }
+
+.border-lightblue {
+  border: 1px solid #bad5ff !important;
+}

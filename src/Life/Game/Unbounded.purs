@@ -3,7 +3,9 @@ module Life.Game.Unbounded where
 import Prelude
 
 import Control.Alternative (guard)
+import Data.Array as Array
 import Data.Foldable (foldl)
+import Data.Function.Uncurried (Fn2, runFn2)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
@@ -32,3 +34,14 @@ step cells = cells # relevantCells # foldl stepCell cells
 
     relevantCells = cells # foldl \fullSet cell ->
       neighbors cell # Set.union fullSet
+
+steps :: Int -> Set Cell -> Set Cell
+steps n cells =
+  cells
+  # Array.fromFoldable
+  <#> (\(row /\ col) -> { row, col })
+  # runFn2 steps_ n
+  <#> (\({ row, col }) -> row /\ col)
+  # Set.fromFoldable
+
+foreign import steps_ :: Fn2 Int (Array { row :: Int, col :: Int }) (Array { row :: Int, col :: Int })
