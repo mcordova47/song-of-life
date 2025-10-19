@@ -151,6 +151,12 @@ body {
   margin: 0.05rem;
 }
 
+.connected .preset-grid-cell {
+  width: 0.55rem;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .card-btn {
   cursor: pointer;
   display: flex;

@@ -1,4 +1,4 @@
-module EntryPoints.Main where
+module EntryPoints.Index where
 
 import Prelude
 
@@ -167,7 +167,6 @@ update state = case _ of
           liftEffect $ dispatch $ Beat notes' $ Milliseconds durationMs
         liftEffect $ dispatch AutoStep
 
-    measure :: Set Cell -> Array (Array (Int /\ Note))
     measure cells =
       Game.transpose (gameGrid state)
       # foldr (connectCells cells) []
@@ -175,8 +174,6 @@ update state = case _ of
       <#> map (\(n /\ (row /\ _)) -> n /\ row)
       <#> Array.mapMaybe \(n /\ row) -> (scale state !! row) <#> (/\) n
 
-    -- TODO: Make this conditional on state.connectNotes
-    connectCells :: Set Cell -> Array Cell -> Array (Array (Int /\ Cell)) -> Array (Array (Int /\ Cell))
     connectCells living cells cols = case Array.uncons cols of
       Nothing -> [cells <#> cellDuration]
       Just { head, tail } -> (Array.zipWith smoosh cells head # Array.unzip # \(a /\ b) -> [a] <> [b]) <> tail

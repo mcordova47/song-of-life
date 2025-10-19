@@ -11,6 +11,7 @@ module Life.Types.Preset
   , defaultNotes
   , defaultOctave
   , fromState
+  , headphones
   , key
   , livingCells
   , random

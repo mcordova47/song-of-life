@@ -1,11 +1,11 @@
 import * as esbuild from "esbuild"
-import { cpSync, readdirSync } from "fs"
+import fs from "fs"
 import { join } from "path"
 
 const entryDir = "./output"
 const outDir = "./public"
 
-const entryPoints = readdirSync(entryDir)
+const entryPoints = fs.readdirSync(entryDir)
   .filter(d => d.startsWith("EntryPoints."))
   .map(f => join(entryDir, f, "index.js"))
 
@@ -18,8 +18,18 @@ const ctx = await esbuild.context({
   sourcemap: true,
 })
 
-cpSync("entrypoints", outDir, { recursive: true })
-cpSync("assets", `${outDir}/assets`, { recursive: true })
+fs.cpSync("assets", `${outDir}/assets`, { recursive: true })
+
+entryPoints.forEach(file => {
+  const scriptName = file.replace(/^.*EntryPoints\./, "").replace(/\/index.js$/, "")
+  const name = scriptName.split(/(?=[A-Z])/).map(s => s.toLowerCase()).join("_")
+  const htmlFile = join(outDir, `${name}.html`)
+  const content = fs.readFileSync(
+    "entrypoints/index.html",
+    { encoding: "utf-8" }
+  ).replace("{{script_name}}", scriptName)
+  fs.writeFileSync(htmlFile, content)
+})
 
 await ctx.watch()
 

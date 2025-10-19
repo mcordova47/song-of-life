@@ -40,6 +40,10 @@ import Life.Types.Music.Wave as Wave
 
 data Note = Note PitchClass Int
 derive instance Eq Note
+
+instance Ord Note where
+  compare = comparing halfSteps
+
 instance Show Note where
   show (p \\ o) = PitchClass.display p <> show o
 
