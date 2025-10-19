@@ -25,7 +25,7 @@ entryPoints.forEach(file => {
   const name = scriptName.split(/(?=[A-Z])/).map(s => s.toLowerCase()).join("_")
   const htmlFile = join(outDir, `${name}.html`)
   const content = fs.readFileSync(
-    "entrypoints/index.html",
+    "index.html",
     { encoding: "utf-8" }
   ).replace("{{script_name}}", scriptName)
   fs.writeFileSync(htmlFile, content)
