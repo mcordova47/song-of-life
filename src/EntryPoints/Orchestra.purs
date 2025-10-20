@@ -22,7 +22,8 @@ import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
-import Life.Game.Bounded as Game
+import Life.Game.Bounded (grid, transpose) as Game
+import Life.Game.Unbounded (steps) as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
 import Life.Types.Music.Letter (Letter(..))
@@ -54,6 +55,7 @@ data Message
   | SetKey PitchClass
   | SetScale ScaleType
   | SetSpeed Int
+  | SetStepBy Int
   | Step
   | ToggleCell Cell
 
@@ -64,6 +66,7 @@ type State =
   , root :: Int
   , scale :: ScaleType
   , speed :: Int
+  , stepBy :: Int
   }
 
 init :: Transition Message State
@@ -74,6 +77,7 @@ init = pure
   , root: 0
   , scale: Preset.scale Preset.default
   , speed: 5
+  , stepBy: 1
   }
 
 update :: State -> Message -> Transition Message State
@@ -91,9 +95,9 @@ update state = case _ of
       let
         wave = case Array.findIndex ((==) note) (scale state) of
           Just i
-            | i <= 4 -> Wave.Sawtooth
-            | i <= 8 -> Wave.Square
-            | i <= 12 -> Wave.Triangle
+            | i < 4 -> Wave.Sawtooth
+            | i < 8 -> Wave.Square
+            | i < 12 -> Wave.Triangle
           _ -> Wave.Sine
       in
       Note.play (Milliseconds (dur * Int.toNumber n)) wave note
@@ -118,6 +122,8 @@ update state = case _ of
     pure state { key = key }
   SetSpeed speed ->
     pure state { speed = speed }
+  SetStepBy stepBy ->
+    pure state { stepBy = stepBy }
   Step ->
     pure state { livingCells = step state }
   ToggleCell cell ->
@@ -243,6 +249,23 @@ view state dispatch = H.fragment
                     , id: "speed-input"
                     }
                 ]
+            , H.div "col pt-2" $
+                H.div_ ""
+                { style: H.css { maxWidth: 200 }
+                }
+                [ H.label_ "form-label fw-bold mb-2"
+                    { htmlFor: "step-by-input" }
+                    "Step By"
+                , H.input_ "form-range"
+                    { type: "range"
+                    , min: "1"
+                    , max: "10"
+                    , step: "1"
+                    , value: show state.stepBy
+                    , onChange: dispatch <?| map SetStepBy <<< Int.fromString <<< E.inputText
+                    , id: "step-by-input"
+                    }
+                ]
             ]
           ]
         , H.div "mt-3"
@@ -320,4 +343,4 @@ duration = 15_000.0
 
 step :: State -> Set Cell
 step state =
-  Game.step state (numRows state) numCols
+  Game.steps state.stepBy state.livingCells
