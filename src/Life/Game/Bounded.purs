@@ -2,7 +2,6 @@ module Life.Game.Bounded
   ( Bounded
   , fromCells
   , random
-  , step
   , toCells
   )
   where
@@ -24,7 +23,6 @@ import Effect (Effect)
 import Effect.Random as R
 import Life.Types.Cell (Cell)
 import Life.Types.Life (class InteractiveLife, class Life, class VisibleLife)
-import Life.Types.Life as Life
 import Life.Utils as U
 
 newtype Bounded a = Bounded
@@ -89,13 +87,6 @@ toCells (Bounded b) = foldGrid indexedGrid
       b.grid # Array.mapWithIndex \row cols ->
         cols # Array.mapWithIndex \col living ->
           (row /\ col /\ living)
-
-step :: forall r. { livingCells :: Set Cell | r } -> Int -> Int -> Set Cell
-step { livingCells } rows cols =
-  livingCells
-  # fromCells rows cols
-  # Life.step
-  # toCells
 
 -- TODO: figure out how to bias towards small clusters
 random :: Int -> Int -> Effect (Set Cell)
