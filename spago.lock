@@ -103,7 +103,7 @@
     },
     "package_set": {
       "address": {
-        "registry": "66.8.0"
+        "registry": "67.0.1"
       },
       "compiler": ">=0.15.15 <0.16.0",
       "content": {
@@ -215,7 +215,7 @@
         "elmish-hooks": "0.11.0",
         "elmish-html": "0.9.0",
         "elmish-testing-library": "0.3.2",
-        "elmish-time-machine": "0.4.1",
+        "elmish-time-machine": "0.4.2",
         "email-validate": "7.0.0",
         "encoding": "0.0.9",
         "enums": "6.0.1",
@@ -269,7 +269,7 @@
         "generic-router": "0.0.1",
         "geojson": "0.0.5",
         "geometria": "2.2.0",
-        "gesso": "1.0.0",
+        "gesso": "1.0.1",
         "gojs": "0.1.1",
         "golem-fetch": "0.1.0",
         "grain": "3.0.0",
@@ -442,7 +442,7 @@
         "phylio": "1.1.2",
         "pipes": "8.0.0",
         "pirates-charm": "0.0.1",
-        "play": "0.1.0",
+        "play": "0.2.1",
         "pmock": "0.9.0",
         "point-free": "1.0.0",
         "pointed-list": "0.5.1",
@@ -516,7 +516,7 @@
         "selection-foldable": "0.2.0",
         "selective-functors": "1.0.1",
         "semirings": "7.0.0",
-        "shuffle": "1.1.0",
+        "shuffle": "2.0.0",
         "signal": "13.0.0",
         "simple-emitter": "3.0.1",
         "simple-i18n": "2.0.1",
@@ -638,6 +638,7 @@
         "which": "2.0.0",
         "whine-core": "0.0.32",
         "xterm": "1.0.0",
+        "yaml-next": "3.1.1",
         "yoga-fetch": "1.0.1",
         "yoga-json": "5.1.0",
         "yoga-om": "0.1.0",

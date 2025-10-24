@@ -11,8 +11,7 @@ import Prelude
 import Control.Alternative (guard)
 import Data.Array ((..))
 import Data.Array as A
-import Data.Foldable (foldl)
-import Data.Int as Int
+import Data.Foldable (fold, foldl)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as Set
@@ -21,7 +20,6 @@ import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Random as R
 import Life.Types.Cell (Cell)
-import Life.Types.Cell as Cell
 
 step :: forall r. { livingCells :: Set Cell | r } -> Int -> Int -> Set Cell
 step s rows cols = foldl stepRow s.livingCells $ grid rows cols
@@ -64,12 +62,12 @@ transpose rows = case A.head rows of
 
 -- TODO: instead of a bounding box, limit rows per column
 random :: Int -> Int -> Effect (Set Cell)
-random rows cols = do
-  let
-    x1 = 0
-    x2 = cols - 1
-  y1 <- R.randomInt 0 (rows - 3)
-  y2 <- R.randomInt (y1 + 2) (rows - 1)
-  numCells <- R.randomInt 5 $ Int.floor (Int.toNumber ((x2 - x1) * (y2 - y1)) * 0.75)
-  cells <- for (A.replicate numCells unit) \_ -> Cell.random { x1, x2, y1, y2 }
-  pure $ Set.fromFoldable cells
+random rows cols = Set.fromFoldable <<< fold <$> for (0 .. (cols - 1)) \col -> do
+  numRows <- R.randomInt 0 maxRows
+  extra <- R.randomInt 0 (rows - colGroup)
+  for (1 .. numRows) \_ -> do
+    row <- R.randomInt 0 (colGroup - 1)
+    pure ((row + extra) /\ col)
+  where
+    colGroup = 6
+    maxRows = 5
