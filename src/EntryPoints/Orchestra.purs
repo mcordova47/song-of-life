@@ -23,6 +23,7 @@ import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
 import Life.Game.Bounded (grid, transpose) as Game
+import Life.Game.Bounded as Bounded
 import Life.Game.Unbounded (steps) as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
@@ -312,12 +313,15 @@ view state dispatch = H.fragment
           { key: name } $
           PresetButton.component
             { name
-            , cells
-            , grid: gameGrid state
+            , life: Bounded.fromCells rows numCols cells -- TODO: Make unbounded
+            , rows
+            , cols: numCols
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
                 scrollIntoView Header.id
             }
+      where
+        rows = numRows state
 
 gameGrid :: State -> Array (Array Cell)
 gameGrid s =

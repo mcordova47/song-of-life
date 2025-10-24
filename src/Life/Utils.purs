@@ -6,6 +6,7 @@ module Life.Utils
   , randomTag
   , scrollIntoView
   , tags
+  , tryModifyAt
   )
   where
 
@@ -60,6 +61,9 @@ chunksOf n xs = Array.splitAt n xs # go
 fill :: forall a. Int -> a -> Array a -> Array a
 fill n x xs =
   xs <> Array.replicate (n - Array.length xs) x
+
+tryModifyAt :: forall a. Int -> (a -> a) -> Array a -> Array a
+tryModifyAt i g xs = Array.modifyAt i g xs # fromMaybe xs
 
 scrollIntoView :: String -> Effect Unit
 scrollIntoView = runEffectFn1 scrollIntoView_

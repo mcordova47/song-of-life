@@ -24,6 +24,7 @@ import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
+import Life.Game.Bounded as Bounded
 import Life.Game.Bounded as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
@@ -441,12 +442,15 @@ view state dispatch = H.fragment
           { key: name } $
           PresetButton.component
             { name
-            , cells
-            , grid
+            , life: Bounded.fromCells rows numCols cells
+            , rows
+            , cols: numCols
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
                 scrollIntoView Header.id
             }
+      where
+        rows = numRows state
 
     shareText origin = fold
       [ "Made with Songs of Life\n\n"
@@ -478,8 +482,6 @@ view state dispatch = H.fragment
       origin <> "/#/" <> case state.shareHash of
         Just hash -> hash
         Nothing -> shareHash state
-
-    grid = gameGrid state
 
 gameGrid :: State -> Array (Array Cell)
 gameGrid s =

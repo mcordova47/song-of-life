@@ -6,9 +6,6 @@ module Life.Components.PresetButton
 
 import Prelude
 
-import Data.Array as Array
-import Data.Set (Set)
-import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -16,29 +13,29 @@ import Elmish (ReactElement, (<|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Game.Bounded as Game
-import Life.Types.Cell (Cell)
-import Life.Types.Preset as Preset
+import Life.Types.Life (class VisibleLife)
+import Life.Types.Life as Life
 
-type Args =
+type Args f =
   { name :: String
-  , cells :: Set Cell
-  , grid :: Array (Array Cell)
+  , life :: f Boolean
+  , rows :: Int
+  , cols :: Int
   , onClick :: E.EventHandler E.SyntheticEvent
   }
 
-component :: Args -> ReactElement
-component { name, cells, grid, onClick } = Hooks.component Hooks.do
-  livingCells /\ setLivingCells <- Hooks.useState cells
+component :: forall f. Eq (f Boolean) => VisibleLife f => Args f -> ReactElement
+component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
+  game /\ setGame <- Hooks.useState life
   hovering /\ setHovering <- Hooks.useState false
-  let viewCells = if hovering then livingCells else cells
+  let viewGame = if hovering then game else life
 
-  Hooks.useEffect' { hovering, livingCells } \deps -> do
+  Hooks.useEffect' { hovering, game } \deps -> do
     if deps.hovering then do
       delay $ Milliseconds 200.0
-      liftEffect $ setLivingCells $ Game.step { livingCells } (Array.length grid) Preset.beatsPerMeasure
+      liftEffect $ setGame $ Life.step deps.game
     else
-      liftEffect $ setLivingCells cells
+      liftEffect $ setGame life
 
   Hooks.pure $
     H.fragment
@@ -50,12 +47,15 @@ component { name, cells, grid, onClick } = Hooks.component Hooks.do
         , onTouchEnd: setHovering <| false
         } $
         H.div "preset-grid mx-auto" $
-          grid <#> \row ->
-            H.div_ "d-flex"
-              { style: H.css { lineHeight: 0 } } $
-              row <#> \cell ->
+          Life.render
+            { life: viewGame
+            , rows
+            , cols
+            , renderRow: H.div_ "d-flex" { style: H.css { lineHeight: 0 } }
+            , renderCol: \living ->
                 H.div "d-inline-block m-0 preset-grid-cell-container" $
-                  H.div ("d-inline-block preset-grid-cell bg-" <> if Set.member cell viewCells then "salmon" else "light")
+                  H.div ("d-inline-block preset-grid-cell bg-" <> if living then "salmon" else "light")
                     H.empty
+            }
     , H.h6 "mt-1 text-center" name
     ]
