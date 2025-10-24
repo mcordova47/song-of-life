@@ -3,25 +3,29 @@ module Life.Utils
   , chunksOf
   , compose2
   , fill
+  , grid
   , randomTag
   , scrollIntoView
   , tags
+  , transpose
   , tryModifyAt
   )
   where
 
 import Prelude
 
+import Data.Array ((..))
 import Data.Array as Array
 import Data.Bounded.Generic (class GenericBottom, class GenericTop, genericBottom, genericTop)
 import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericFromEnum, genericSucc, genericToEnum)
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
 import Data.Unfoldable (class Unfoldable1, unfoldr1)
 import Effect (Effect)
 import Effect.Random as R
 import Effect.Uncurried (EffectFn1, runEffectFn1)
+import Life.Types.Cell (Cell)
 
 tags :: forall f a rep
   . Generic a rep
@@ -64,6 +68,21 @@ fill n x xs =
 
 tryModifyAt :: forall a. Int -> (a -> a) -> Array a -> Array a
 tryModifyAt i g xs = Array.modifyAt i g xs # fromMaybe xs
+
+grid :: Int -> Int -> Array (Array Cell)
+grid numRows numCols =
+  rows <#> \row -> cols <#> \col -> row /\ col
+  where
+    rows = 0 .. (numRows - 1)
+    cols = 0 .. (numCols - 1)
+
+transpose :: forall a. Array (Array a) -> Array (Array a)
+transpose rows = case Array.head rows of
+  Just row -> transpose' (Array.length row) rows
+  Nothing -> []
+  where
+    transpose' n = Array.replicate n [] # Array.foldl \cols row ->
+      Array.zipWith (<>) cols (row <#> Array.singleton)
 
 scrollIntoView :: String -> Effect Unit
 scrollIntoView = runEffectFn1 scrollIntoView_

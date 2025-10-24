@@ -2,7 +2,7 @@ module EntryPoints.Index where
 
 import Prelude
 
-import Data.Array ((!!), (..))
+import Data.Array ((!!))
 import Data.Array as Array
 import Data.Codec as C
 import Data.Foldable (fold, foldr, for_)
@@ -24,12 +24,13 @@ import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
-import Life.Game.Bounded as Bounded
+import Life.Game.Bounded (Bounded)
 import Life.Game.Bounded as Game
 import Life.Icons as I
 import Life.Types.Cell (Cell)
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Instruction (Instruction(..))
+import Life.Types.Life as Life
 import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
@@ -45,6 +46,7 @@ import Life.Types.Route as Route
 import Life.Utils (scrollIntoView)
 import Life.Utils as U
 import Promise as P
+import Record as Record
 import Web.Clipboard as Clipboard
 import Web.HTML (window)
 import Web.HTML.Location as Loc
@@ -64,19 +66,21 @@ data Message
   | Pause
   | Play
   | Reset
+  | SetGame (Bounded Boolean)
   | SetKey PitchClass
   | SetScale ScaleType
   | SetSpeed Int
   | SetWave Wave
   | ShowCopiedFeedback
   | Step
-  | ToggleCell Cell
   | ToggleConnectNotes
 
 type State =
-  { connectNotes :: Boolean
+  { beatsPerMeasure :: Int
+  , connectNotes :: Boolean
+  , game :: Bounded Boolean
   , key :: PitchClass
-  , livingCells :: Set Cell
+  , notes :: Int
   , play :: Maybe Int
   , root :: Int
   , scale :: ScaleType
@@ -90,13 +94,16 @@ init :: Transition Message State
 init = do
   fork $ liftEffect $
     window >>= location >>= Loc.hash <#> String.drop 2 <#> Navigate
+  let preset = Preset.empty
   pure
-    { connectNotes: false
-    , key: Preset.defaultKey
-    , livingCells: Set.empty
+    { beatsPerMeasure: Preset.beatsPerMeasure preset
+    , connectNotes: false
+    , game: gameFromPreset preset
+    , key: Preset.key preset
+    , notes: Preset.notes preset
     , play: Nothing
-    , root: 0
-    , scale: ScaleType.default
+    , root: Preset.root preset
+    , scale: Preset.scale preset
     , shareHash: Nothing
     , showCopiedFeedback: false
     , speed: 5
@@ -106,11 +113,11 @@ init = do
 update :: State -> Message -> Transition Message State
 update state = case _ of
   -- TODO: Refactor AutoStep logic:
-  --  - numCols - 1 hack
+  --  - state.beatsPerMeasure - 1 hack
   AutoStep | Just _ <- state.play -> do
-    let livingCells = step state
-    autoStep livingCells
-    pure state { livingCells = livingCells, play = Just (numCols - 1) }
+    let game = Life.step state.game
+    autoStep game
+    pure state { game = game, play = Just (state.beatsPerMeasure - 1) }
   AutoStep ->
     pure state
   Beat notes' (Milliseconds dur) -> do
@@ -119,7 +126,7 @@ update state = case _ of
   ChangeRoot degrees ->
     pure state { root = state.root + degrees }
   GenerateRandom -> do
-    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random (numRows state) numCols
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random state.notes state.beatsPerMeasure
     pure state
   HideCopiedFeedback ->
     pure state { showCopiedFeedback = false }
@@ -132,10 +139,12 @@ update state = case _ of
   Pause ->
     pure state { play = Nothing, shareHash = Nothing }
   Play -> do
-    autoStep state.livingCells
+    autoStep state.game
     pure state { play = Just (-1), shareHash = Just $ shareHash state }
   Reset ->
-    pure state { livingCells = Set.empty }
+    pure state { game = gameFromPreset $ Preset.fromState $ Record.merge state { livingCells: Set.empty } }
+  SetGame game ->
+    pure state { game = game }
   SetScale s ->
     pure state { scale = s }
   SetKey key ->
@@ -150,18 +159,16 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { livingCells = step state }
-  ToggleCell cell ->
-    pure state { livingCells = Set.toggle cell state.livingCells }
+    pure state { game = Life.step state.game }
   ToggleConnectNotes ->
     pure state { connectNotes = not state.connectNotes }
   LoadPreset p ->
     pure $ loadPreset p
   where
-    autoStep cells =
+    autoStep game =
       forks \{ dispatch } -> do
         let
-          measure' = measure cells
+          measure' = measure $ gameToCells game
           durationMs = duration / Int.toNumber state.speed / Int.toNumber (Array.length measure')
         for_ measure' \notes' -> do
           delay $ Milliseconds durationMs
@@ -169,7 +176,8 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      Game.transpose (gameGrid state)
+      U.grid state.notes state.beatsPerMeasure
+      # U.transpose
       # foldr (connectCells cells) []
       <#> Array.filter (\(_ /\ cell) -> Set.member cell cells)
       <#> map (\(n /\ (row /\ _)) -> n /\ row)
@@ -192,13 +200,15 @@ update state = case _ of
           | otherwise = 0 /\ cell
 
     inc = case _ of
-      Just n -> Just $ mod (n + 1) numCols
+      Just n -> Just $ mod (n + 1) state.beatsPerMeasure
       Nothing -> Nothing
 
     loadPreset p =
       state
-        { key = Preset.key p
-        , livingCells = Preset.livingCells p
+        { beatsPerMeasure = Preset.beatsPerMeasure p
+        , key = Preset.key p
+        , game = gameFromPreset p
+        , notes = Preset.notes p
         , root = Preset.root p
         , scale = Preset.scale p
         , wave = Preset.wave p
@@ -229,15 +239,15 @@ view state dispatch = H.fragment
         [ H.div "d-flex" $
             H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
             [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
-                  { onClick: dispatch <| GenerateRandom
-                  , title: "Random"
-                  } $
-                  I.dice { size: 32 }
+                { onClick: dispatch <| GenerateRandom
+                , title: "Random"
+                } $
+                I.dice { size: 32 }
             , H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2"
-                  { onClick: dispatch <| Reset
-                  , title: "Reset"
-                  } $
-                  I.trash { size: 32 }
+                { onClick: dispatch <| Reset
+                , title: "Reset"
+                } $
+                I.trash { size: 32 }
             , H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2 me-0"
                 { onClick: dispatch <| if isJust state.play then Pause else Play
                 , title: if isJust state.play then "Pause" else "Play"
@@ -407,32 +417,41 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("grid py-4" <> M.guard (isJust state.play) " playing" <> M.guard state.connectNotes " connected") $
-      notes # Array.mapWithIndex \row note@(pitchClass \\ _) ->
-        H.div_ "d-flex align-items-center"
-        { style: H.css { lineHeight: 0 } }
-        [ H.div "position-relative text-secondary text-end align-content-center grid-row-label small me-2"
-          [ H.div ("grid-row-label-text text-end" <> M.guard (pitchClass == state.key) " text-salmon") $
-              Note.display note
-          , M.guard (row == 0) $
-              H.button_ "btn position-absolute"
-                { onClick: dispatch <| ChangeRoot (-1)
-                , style: H.css { bottom: "20px", right: "-35%" }
-                }
-                "▲"
-          , M.guard (row == Array.length notes - 1) $
-              H.button_ "btn position-absolute"
-                { onClick: dispatch <| ChangeRoot 1
-                , style: H.css { top: "20px", right: "-35%" }
-                }
-                "▼"
-          ]
-        , H.fragment $
-            0 .. (numCols - 1) <#> \col ->
-              H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
-                H.div_ ("d-inline-block grid-cell bg-" <> if Set.member (row /\ col) state.livingCells then "salmon" else "light")
-                  { onClick: dispatch <| ToggleCell (row /\ col) }
-                  H.empty
-        ]
+      Life.renderInteractive
+        { life: state.game
+        , rows: state.notes
+        , cols: state.beatsPerMeasure
+        , renderRow: \{ row, content } -> fold do
+            note@(pitchClass \\ _) <- notes !! row
+            pure $
+              H.div_ "d-flex align-items-center"
+              { style: H.css { lineHeight: 0 } }
+              [ H.div "position-relative text-secondary text-end align-content-center grid-row-label small me-2"
+                [ H.div ("grid-row-label-text text-end" <> M.guard (pitchClass == state.key) " text-salmon") $
+                    Note.display note
+                , M.guard (row == 0) $
+                    H.button_ "btn position-absolute"
+                      { onClick: dispatch <| ChangeRoot (-1)
+                      , style: H.css { bottom: "20px", right: "-35%" }
+                      }
+                      "▲"
+                , M.guard (row == Array.length notes - 1) $
+                    H.button_ "btn position-absolute"
+                      { onClick: dispatch <| ChangeRoot 1
+                      , style: H.css { top: "20px", right: "-35%" }
+                      }
+                      "▼"
+                ]
+              , content
+              ]
+        , renderCol: \{ living, col, onClick } ->
+            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
+              H.div_ ("d-inline-block grid-cell bg-" <> if living then "salmon" else "light")
+                { onClick: dispatch <| SetGame <<< onClick }
+                H.empty
+        }
+
+    game cells = gameFromPreset $ Preset.fromState $ Record.merge state { livingCells: cells }
 
     notes = scale state
 
@@ -442,15 +461,13 @@ view state dispatch = H.fragment
           { key: name } $
           PresetButton.component
             { name
-            , life: Bounded.fromCells rows numCols cells
-            , rows
-            , cols: numCols
+            , life: game cells
+            , rows: state.notes
+            , cols: state.beatsPerMeasure
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
                 scrollIntoView Header.id
             }
-      where
-        rows = numRows state
 
     shareText origin = fold
       [ "Made with Songs of Life\n\n"
@@ -459,7 +476,7 @@ view state dispatch = H.fragment
       , shareUrl origin
       ]
       where
-        { bounds, instructions } = Grid.fromCells state.livingCells
+        { bounds, instructions } = Grid.fromCells $ gameToCells $ state.game
 
         -- TODO: Better method of finding clusters of living cells
         emojiGrid =
@@ -483,32 +500,25 @@ view state dispatch = H.fragment
         Just hash -> hash
         Nothing -> shareHash state
 
-gameGrid :: State -> Array (Array Cell)
-gameGrid s =
-  Game.grid (numRows s) numCols
-
 shareHash :: State -> String
-shareHash =
-  Route.encode <<< Route.Share <<< Preset.fromState
+shareHash state =
+  Route.encode $ Route.Share $ Preset.fromState args
+  where
+    args = Record.merge state { livingCells: gameToCells state.game }
 
-numRows :: State -> Int
-numRows state =
-  Array.length $ scale state
+gameFromPreset :: Preset -> Bounded Boolean
+gameFromPreset p = Game.fromCells (Preset.notes p) (Preset.beatsPerMeasure p) (Preset.livingCells p)
 
-numCols :: Int
-numCols = Preset.beatsPerMeasure
+gameToCells :: Bounded Boolean -> Set Cell
+gameToCells = Game.toCells
 
-scale :: State -> Array Note
+scale :: forall r. { key :: PitchClass, notes :: Int, root :: Int, scale :: ScaleType | r } -> Array Note
 scale state =
   (Scale.shift state.root $ ScaleType.toScale state.scale).notes
     { key: state.key
     , root: Preset.defaultOctave
-    , length: Preset.defaultNotes
+    , length: state.notes
     }
 
 duration :: Number
 duration = 15_000.0
-
-step :: State -> Set Cell
-step state =
-  Game.step state (numRows state) numCols

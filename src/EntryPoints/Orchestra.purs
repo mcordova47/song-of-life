@@ -22,7 +22,6 @@ import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
-import Life.Game.Bounded (grid, transpose) as Game
 import Life.Game.Bounded as Bounded
 import Life.Game.Unbounded (steps) as Game
 import Life.Icons as I
@@ -39,7 +38,7 @@ import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
-import Life.Utils (scrollIntoView)
+import Life.Utils as U
 
 main :: Effect Unit
 main = defaultMain { def: { init, view, update }, elementId: "app" }
@@ -61,8 +60,10 @@ data Message
   | ToggleCell Cell
 
 type State =
-  { key :: PitchClass
+  { beatsPerMeasure :: Int
+  , key :: PitchClass
   , livingCells :: Set Cell
+  , notes :: Int
   , play :: Maybe Int
   , root :: Int
   , scale :: ScaleType
@@ -72,8 +73,10 @@ type State =
 
 init :: Transition Message State
 init = pure
-  { key: E // flat
+  { beatsPerMeasure: Preset.defaultBeatsPerMeasure
+  , key: E // flat
   , livingCells: Preset.livingCells Preset.headphones
+  , notes: Preset.defaultNotes
   , play: Nothing
   , root: 0
   , scale: Preset.scale Preset.default
@@ -84,11 +87,11 @@ init = pure
 update :: State -> Message -> Transition Message State
 update state = case _ of
   -- TODO: Refactor AutoStep logic:
-  --  - numCols - 1 hack
+  --  - state.beatsPerMeasure - 1 hack
   AutoStep | Just _ <- state.play -> do
     let livingCells = step state
     autoStep livingCells
-    pure state { livingCells = livingCells, play = Just (numCols - 1) }
+    pure state { livingCells = livingCells, play = Just (state.beatsPerMeasure - 1) }
   AutoStep ->
     pure state
   Beat notes' (Milliseconds dur) -> do
@@ -106,7 +109,7 @@ update state = case _ of
   ChangeRoot degrees ->
     pure state { root = state.root + degrees }
   GenerateRandom -> do
-    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random (numRows state) numCols
+    forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random state.notes state.beatsPerMeasure
     pure state
   LoadPreset p ->
     pure $ loadPreset p
@@ -141,7 +144,7 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      Game.transpose (gameGrid state)
+      U.transpose (gameGrid state)
       # foldr (connectCells cells) []
       <#> Array.filter (\(_ /\ cell) -> Set.member cell cells)
       <#> map (\(n /\ (row /\ _)) -> n /\ row)
@@ -164,7 +167,7 @@ update state = case _ of
           | otherwise = 0 /\ cell
 
     inc = case _ of
-      Just n -> Just $ mod (n + 1) numCols
+      Just n -> Just $ mod (n + 1) state.beatsPerMeasure
       Nothing -> Nothing
 
     loadPreset p =
@@ -298,7 +301,7 @@ view state dispatch = H.fragment
                 "▼"
           ]
         , H.fragment $
-            0 .. (numCols - 1) <#> \col ->
+            0 .. (state.beatsPerMeasure - 1) <#> \col ->
               H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
                 H.div_ ("d-inline-block grid-cell bg-" <> if Set.member (row /\ col) state.livingCells then "salmon" else "light")
                   { onClick: dispatch <| ToggleCell (row /\ col) }
@@ -313,26 +316,17 @@ view state dispatch = H.fragment
           { key: name } $
           PresetButton.component
             { name
-            , life: Bounded.fromCells rows numCols cells -- TODO: Make unbounded
-            , rows
-            , cols: numCols
+            , life: Bounded.fromCells state.notes state.beatsPerMeasure cells -- TODO: Make unbounded
+            , rows: state.notes
+            , cols: state.beatsPerMeasure
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
-                scrollIntoView Header.id
+                U.scrollIntoView Header.id
             }
-      where
-        rows = numRows state
 
 gameGrid :: State -> Array (Array Cell)
 gameGrid s =
-  Game.grid (numRows s) numCols
-
-numRows :: State -> Int
-numRows state =
-  Array.length $ scale state
-
-numCols :: Int
-numCols = Preset.beatsPerMeasure
+  U.grid s.notes s.beatsPerMeasure
 
 scale :: State -> Array Note
 scale state =

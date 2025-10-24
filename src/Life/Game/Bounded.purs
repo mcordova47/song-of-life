@@ -1,11 +1,9 @@
 module Life.Game.Bounded
   ( Bounded
   , fromCells
-  , grid
   , random
   , step
   , toCells
-  , transpose
   )
   where
 
@@ -15,10 +13,9 @@ import Control.Alternative (guard)
 import Control.Comonad (class Comonad)
 import Control.Extend (class Extend)
 import Data.Array ((!!), (..))
-import Data.Array as A
 import Data.Array as Array
 import Data.Foldable (fold, foldl)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (fromMaybe, maybe)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Traversable (for)
@@ -99,21 +96,6 @@ step { livingCells } rows cols =
   # fromCells rows cols
   # Life.step
   # toCells
-
-grid :: Int -> Int -> Array (Array Cell)
-grid numRows numCols =
-  rows <#> \row -> cols <#> \col -> row /\ col
-  where
-    rows = 0 .. (numRows - 1)
-    cols = 0 .. (numCols - 1)
-
-transpose :: forall a. Array (Array a) -> Array (Array a)
-transpose rows = case A.head rows of
-  Just row -> transpose' (A.length row) rows
-  Nothing -> []
-  where
-    transpose' n = A.replicate n [] # foldl \cols row ->
-      A.zipWith (<>) cols (row <#> A.singleton)
 
 -- TODO: figure out how to bias towards small clusters
 random :: Int -> Int -> Effect (Set Cell)

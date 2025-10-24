@@ -7,13 +7,16 @@ module Life.Types.Preset
   , beatsPerMeasure
   , codec
   , default
+  , defaultBeatsPerMeasure
   , defaultKey
   , defaultNotes
   , defaultOctave
+  , empty
   , fromState
   , headphones
   , key
   , livingCells
+  , notes
   , random
   , root
   , scale
@@ -55,8 +58,10 @@ data Preset
   | V1 PresetV1
 
 type PresetV0' r =
-  { key :: PitchClass
+  { beatsPerMeasure :: Int
+  , key :: PitchClass
   , livingCells :: Set Cell
+  , notes :: Int
   , root :: Int
   , scale :: ScaleType
   , wave :: Wave
@@ -83,25 +88,37 @@ codec = C.codec decode encode
 codecV0' :: Codec String ((PitchClass /\ ScaleType /\ Int /\ Set Cell) /\ Wave) -> Codec String PresetV1
 codecV0' = dimap toTuple fromTuple
   where
-    fromTuple ((k /\ s /\ r /\ g) /\ w) = { key: k, livingCells: g, wave: w, root: r, scale: s }
+    fromTuple ((k /\ s /\ r /\ g) /\ w) =
+      { beatsPerMeasure: defaultBeatsPerMeasure
+      , key: k
+      , livingCells: g
+      , notes: defaultNotes
+      , root: r
+      , scale: s
+      , wave: w
+      }
     toTuple p = (p.key /\ p.scale /\ p.root /\ p.livingCells) /\ p.wave
 
 fromCells :: Set Cell -> Preset
 fromCells = fromState <<<
-  { key: defaultKey
-  , wave: Wave.default
+  { beatsPerMeasure: defaultBeatsPerMeasure
+  , key: defaultKey
+  , notes: defaultNotes
   , root: 0
   , scale: ScaleType.default
   , livingCells: _
+  , wave: Wave.default
   }
 
 fromState :: forall r. PresetV0' r -> Preset
 fromState s = V1
-  { key: s.key
+  { beatsPerMeasure: s.beatsPerMeasure
+  , key: s.key
   , livingCells: s.livingCells
-  , wave: s.wave
+  , notes: s.notes
   , root: s.root
   , scale: s.scale
+  , wave: s.wave
   }
 
 unwrap :: Preset -> PresetV0
@@ -124,6 +141,12 @@ root = unwrap >>> _.root
 scale :: Preset -> ScaleType
 scale = unwrap >>> _.scale
 
+beatsPerMeasure :: Preset -> Int
+beatsPerMeasure = unwrap >>> _.beatsPerMeasure
+
+notes :: Preset -> Int
+notes = unwrap >>> _.notes
+
 presetV1 :: Array Cell -> Preset
 presetV1 = fromCells <<< Set.fromFoldable
 
@@ -136,11 +159,13 @@ presetV1' ::
   -> Array Cell
   -> Preset
 presetV1' p cells = fromState
-  { key: p.key
-  , root: p.root
-  , wave: p.wave
+  { beatsPerMeasure: defaultBeatsPerMeasure
+  , key: p.key
   , livingCells: Set.fromFoldable cells
+  , notes: defaultNotes
+  , root: p.root
   , scale: p.scale
+  , wave: p.wave
   }
 
 random :: Int -> Int -> Effect (Maybe Preset)
@@ -152,10 +177,21 @@ random rows cols = do
   keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)
   let mKey = PitchClass.all !! keyIndex
   for mKey \k ->
-    pure $ V1 { key: k, livingCells: cells, wave: w, root: r, scale: s }
+    pure $ V1
+      { beatsPerMeasure: defaultBeatsPerMeasure
+      , key: k
+      , livingCells: cells
+      , notes: defaultNotes
+      , root: r
+      , scale: s
+      , wave: w
+      }
 
 default :: Preset
 default = galaxy
+
+empty :: Preset
+empty = presetV1 []
 
 all :: Array (String /\ Preset)
 all =
@@ -594,8 +630,8 @@ pulsar = presetV1'
 -- Configuration
 -- TODO: Make all of these configurable
 
-beatsPerMeasure :: Int
-beatsPerMeasure = 16
+defaultBeatsPerMeasure :: Int
+defaultBeatsPerMeasure = 16
 
 defaultKey :: PitchClass
 defaultKey = A // natural
