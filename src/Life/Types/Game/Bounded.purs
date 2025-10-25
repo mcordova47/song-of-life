@@ -1,4 +1,4 @@
-module Life.Game.Bounded
+module Life.Types.Game.Bounded
   ( Bounded
   )
   where

@@ -38,7 +38,7 @@ type Events f =
   , onSetGame :: Dispatch (f Boolean)
   }
 
-view :: forall f r. InteractiveAutomaton f => Eq (f Boolean) => Args f r -> Events f -> ReactElement
+view :: forall f r. InteractiveAutomaton f => Args f r -> Events f -> ReactElement
 view args { onChangeRoot, onSetGame } =
   Life.renderInteractive
     { life: args.game

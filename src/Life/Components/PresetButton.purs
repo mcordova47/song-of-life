@@ -24,16 +24,18 @@ type Args f =
   , onClick :: E.EventHandler E.SyntheticEvent
   }
 
-component :: forall f. Eq (f Boolean) => VisibleAutomaton f => Args f -> ReactElement
+component :: forall f. VisibleAutomaton f => Args f -> ReactElement
 component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
   game /\ setGame <- Hooks.useState life
   hovering /\ setHovering <- Hooks.useState false
-  let viewGame = if hovering then game else life
+  let
+    cells = Life.toCells game
+    viewGame = if hovering then game else life
 
-  Hooks.useEffect' { hovering, game } \deps -> do
+  Hooks.useEffect' { hovering, cells } \deps -> do
     if deps.hovering then do
       delay $ Milliseconds 200.0
-      liftEffect $ setGame $ Life.step deps.game
+      liftEffect $ setGame $ Life.step game
     else
       liftEffect $ setGame life
 

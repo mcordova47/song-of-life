@@ -8,8 +8,8 @@ import Prelude
 import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
-import Life.Game.Unbounded (Unbounded)
 import Life.Pages.Main as Main
+import Life.Types.Game.Unbounded (Unbounded)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }

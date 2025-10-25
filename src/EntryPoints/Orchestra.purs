@@ -8,8 +8,8 @@ import Prelude
 import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
-import Life.Game.Bounded (Bounded)
 import Life.Pages.Orchestra as Orchestra
+import Life.Types.Game.Bounded (Bounded)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }

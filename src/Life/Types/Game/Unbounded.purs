@@ -1,4 +1,4 @@
-module Life.Game.Unbounded
+module Life.Types.Game.Unbounded
   ( Unbounded(..)
   )
   where

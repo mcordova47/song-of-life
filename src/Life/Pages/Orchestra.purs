@@ -184,7 +184,7 @@ update state = case _ of
         , scale = Preset.scale p
         }
 
-view :: forall f. InteractiveAutomaton f => Eq (f Boolean) => State f -> Dispatch (Message f) -> ReactElement
+view :: forall f. InteractiveAutomaton f => State f -> Dispatch (Message f) -> ReactElement
 view state dispatch = H.fragment
   [ Header.view
   , H.div_ "container" { style: H.css { maxWidth: "800px" } } $
