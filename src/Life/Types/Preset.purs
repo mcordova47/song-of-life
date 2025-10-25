@@ -45,7 +45,7 @@ import Life.Types.Codec (Codec, (/>), (</>), (<\>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
 import Life.Types.Grid.Compressed as GridCompressed
-import Life.Types.Life (class Life)
+import Life.Types.Life (class CellularAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat, natural)
@@ -124,7 +124,7 @@ fromState s = V1
   , wave: s.wave
   }
 
-toLife :: forall @f. Life f => Preset -> f Boolean
+toLife :: forall @f. CellularAutomaton f => Preset -> f Boolean
 toLife p = Life.fromCells (notes p) (beatsPerMeasure p) (livingCells p)
 
 unwrap :: Preset -> PresetV0

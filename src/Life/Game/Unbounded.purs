@@ -17,7 +17,7 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
-import Life.Types.Life (class InteractiveLife, class Life, class VisibleLife)
+import Life.Types.Life (class Automaton, class CellularAutomaton, class InteractiveAutomaton, class Life, class VisibleAutomaton)
 import Life.Utils (truthy)
 import Life.Utils as U
 
@@ -55,10 +55,7 @@ instance Comonad Unbounded where
   extract (Unbounded u) =
     Map.lookup u.focused u.cells # fromMaybe u.default
 
-instance Life Unbounded where
-  label = "unbounded"
-  description = "even though only a finite portion is visible, cells off-screen can be alive and affect the cells in the visible grid"
-
+instance Automaton Unbounded where
   neighbors p (Unbounded u) = 
     neighboringCells u.focused
     # flip foldl 0 \acc cell ->
@@ -66,6 +63,7 @@ instance Life Unbounded where
         then acc + 1
         else acc
 
+instance CellularAutomaton Unbounded where
   fromCells _ _ cells =
     cells
     # Array.fromFoldable
@@ -75,15 +73,19 @@ instance Life Unbounded where
 
   toCells (Unbounded { cells }) = cells # Map.filter identity # Map.keys
 
-instance VisibleLife Unbounded where
+instance VisibleAutomaton Unbounded where
   grid rows cols (Unbounded u) =
     U.grid rows cols <#> map \cell ->
       extract (Unbounded u { focused = cell })
 
-instance InteractiveLife Unbounded where
+instance InteractiveAutomaton Unbounded where
   update f row col (Unbounded u) = Unbounded u
     { cells = Map.alter (Just <<< f <<< fromMaybe u.default) (row /\ col) u.cells
     }
+
+instance Life Unbounded where
+  label = "unbounded"
+  description = "even though only a finite portion is visible, cells off-screen can be alive and affect the cells in the visible grid"
 
 neighboringCells :: Cell -> Array Cell
 neighboringCells (row /\ col) = do

@@ -14,7 +14,7 @@ import Data.Foldable (foldl)
 import Data.Maybe (fromMaybe, maybe)
 import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
-import Life.Types.Life (class InteractiveLife, class Life, class VisibleLife)
+import Life.Types.Life (class Automaton, class CellularAutomaton, class InteractiveAutomaton, class Life, class VisibleAutomaton)
 import Life.Utils as U
 
 newtype Bounded a = Bounded
@@ -40,10 +40,7 @@ instance Extend Bounded where
 instance Comonad Bounded where
   extract (Bounded { focus: _ /\ _ /\ x }) = x
 
-instance Life Bounded where
-  label = "bounded"
-  description = "beyond the edges all cells are considered out of bounds and always dead, whereas it is often played on an infinite grid"
-
+instance Automaton Bounded where
   neighbors p (Bounded b@{ focus: row /\ col /\ _ }) =
     Array.length $ Array.filter identity do
       row' <- [row - 1, row, row + 1]
@@ -51,6 +48,7 @@ instance Life Bounded where
       guard (row /= row' || col /= col')
       pure $ (b.grid !! row' # fromMaybe []) !! col' # maybe false p
 
+instance CellularAutomaton Bounded where
   fromCells rows cols livingCells =
     Bounded { grid: grid', focus: 0 /\ 0 /\ focused 0 0 }
     where
@@ -73,10 +71,14 @@ instance Life Bounded where
           cols # Array.mapWithIndex \col living ->
             (row /\ col /\ living)
 
-instance VisibleLife Bounded where
+instance VisibleAutomaton Bounded where
   grid rows cols (Bounded b) =
     Array.take cols <$> Array.take rows b.grid
 
-instance InteractiveLife Bounded where
+instance InteractiveAutomaton Bounded where
   update f row col (Bounded b) = Bounded b
     { grid = U.tryModifyAt row (U.tryModifyAt col f) b.grid }
+
+instance Life Bounded where
+  label = "bounded"
+  description = "beyond the edges all cells are considered out of bounds and always dead, whereas it is often played on an infinite grid"

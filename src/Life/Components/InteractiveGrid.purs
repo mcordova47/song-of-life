@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Elmish (ReactElement, Dispatch, (<|))
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class InteractiveLife)
+import Life.Types.Life (class InteractiveAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Music.Note ((\\))
 import Life.Types.Music.Note as Note
@@ -38,7 +38,7 @@ type Events f =
   , onSetGame :: Dispatch (f Boolean)
   }
 
-view :: forall f r. InteractiveLife f => Eq (f Boolean) => Args f r -> Events f -> ReactElement
+view :: forall f r. InteractiveAutomaton f => Eq (f Boolean) => Args f r -> Events f -> ReactElement
 view args { onChangeRoot, onSetGame } =
   Life.renderInteractive
     { life: args.game

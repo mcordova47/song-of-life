@@ -1,7 +1,9 @@
 module Life.Types.Life
-  ( class InteractiveLife
+  ( class Automaton
+  , class CellularAutomaton
+  , class InteractiveAutomaton
   , class Life
-  , class VisibleLife
+  , class VisibleAutomaton
   , description
   , empty
   , fromCells
@@ -27,28 +29,32 @@ import Data.Set as Set
 import Life.Types.Cell (Cell)
 import Life.Types.Rule as Rule
 
-class Comonad f <= Life f where
-  label :: String
-  description :: String
+class Comonad f <= Automaton f where
   neighbors :: forall a. (a -> Boolean) -> f a -> Int
+
+class Automaton f <= CellularAutomaton f where
   fromCells :: Int -> Int -> Set Cell -> f Boolean
   toCells :: f Boolean -> Set Cell
 
-class Life f <= VisibleLife f where
+class CellularAutomaton f <= VisibleAutomaton f where
   grid :: forall a. Int -> Int -> f a -> Array (Array a)
 
-class VisibleLife f <= InteractiveLife f where
+class VisibleAutomaton f <= InteractiveAutomaton f where
   update :: forall a. (a -> a) -> Int -> Int -> f a -> f a
 
-step :: forall f. Life f => f Boolean -> f Boolean
+class InteractiveAutomaton f <= Life f where
+  label :: String
+  description :: String
+
+step :: forall f. Automaton f => f Boolean -> f Boolean
 step = extend rule
   where
     rule g = Rule.life (extract g) (neighbors identity g)
 
-toggle :: forall f. InteractiveLife f => Int -> Int -> f Boolean -> f Boolean
+toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
 toggle = update not
 
-empty :: forall f. Life f => Int -> Int -> f Boolean
+empty :: forall f. CellularAutomaton f => Int -> Int -> f Boolean
 empty rows cols = fromCells rows cols Set.empty
 
 type RenderArgs f m = RenderArgs' f m m Boolean
@@ -68,13 +74,13 @@ type RenderArgs' f m r c =
   , renderCol :: c -> m
   }
 
-render :: forall f m. Monoid m => VisibleLife f => RenderArgs f m -> m
+render :: forall f m. Monoid m => VisibleAutomaton f => RenderArgs f m -> m
 render args =
   args.life
   # grid args.rows args.cols
   # foldMap (foldMap args.renderCol >>> args.renderRow)
 
-renderInteractive :: forall f m e. Monoid m => InteractiveLife f => RenderInteractiveArgs f m e -> m
+renderInteractive :: forall f m e. Monoid m => InteractiveAutomaton f => RenderInteractiveArgs f m e -> m
 renderInteractive args =
   args.life
   # grid args.rows args.cols

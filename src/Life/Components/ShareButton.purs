@@ -8,7 +8,7 @@ import Effect (Effect)
 import Elmish (ReactElement)
 import Elmish.Dispatch as E
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class VisibleLife)
+import Life.Types.Life (class VisibleAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Preset (PresetV0')
 import Life.Types.Preset as Preset
@@ -29,7 +29,7 @@ type Events =
   { onCopied :: Effect Unit
   }
 
-view :: forall f r. VisibleLife f => String -> Args f r -> Events -> ReactElement -> ReactElement
+view :: forall f r. VisibleAutomaton f => String -> Args f r -> Events -> ReactElement -> ReactElement
 view className args { onCopied } =
   H.button_ className
     { onClick: E.handleEffect do
