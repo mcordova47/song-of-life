@@ -115,7 +115,7 @@ grid { life, rows, cols, playing, rule, controls } = Hooks.component Hooks.do
     H.fragment
     [ controls
         { step: do
-            setGame $ Life.step game
+            setGame $ Life.step' (Rule.rule rule) game
             setStep (step + 1)
         , reset: do
             setGame $ Life.empty rows cols
