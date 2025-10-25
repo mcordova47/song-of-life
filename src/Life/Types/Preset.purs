@@ -1,8 +1,10 @@
 module Life.Types.Preset
-  ( Preset(..)
+  ( Config
+  , Preset(..)
   , PresetV0
   , PresetV0'
   , PresetV1
+  , State
   , all
   , beatsPerMeasure
   , codec
@@ -60,20 +62,23 @@ data Preset
   = V0 PresetV0
   | V1 PresetV1
 
-type PresetV0' r =
+type PresetV0' r = Config ( livingCells :: Set Cell | r )
+
+type PresetV0 = PresetV0' ()
+
+type PresetV1 = PresetV0
+
+type State f r = Config ( game :: f Boolean | r )
+
+type Config r =
   { beatsPerMeasure :: Int
   , key :: PitchClass
-  , livingCells :: Set Cell
   , notes :: Int
   , root :: Int
   , scale :: ScaleType
   , wave :: Wave
   | r
   }
-
-type PresetV0 = PresetV0' ()
-
-type PresetV1 = PresetV0
 
 codec ∷ Codec String Preset
 codec = C.codec decode encode
@@ -103,7 +108,7 @@ codecV0' = dimap toTuple fromTuple
     toTuple p = (p.key /\ p.scale /\ p.root /\ p.livingCells) /\ p.wave
 
 fromCells :: Set Cell -> Preset
-fromCells = fromState <<<
+fromCells = fromConfig <<<
   { beatsPerMeasure: defaultBeatsPerMeasure
   , key: defaultKey
   , notes: defaultNotes
@@ -113,8 +118,19 @@ fromCells = fromState <<<
   , wave: Wave.default
   }
 
-fromState :: forall r. PresetV0' r -> Preset
-fromState s = V1
+fromState :: forall f r. CellularAutomaton f => State f r -> Preset
+fromState s = fromConfig
+  { beatsPerMeasure: s.beatsPerMeasure
+  , key: s.key
+  , livingCells: Life.toCells s.game
+  , notes: s.notes
+  , root: s.root
+  , scale: s.scale
+  , wave: s.wave
+  }
+
+fromConfig :: forall r. PresetV0' r -> Preset
+fromConfig s = V1
   { beatsPerMeasure: s.beatsPerMeasure
   , key: s.key
   , livingCells: s.livingCells
@@ -164,7 +180,7 @@ presetV1' ::
   }
   -> Array Cell
   -> Preset
-presetV1' p cells = fromState
+presetV1' p cells = fromConfig
   { beatsPerMeasure: defaultBeatsPerMeasure
   , key: p.key
   , livingCells: Set.fromFoldable cells

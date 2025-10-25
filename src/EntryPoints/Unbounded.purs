@@ -1,4 +1,7 @@
-module EntryPoints.Unbounded where
+module EntryPoints.Unbounded
+  ( main
+  )
+  where
 
 import Prelude
 

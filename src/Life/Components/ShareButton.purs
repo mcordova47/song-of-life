@@ -8,9 +8,8 @@ import Effect (Effect)
 import Elmish (ReactElement)
 import Elmish.Dispatch as E
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class VisibleAutomaton)
+import Life.Types.Life (class CellularAutomaton, class VisibleAutomaton)
 import Life.Types.Life as Life
-import Life.Types.Preset (PresetV0')
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
 import Promise as Promise
@@ -19,9 +18,8 @@ import Web.HTML (window)
 import Web.HTML.Location as Loc
 import Web.HTML.Window (location, navigator)
 
-type Args f r = PresetV0'
-  ( game :: f Boolean
-  , shareHash :: Maybe String
+type Args f r = Preset.State f
+  ( shareHash :: Maybe String
   | r
   )
 
@@ -64,10 +62,11 @@ view className args { onCopied } =
       Just (Route.Share p) -> Preset.toLife p
       _ -> args.game
 
-    shareHash =
-      Route.encode $ Route.Share $ Preset.fromState args
-
     shareUrl origin path =
       origin <> path <> "#/" <> case args.shareHash of
         Just hash -> hash
-        Nothing -> shareHash
+        Nothing -> shareHash args
+
+shareHash :: forall f r. CellularAutomaton f => Preset.State f r -> String
+shareHash args =
+  Route.encode $ Route.Share $ Preset.fromState args
