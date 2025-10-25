@@ -12,13 +12,12 @@ import Prelude
 import Data.Array ((!!))
 import Data.Array as Array
 import Data.Codec as C
-import Data.Foldable (fold, foldr, for_)
+import Data.Foldable (foldr, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
 import Data.Set as Set
 import Data.String as String
-import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
@@ -28,10 +27,9 @@ import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.InteractiveGrid as InteractiveGrid
 import Life.Components.PresetButton as PresetButton
+import Life.Components.ShareButton as ShareButton
 import Life.Components.TagSelect as TagSelect
 import Life.Icons as I
-import Life.Types.Grid as Grid
-import Life.Types.Grid.Instruction (Instruction(..))
 import Life.Types.Life (class InteractiveLife)
 import Life.Types.Life as Life
 import Life.Types.Music.Note (Note)
@@ -47,12 +45,10 @@ import Life.Types.Preset as Preset
 import Life.Types.Route as Route
 import Life.Utils (scrollIntoView)
 import Life.Utils as U
-import Promise as P
 import Record as Record
-import Web.Clipboard as Clipboard
 import Web.HTML (window)
 import Web.HTML.Location as Loc
-import Web.HTML.Window (location, navigator)
+import Web.HTML.Window (location)
 
 data Message f
   = AutoStep
@@ -261,20 +257,9 @@ view state dispatch = H.fragment
                   } $
                   I.arrowBarRight { size: 32 }
               , H.div "position-relative ms-2"
-                [ H.button_ "btn text-salmon hover:text-salmon-highlight px-0"
-                    { onClick: E.handleEffect do
-                        origin <- window >>= location >>= Loc.origin
-                        path <- window >>= location >>= Loc.pathname
-                        _ <-
-                          window >>= navigator >>= Clipboard.clipboard
-                            >>= traverse \clipboard ->
-                              clipboard
-                                # Clipboard.writeText (shareText origin path)
-                                >>= P.then_ \_ -> do
-                                  dispatch ShowCopiedFeedback
-                                  pure $ P.resolve unit
-                        pure unit
-                    , title: "Share"
+                [ ShareButton.view "btn text-salmon hover:text-salmon-highlight px-0"
+                    (Record.merge state { livingCells: Life.toCells state.game })
+                    { onCopied: dispatch ShowCopiedFeedback
                     } $
                     I.share { size: 32 }
                 , M.guard state.showCopiedFeedback $
@@ -437,37 +422,6 @@ view state dispatch = H.fragment
                 dispatch $ LoadPreset p
                 scrollIntoView Header.id
             }
-
-    shareText origin path = fold
-      [ "Made with Songs of Life\n\n"
-      , emojiGrid
-      , "\n"
-      , shareUrl origin path
-      ]
-      where
-        { bounds, instructions } = Grid.fromCells $ Life.toCells $ state.game
-
-        -- TODO: Better method of finding clusters of living cells
-        emojiGrid =
-          instructions
-            # Array.mapWithIndex (/\)
-            >>= instructionEmojis
-            # U.chunksOf bounds.cols
-            <#> (U.fill (min bounds.cols 6) "⬜️" >>> join "")
-            # join "\n"
-
-        join delimiter =
-          Array.take 6 >>> Array.intercalate delimiter
-
-        instructionEmojis (index /\ instruction) = case instruction of
-          Move n | index == 0 -> Array.replicate n "⬜️"
-          Move n -> Array.replicate (n - 1) "⬜️"
-          TurnOn n -> Array.replicate n "🟪"
-
-    shareUrl origin path =
-      origin <> path <> "/#/" <> case state.shareHash of
-        Just hash -> hash
-        Nothing -> shareHash state
 
 shareHash :: forall f. InteractiveLife f => State f -> String
 shareHash state =
