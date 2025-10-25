@@ -5,5 +5,3 @@ export const scrollIntoView_ = id => {
 }
 
 export const truthy_ = x => !!x
-
-export const infinity = Number.POSITIVE_INFINITY

@@ -1,12 +1,15 @@
 module Life.Types.Cell
   ( Cell
+  , neighbors
   , random
   , randomSet
+  , range
   )
   where
 
 import Prelude
 
+import Control.Alternative (guard)
 import Data.Array ((..))
 import Data.Foldable (fold)
 import Data.Set (Set)
@@ -33,3 +36,16 @@ randomSet rows cols = Set.fromFoldable <<< fold <$> for (0 .. (cols - 1)) \col -
   where
     colGroup = 6
     maxRows = 5
+
+range :: Int -> Int -> Set Cell
+range rows cols = Set.fromFoldable do
+  row <- 0 .. (rows - 1)
+  col <- 0 .. (cols - 1)
+  pure (row /\ col)
+
+neighbors :: Cell -> Array Cell
+neighbors (row /\ col) = do
+  row' <- [row - 1, row, row + 1]
+  col' <- [col - 1, col, col + 1]
+  guard (row' /= row || col' /= col)
+  pure (row' /\ col')

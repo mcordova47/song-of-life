@@ -4,7 +4,6 @@ module Life.Utils
   , compose2
   , fill
   , grid
-  , infinity
   , randomTag
   , scrollIntoView
   , tags
@@ -96,5 +95,3 @@ truthy = runFn1 truthy_
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 
 foreign import truthy_ :: forall a. Fn1 a Boolean
-
-foreign import infinity :: Int

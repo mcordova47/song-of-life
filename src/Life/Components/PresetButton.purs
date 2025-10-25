@@ -13,7 +13,7 @@ import Elmish (ReactElement, (<|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Types.Life (class VisibleAutomaton)
+import Life.Types.Life (class TangibleAutomaton)
 import Life.Types.Life as Life
 
 type Args f =
@@ -24,7 +24,7 @@ type Args f =
   , onClick :: E.EventHandler E.SyntheticEvent
   }
 
-component :: forall f. VisibleAutomaton f => Args f -> ReactElement
+component :: forall f. TangibleAutomaton f => Args f -> ReactElement
 component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
   game /\ setGame <- Hooks.useState life
   hovering /\ setHovering <- Hooks.useState false

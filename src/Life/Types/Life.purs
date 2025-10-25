@@ -1,11 +1,12 @@
 module Life.Types.Life
-  ( class Automaton
-  , class CellularAutomaton
+  ( class CellularAutomaton
   , class InteractiveAutomaton
   , class Life
-  , class VisibleAutomaton
+  , class TangibleAutomaton
   , description
   , empty
+  , extractCell
+  , focusCell
   , fromCells
   , grid
   , label
@@ -22,40 +23,53 @@ module Life.Types.Life
 import Prelude
 
 import Control.Comonad (class Comonad, extend, extract)
-import Data.Foldable (foldMap)
+import Data.Foldable (foldMap, foldl)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Set (Set)
 import Data.Set as Set
 import Life.Types.Cell (Cell)
+import Life.Types.Cell as Cell
 import Life.Types.Rule as Rule
+import Life.Utils as U
 
-class Comonad f <= Automaton f where
-  neighbors :: forall a. (a -> Boolean) -> f a -> Int
+class Comonad f <= CellularAutomaton f where
+  focusCell :: forall a. Cell -> f a -> f a
+  extractCell :: forall a. f a -> Cell
 
-class Automaton f <= CellularAutomaton f where
+class CellularAutomaton f <= TangibleAutomaton f where
   fromCells :: Int -> Int -> Set Cell -> f Boolean
   toCells :: f Boolean -> Set Cell
 
-class CellularAutomaton f <= VisibleAutomaton f where
-  grid :: forall a. Int -> Int -> f a -> Array (Array a)
-
-class VisibleAutomaton f <= InteractiveAutomaton f where
+class TangibleAutomaton f <= InteractiveAutomaton f where
   update :: forall a. (a -> a) -> Int -> Int -> f a -> f a
 
 class InteractiveAutomaton f <= Life f where
   label :: String
   description :: String
 
-step :: forall f. Automaton f => f Boolean -> f Boolean
+step :: forall f. CellularAutomaton f => f Boolean -> f Boolean
 step = extend rule
   where
-    rule g = Rule.life (extract g) (neighbors identity g)
+    rule g = Rule.life (extract g) (neighbors g)
 
 toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
 toggle = update not
 
-empty :: forall f. CellularAutomaton f => Int -> Int -> f Boolean
+empty :: forall f. TangibleAutomaton f => Int -> Int -> f Boolean
 empty rows cols = fromCells rows cols Set.empty
+
+neighbors :: forall f. CellularAutomaton f => f Boolean -> Int
+neighbors b =
+  Cell.neighbors (extractCell b)
+  # flip foldl 0 \acc cell ->
+    if extract $ focusCell cell b
+      then acc + 1
+      else acc
+
+grid :: forall f a. CellularAutomaton f => Int -> Int -> f a -> Array (Array a)
+grid rows cols f =
+  U.grid rows cols <#> map \cell ->
+    extract $ focusCell cell f
 
 type RenderArgs f m = RenderArgs' f m m Boolean
 type RenderInteractiveArgs f m e = RenderArgs' f m
@@ -74,7 +88,7 @@ type RenderArgs' f m r c =
   , renderCol :: c -> m
   }
 
-render :: forall f m. Monoid m => VisibleAutomaton f => RenderArgs f m -> m
+render :: forall f m. Monoid m => CellularAutomaton f => RenderArgs f m -> m
 render args =
   args.life
   # grid args.rows args.cols

@@ -5,52 +5,50 @@ module Life.Types.Game.Bounded
 
 import Prelude
 
-import Control.Alternative (guard)
 import Control.Comonad (class Comonad)
 import Control.Extend (class Extend)
 import Data.Array ((!!), (..))
 import Data.Array as Array
 import Data.Foldable (foldl)
-import Data.Maybe (fromMaybe, maybe)
+import Data.Maybe (fromMaybe)
 import Data.Set as Set
-import Data.Tuple.Nested (type (/\), (/\))
-import Life.Types.Life (class Automaton, class CellularAutomaton, class InteractiveAutomaton, class Life, class VisibleAutomaton)
+import Data.Tuple.Nested ((/\))
+import Life.Types.Cell (Cell)
+import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton, class Life, class TangibleAutomaton)
 import Life.Utils as U
 
 newtype Bounded a = Bounded
   { grid :: Array (Array a)
-  , focus :: Int /\ Int /\ a
+  , focus :: Cell
+  , default :: a
   }
 derive newtype instance Eq a => Eq (Bounded a)
 
 instance Functor Bounded where
-  map f (Bounded b@{ focus: row /\ col /\ x }) =
-    Bounded { grid: map f <$> b.grid, focus: row /\ col /\ f x }
+  map f (Bounded b) =
+    Bounded b { grid = map f <$> b.grid, default = f b.default }
 
 instance Extend Bounded where
-  extend f (Bounded b@{ focus: r /\ c /\ _ }) = Bounded { grid: grid', focus }
+  extend f (Bounded b) = Bounded b { grid = grid', default = default }
     where
       grid' =
         b.grid # Array.mapWithIndex \row cols ->
-          cols # Array.mapWithIndex \col x ->
-            f $ Bounded { grid: b.grid, focus: row /\ col /\ x }
+          cols # Array.mapWithIndex \col _ ->
+            f $ Bounded b { focus = row /\ col }
 
-      focus = r /\ c /\ f (Bounded b)
+      default = f $ Bounded b { grid = [] }
 
 instance Comonad Bounded where
-  extract (Bounded { focus: _ /\ _ /\ x }) = x
-
-instance Automaton Bounded where
-  neighbors p (Bounded b@{ focus: row /\ col /\ _ }) =
-    Array.length $ Array.filter identity do
-      row' <- [row - 1, row, row + 1]
-      col' <- [col - 1, col, col + 1]
-      guard (row /= row' || col /= col')
-      pure $ (b.grid !! row' # fromMaybe []) !! col' # maybe false p
+  extract (Bounded b@{ focus: row /\ col }) =
+    fromMaybe b.default (b.grid !! row >>= flip Array.index col)
 
 instance CellularAutomaton Bounded where
+  focusCell cell (Bounded b') = Bounded b' { focus = cell }
+  extractCell (Bounded { focus }) = focus
+
+instance TangibleAutomaton Bounded where
   fromCells rows cols livingCells =
-    Bounded { grid: grid', focus: 0 /\ 0 /\ focused 0 0 }
+    Bounded { grid: grid', focus: 0 /\ 0, default: false }
     where
       grid' =
         (0 .. (rows - 1)) <#> \row ->
@@ -70,10 +68,6 @@ instance CellularAutomaton Bounded where
         b.grid # Array.mapWithIndex \row cols ->
           cols # Array.mapWithIndex \col living ->
             (row /\ col /\ living)
-
-instance VisibleAutomaton Bounded where
-  grid rows cols (Bounded b) =
-    Array.take cols <$> Array.take rows b.grid
 
 instance InteractiveAutomaton Bounded where
   update f row col (Bounded b) = Bounded b

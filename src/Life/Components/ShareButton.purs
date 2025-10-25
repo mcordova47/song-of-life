@@ -8,7 +8,7 @@ import Effect (Effect)
 import Elmish (ReactElement)
 import Elmish.Dispatch as E
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class CellularAutomaton, class VisibleAutomaton)
+import Life.Types.Life (class TangibleAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
@@ -27,7 +27,7 @@ type Events =
   { onCopied :: Effect Unit
   }
 
-view :: forall f r. VisibleAutomaton f => String -> Args f r -> Events -> ReactElement -> ReactElement
+view :: forall f r. TangibleAutomaton f => String -> Args f r -> Events -> ReactElement -> ReactElement
 view className args { onCopied } =
   H.button_ className
     { onClick: E.handleEffect do
@@ -67,6 +67,6 @@ view className args { onCopied } =
         Just hash -> hash
         Nothing -> shareHash args
 
-shareHash :: forall f r. CellularAutomaton f => Preset.State f r -> String
+shareHash :: forall f r. TangibleAutomaton f => Preset.State f r -> String
 shareHash args =
   Route.encode $ Route.Share $ Preset.fromState args

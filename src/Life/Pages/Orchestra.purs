@@ -28,7 +28,7 @@ import Life.Components.InteractiveGrid as InteractiveGrid
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
 import Life.Icons as I
-import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
+import Life.Types.Life (class InteractiveAutomaton, class TangibleAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat)
@@ -71,7 +71,7 @@ type State f =
   -- , stepBy :: Int
   }
 
-init :: forall f. CellularAutomaton f => Transition (Message f) (State f)
+init :: forall f. TangibleAutomaton f => Transition (Message f) (State f)
 init =
   let preset = Preset.headphones
   in
@@ -87,7 +87,7 @@ init =
     -- , stepBy: 1
     }
 
-update :: forall f. CellularAutomaton f => State f -> Message f -> Transition (Message f) (State f)
+update :: forall f. TangibleAutomaton f => State f -> Message f -> Transition (Message f) (State f)
 update state = case _ of
   -- TODO: Refactor AutoStep logic:
   --  - state.beatsPerMeasure - 1 hack
