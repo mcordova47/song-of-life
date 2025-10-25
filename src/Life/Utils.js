@@ -3,3 +3,7 @@ export const scrollIntoView_ = id => {
 
   document.getElementById(id).scrollIntoView({ behavior: "instant" })
 }
+
+export const truthy_ = x => !!x
+
+export const infinity = Number.POSITIVE_INFINITY

@@ -1,7 +1,6 @@
 module Life.Game.Bounded
   ( Bounded
   , fromCells
-  , random
   , toCells
   )
   where
@@ -13,14 +12,11 @@ import Control.Comonad (class Comonad)
 import Control.Extend (class Extend)
 import Data.Array ((!!), (..))
 import Data.Array as Array
-import Data.Foldable (fold, foldl)
+import Data.Foldable (foldl)
 import Data.Maybe (fromMaybe, maybe)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
-import Effect (Effect)
-import Effect.Random as R
 import Life.Types.Cell (Cell)
 import Life.Types.Life (class InteractiveLife, class Life, class VisibleLife)
 import Life.Utils as U
@@ -87,15 +83,3 @@ toCells (Bounded b) = foldGrid indexedGrid
       b.grid # Array.mapWithIndex \row cols ->
         cols # Array.mapWithIndex \col living ->
           (row /\ col /\ living)
-
--- TODO: figure out how to bias towards small clusters
-random :: Int -> Int -> Effect (Set Cell)
-random rows cols = Set.fromFoldable <<< fold <$> for (0 .. (cols - 1)) \col -> do
-  numRows <- R.randomInt 0 maxRows
-  extra <- R.randomInt 0 (rows - colGroup)
-  for (1 .. numRows) \_ -> do
-    row <- R.randomInt 0 (colGroup - 1)
-    pure ((row + extra) /\ col)
-  where
-    colGroup = 6
-    maxRows = 5

@@ -2,14 +2,13 @@ module EntryPoints.Orchestra where
 
 import Prelude
 
-import Data.Array ((!!), (..))
+import Data.Array ((!!))
 import Data.Array as Array
 import Data.Codec as C
-import Data.Foldable (foldr, for_)
+import Data.Foldable (fold, foldr, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
-import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
@@ -22,10 +21,10 @@ import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
-import Life.Game.Bounded as Bounded
-import Life.Game.Unbounded (steps) as Game
+import Life.Game.Unbounded (Unbounded)
+import Life.Game.Unbounded as Game
 import Life.Icons as I
-import Life.Types.Cell (Cell)
+import Life.Types.Life as Life
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat)
 import Life.Types.Music.Note (Note, (\\))
@@ -52,36 +51,36 @@ data Message
   | Pause
   | Play
   | Reset
+  | SetGame (Unbounded Boolean)
   | SetKey PitchClass
   | SetScale ScaleType
   | SetSpeed Int
-  | SetStepBy Int
+  -- | SetStepBy Int
   | Step
-  | ToggleCell Cell
 
 type State =
   { beatsPerMeasure :: Int
   , key :: PitchClass
-  , livingCells :: Set Cell
+  , game :: Unbounded Boolean
   , notes :: Int
   , play :: Maybe Int
   , root :: Int
   , scale :: ScaleType
   , speed :: Int
-  , stepBy :: Int
+  -- , stepBy :: Int
   }
 
 init :: Transition Message State
 init = pure
   { beatsPerMeasure: Preset.defaultBeatsPerMeasure
   , key: E // flat
-  , livingCells: Preset.livingCells Preset.headphones
+  , game: gameFromPreset Preset.headphones
   , notes: Preset.defaultNotes
   , play: Nothing
   , root: 0
   , scale: Preset.scale Preset.default
   , speed: 5
-  , stepBy: 1
+  -- , stepBy: 1
   }
 
 update :: State -> Message -> Transition Message State
@@ -89,9 +88,9 @@ update state = case _ of
   -- TODO: Refactor AutoStep logic:
   --  - state.beatsPerMeasure - 1 hack
   AutoStep | Just _ <- state.play -> do
-    let livingCells = step state
-    autoStep livingCells
-    pure state { livingCells = livingCells, play = Just (state.beatsPerMeasure - 1) }
+    let game = Life.step state.game
+    autoStep game
+    pure state { game = game, play = Just (state.beatsPerMeasure - 1) }
   AutoStep ->
     pure state
   Beat notes' (Milliseconds dur) -> do
@@ -116,27 +115,27 @@ update state = case _ of
   Pause ->
     pure state { play = Nothing }
   Play -> do
-    autoStep state.livingCells
+    autoStep state.game
     pure state { play = Just (-1) }
   Reset ->
-    pure state { livingCells = Set.empty }
-  SetScale s ->
-    pure state { scale = s }
+    pure state { game = Game.empty }
+  SetGame game ->
+    pure state { game = game }
   SetKey key ->
     pure state { key = key }
+  SetScale s ->
+    pure state { scale = s }
   SetSpeed speed ->
     pure state { speed = speed }
-  SetStepBy stepBy ->
-    pure state { stepBy = stepBy }
+  -- SetStepBy stepBy ->
+  --   pure state { stepBy = stepBy }
   Step ->
-    pure state { livingCells = step state }
-  ToggleCell cell ->
-    pure state { livingCells = Set.toggle cell state.livingCells }
+    pure state { game = Life.step state.game }
   where
-    autoStep cells =
+    autoStep game =
       forks \{ dispatch } -> do
         let
-          measure' = measure cells
+          measure' = measure $ Game.toCells game
           durationMs = duration / Int.toNumber state.speed / Int.toNumber (Array.length measure')
         for_ measure' \notes' -> do
           delay $ Milliseconds durationMs
@@ -144,7 +143,8 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      U.transpose (gameGrid state)
+      U.grid state.notes state.beatsPerMeasure
+      # U.transpose
       # foldr (connectCells cells) []
       <#> Array.filter (\(_ /\ cell) -> Set.member cell cells)
       <#> map (\(n /\ (row /\ _)) -> n /\ row)
@@ -172,8 +172,10 @@ update state = case _ of
 
     loadPreset p =
       state
-        { key = Preset.key p
-        , livingCells = Preset.livingCells p
+        { beatsPerMeasure = Preset.beatsPerMeasure p
+        , key = Preset.key p
+        , game = gameFromPreset p
+        , notes = Preset.notes p
         , root = Preset.root p
         , scale = Preset.scale p
         }
@@ -253,23 +255,24 @@ view state dispatch = H.fragment
                     , id: "speed-input"
                     }
                 ]
-            , H.div "col pt-2" $
-                H.div_ ""
-                { style: H.css { maxWidth: 200 }
-                }
-                [ H.label_ "form-label fw-bold mb-2"
-                    { htmlFor: "step-by-input" }
-                    "Step By"
-                , H.input_ "form-range"
-                    { type: "range"
-                    , min: "1"
-                    , max: "10"
-                    , step: "1"
-                    , value: show state.stepBy
-                    , onChange: dispatch <?| map SetStepBy <<< Int.fromString <<< E.inputText
-                    , id: "step-by-input"
-                    }
-                ]
+            -- TODO: Bring this back
+            -- , H.div "col pt-2" $
+            --     H.div_ ""
+            --     { style: H.css { maxWidth: 200 }
+            --     }
+            --     [ H.label_ "form-label fw-bold mb-2"
+            --         { htmlFor: "step-by-input" }
+            --         "Step By"
+            --     , H.input_ "form-range"
+            --         { type: "range"
+            --         , min: "1"
+            --         , max: "10"
+            --         , step: "1"
+            --         , value: show state.stepBy
+            --         , onChange: dispatch <?| map SetStepBy <<< Int.fromString <<< E.inputText
+            --         , id: "step-by-input"
+            --         }
+            --     ]
             ]
           ]
         , H.div "mt-3"
@@ -281,52 +284,53 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("grid py-4 connected" <> M.guard (isJust state.play) " playing") $
-      notes # Array.mapWithIndex \row note@(pitchClass \\ _) ->
-        H.div_ "d-flex align-items-center"
-        { style: H.css { lineHeight: 0 } }
-        [ H.div "position-relative text-secondary text-end align-content-center grid-row-label small me-2"
-          [ H.div ("grid-row-label-text text-end" <> M.guard (pitchClass == state.key) " text-salmon") $
-              Note.display note
-          , M.guard (row == 0) $
-              H.button_ "btn position-absolute"
-                { onClick: dispatch <| ChangeRoot (-1)
-                , style: H.css { bottom: "20px", right: "-35%" }
-                }
-                "▲"
-          , M.guard (row == Array.length notes - 1) $
-              H.button_ "btn position-absolute"
-                { onClick: dispatch <| ChangeRoot 1
-                , style: H.css { top: "20px", right: "-35%" }
-                }
-                "▼"
-          ]
-        , H.fragment $
-            0 .. (state.beatsPerMeasure - 1) <#> \col ->
-              H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
-                H.div_ ("d-inline-block grid-cell bg-" <> if Set.member (row /\ col) state.livingCells then "salmon" else "light")
-                  { onClick: dispatch <| ToggleCell (row /\ col) }
-                  H.empty
-        ]
-
-    notes = scale state
+      Life.renderInteractive
+        { life: state.game
+        , rows: state.notes
+        , cols: state.beatsPerMeasure
+        , renderRow: \{ row, content } -> fold do
+            note@(pitchClass \\ _) <- scale state !! row
+            pure $
+              H.div_ "d-flex align-items-center"
+              { style: H.css { lineHeight: 0 } }
+              [ H.div "position-relative text-secondary text-end align-content-center grid-row-label small me-2"
+                [ H.div ("grid-row-label-text text-end" <> M.guard (pitchClass == state.key) " text-salmon") $
+                    Note.display note
+                , M.guard (row == 0) $
+                    H.button_ "btn position-absolute"
+                      { onClick: dispatch <| ChangeRoot (-1)
+                      , style: H.css { bottom: "20px", right: "-35%" }
+                      }
+                      "▲"
+                , M.guard (row == state.notes - 1) $
+                    H.button_ "btn position-absolute"
+                      { onClick: dispatch <| ChangeRoot 1
+                      , style: H.css { top: "20px", right: "-35%" }
+                      }
+                      "▼"
+                ]
+              , content
+              ]
+        , renderCol: \{ living, col, onClick } ->
+            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
+              H.div_ ("d-inline-block grid-cell bg-" <> if living then "salmon" else "light")
+                { onClick: dispatch <| SetGame <<< onClick }
+                H.empty
+        }
 
     presets =
-      H.div "row" $ Preset.all <#> \(name /\ p) -> Preset.livingCells p # \cells ->
+      H.div "row" $ Preset.all <#> \(name /\ p) -> gameFromPreset p # \life ->
         H.div_ "col-6 col-sm-4 col-md-3 pb-3 connected"
           { key: name } $
           PresetButton.component
             { name
-            , life: Bounded.fromCells state.notes state.beatsPerMeasure cells -- TODO: Make unbounded
+            , life
             , rows: state.notes
             , cols: state.beatsPerMeasure
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
                 U.scrollIntoView Header.id
             }
-
-gameGrid :: State -> Array (Array Cell)
-gameGrid s =
-  U.grid s.notes s.beatsPerMeasure
 
 scale :: State -> Array Note
 scale state =
@@ -339,6 +343,5 @@ scale state =
 duration :: Number
 duration = 15_000.0
 
-step :: State -> Set Cell
-step state =
-  Game.steps state.stepBy state.livingCells
+gameFromPreset :: Preset -> Unbounded Boolean
+gameFromPreset p = Game.fromCells $ Preset.livingCells p

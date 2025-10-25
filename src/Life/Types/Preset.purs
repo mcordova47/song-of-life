@@ -38,8 +38,8 @@ import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Random as R
-import Life.Game.Bounded as Game
 import Life.Types.Cell (Cell)
+import Life.Types.Cell as Cell
 import Life.Types.Codec (Codec, (/>), (</>), (<\>))
 import Life.Types.Codec as Codec
 import Life.Types.Grid as Grid
@@ -171,7 +171,7 @@ presetV1' p cells = fromState
 random :: Int -> Int -> Effect (Maybe Preset)
 random rows cols = do
   r <- R.randomInt (-6) 6
-  cells <- Game.random rows cols
+  cells <- Cell.randomSet rows cols
   w <- Wave.random
   s <- ScaleType.random
   keyIndex <- R.randomInt 0 (Array.length PitchClass.all - 1)

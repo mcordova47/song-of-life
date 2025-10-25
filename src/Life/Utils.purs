@@ -4,10 +4,12 @@ module Life.Utils
   , compose2
   , fill
   , grid
+  , infinity
   , randomTag
   , scrollIntoView
   , tags
   , transpose
+  , truthy
   , tryModifyAt
   )
   where
@@ -18,6 +20,7 @@ import Data.Array ((..))
 import Data.Array as Array
 import Data.Bounded.Generic (class GenericBottom, class GenericTop, genericBottom, genericTop)
 import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericFromEnum, genericSucc, genericToEnum)
+import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
@@ -87,4 +90,11 @@ transpose rows = case Array.head rows of
 scrollIntoView :: String -> Effect Unit
 scrollIntoView = runEffectFn1 scrollIntoView_
 
+truthy :: forall a. a -> Boolean
+truthy = runFn1 truthy_
+
 foreign import scrollIntoView_ :: EffectFn1 String Unit
+
+foreign import truthy_ :: forall a. Fn1 a Boolean
+
+foreign import infinity :: Int

@@ -422,7 +422,7 @@ view state dispatch = H.fragment
         , rows: state.notes
         , cols: state.beatsPerMeasure
         , renderRow: \{ row, content } -> fold do
-            note@(pitchClass \\ _) <- notes !! row
+            note@(pitchClass \\ _) <- scale state !! row
             pure $
               H.div_ "d-flex align-items-center"
               { style: H.css { lineHeight: 0 } }
@@ -435,7 +435,7 @@ view state dispatch = H.fragment
                       , style: H.css { bottom: "20px", right: "-35%" }
                       }
                       "▲"
-                , M.guard (row == Array.length notes - 1) $
+                , M.guard (row == state.notes - 1) $
                     H.button_ "btn position-absolute"
                       { onClick: dispatch <| ChangeRoot 1
                       , style: H.css { top: "20px", right: "-35%" }
@@ -451,17 +451,13 @@ view state dispatch = H.fragment
                 H.empty
         }
 
-    game cells = gameFromPreset $ Preset.fromState $ Record.merge state { livingCells: cells }
-
-    notes = scale state
-
     presets =
-      H.div "row" $ Preset.all <#> \(name /\ p) -> Preset.livingCells p # \cells ->
+      H.div "row" $ Preset.all <#> \(name /\ p) -> gameFromPreset p # \life ->
         H.div_ "col-6 col-sm-4 col-md-3 pb-3"
           { key: name } $
           PresetButton.component
             { name
-            , life: game cells
+            , life
             , rows: state.notes
             , cols: state.beatsPerMeasure
             , onClick: E.handleEffect do

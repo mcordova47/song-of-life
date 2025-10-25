@@ -18,7 +18,7 @@ import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Life.Components.Header as Header
-import Life.Game.Unbounded as Game
+import Life.Game.Optimized.Unbounded as Game
 import Life.Types.Cell (Cell)
 
 type State =
