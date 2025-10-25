@@ -14,6 +14,7 @@ module Life.Types.Life
   , render
   , renderInteractive
   , step
+  , step'
   , toCells
   , toggle
   , update
@@ -29,6 +30,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
+import Life.Types.Rule (Rule)
 import Life.Types.Rule as Rule
 import Life.Utils as U
 
@@ -48,9 +50,10 @@ class InteractiveAutomaton f <= Life f where
   description :: String
 
 step :: forall f. CellularAutomaton f => f Boolean -> f Boolean
-step = extend rule
-  where
-    rule g = Rule.life (extract g) (neighbors g)
+step = step' Rule.default
+
+step' :: forall f. CellularAutomaton f => Rule -> f Boolean -> f Boolean
+step' rule = extend \g -> rule (extract g) (neighbors g)
 
 toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
 toggle = update not
