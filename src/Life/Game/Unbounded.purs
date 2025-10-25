@@ -1,8 +1,5 @@
 module Life.Game.Unbounded
   ( Unbounded(..)
-  , empty
-  , fromCells
-  , toCells
   )
   where
 
@@ -18,8 +15,6 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Set (Set)
-import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
 import Life.Types.Life (class InteractiveLife, class Life, class VisibleLife)
@@ -61,12 +56,24 @@ instance Comonad Unbounded where
     Map.lookup u.focused u.cells # fromMaybe u.default
 
 instance Life Unbounded where
+  label = "unbounded"
+  description = "even though only a finite portion is visible, cells off-screen can be alive and affect the cells in the visible grid"
+
   neighbors p (Unbounded u) = 
     neighboringCells u.focused
     # flip foldl 0 \acc cell ->
       if p $ extract $ Unbounded u { focused = cell }
         then acc + 1
         else acc
+
+  fromCells _ _ cells =
+    cells
+    # Array.fromFoldable
+    <#> (_ /\ true)
+    # Map.fromFoldable
+    # Unbounded <<< { cells: _, focused: 0 /\ 0, default: false }
+
+  toCells (Unbounded { cells }) = cells # Map.filter identity # Map.keys
 
 instance VisibleLife Unbounded where
   grid rows cols (Unbounded u) =
@@ -77,20 +84,6 @@ instance InteractiveLife Unbounded where
   update f row col (Unbounded u) = Unbounded u
     { cells = Map.alter (Just <<< f <<< fromMaybe u.default) (row /\ col) u.cells
     }
-
-fromCells :: Set Cell -> Unbounded Boolean
-fromCells cells =
-  cells
-  # Array.fromFoldable
-  <#> (_ /\ true)
-  # Map.fromFoldable
-  # Unbounded <<< { cells: _, focused: 0 /\ 0, default: false }
-
-empty :: Unbounded Boolean
-empty = fromCells Set.empty
-
-toCells :: Unbounded Boolean -> Set Cell
-toCells (Unbounded { cells }) = cells # Map.filter identity # Map.keys
 
 neighboringCells :: Cell -> Array Cell
 neighboringCells (row /\ col) = do

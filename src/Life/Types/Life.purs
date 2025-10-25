@@ -2,11 +2,16 @@ module Life.Types.Life
   ( class InteractiveLife
   , class Life
   , class VisibleLife
+  , description
+  , empty
+  , fromCells
   , grid
+  , label
   , neighbors
   , render
   , renderInteractive
   , step
+  , toCells
   , toggle
   , update
   )
@@ -17,10 +22,17 @@ import Prelude
 import Control.Comonad (class Comonad, extend, extract)
 import Data.Foldable (foldMap)
 import Data.FoldableWithIndex (foldMapWithIndex)
+import Data.Set (Set)
+import Data.Set as Set
+import Life.Types.Cell (Cell)
 import Life.Types.Rule as Rule
 
 class Comonad f <= Life f where
+  label :: String
+  description :: String
   neighbors :: forall a. (a -> Boolean) -> f a -> Int
+  fromCells :: Int -> Int -> Set Cell -> f Boolean
+  toCells :: f Boolean -> Set Cell
 
 class Life f <= VisibleLife f where
   grid :: forall a. Int -> Int -> f a -> Array (Array a)
@@ -35,6 +47,9 @@ step = extend rule
 
 toggle :: forall f. InteractiveLife f => Int -> Int -> f Boolean -> f Boolean
 toggle = update not
+
+empty :: forall f. Life f => Int -> Int -> f Boolean
+empty rows cols = fromCells rows cols Set.empty
 
 type RenderArgs f m = RenderArgs' f m m Boolean
 type RenderInteractiveArgs f m e = RenderArgs' f m

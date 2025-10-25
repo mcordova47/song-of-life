@@ -4,6 +4,7 @@ module Life.Types.Music.ScaleType
   , codec
   , default
   , display
+  , notes
   , random
   , toScale
   )
@@ -16,6 +17,8 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Life.Types.Codec (class Serializable, Codec)
+import Life.Types.Music.Note (Note)
+import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.Scale (Scale)
 import Life.Types.Music.Scale as Scale
 import Life.Utils as U
@@ -63,3 +66,11 @@ toScale = case _ of
   Diatonic -> Scale.diatonic
   Hexatonic -> Scale.hexatonic
   Pentatonic -> Scale.pentatonic
+
+notes :: forall r. Int -> { key :: PitchClass, notes :: Int, root :: Int, scale :: ScaleType | r } -> Array Note
+notes octave args =
+  (Scale.shift args.root $ toScale args.scale).notes
+    { key: args.key
+    , root: octave
+    , length: args.notes
+    }

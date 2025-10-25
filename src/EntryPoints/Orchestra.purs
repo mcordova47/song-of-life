@@ -5,7 +5,7 @@ import Prelude
 import Data.Array ((!!))
 import Data.Array as Array
 import Data.Codec as C
-import Data.Foldable (fold, foldr, for_)
+import Data.Foldable (foldr, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
@@ -19,15 +19,15 @@ import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
+import Life.Components.InteractiveGrid as InteractiveGrid
 import Life.Components.PresetButton as PresetButton
 import Life.Components.TagSelect as TagSelect
 import Life.Game.Unbounded (Unbounded)
-import Life.Game.Unbounded as Game
 import Life.Icons as I
 import Life.Types.Life as Life
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat)
-import Life.Types.Music.Note (Note, (\\))
+import Life.Types.Music.Note (Note)
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass, (//))
 import Life.Types.Music.PitchClass as PitchClass
@@ -51,7 +51,7 @@ data Message
   | Pause
   | Play
   | Reset
-  | SetGame (Unbounded Boolean)
+  | SetGame (Game Boolean)
   | SetKey PitchClass
   | SetScale ScaleType
   | SetSpeed Int
@@ -61,7 +61,7 @@ data Message
 type State =
   { beatsPerMeasure :: Int
   , key :: PitchClass
-  , game :: Unbounded Boolean
+  , game :: Game Boolean
   , notes :: Int
   , play :: Maybe Int
   , root :: Int
@@ -70,18 +70,23 @@ type State =
   -- , stepBy :: Int
   }
 
+type Game = Unbounded
+
 init :: Transition Message State
-init = pure
-  { beatsPerMeasure: Preset.defaultBeatsPerMeasure
-  , key: E // flat
-  , game: gameFromPreset Preset.headphones
-  , notes: Preset.defaultNotes
-  , play: Nothing
-  , root: 0
-  , scale: Preset.scale Preset.default
-  , speed: 5
-  -- , stepBy: 1
-  }
+init =
+  let preset = Preset.headphones
+  in
+  pure
+    { beatsPerMeasure: Preset.defaultBeatsPerMeasure
+    , key: E // flat -- Override key
+    , game: Preset.toLife preset
+    , notes: Preset.notes preset
+    , play: Nothing
+    , root: Preset.root preset
+    , scale: Preset.scale preset
+    , speed: 5
+    -- , stepBy: 1
+    }
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
@@ -118,7 +123,7 @@ update state = case _ of
     autoStep state.game
     pure state { play = Just (-1) }
   Reset ->
-    pure state { game = Game.empty }
+    pure state { game = Life.empty state.notes state.beatsPerMeasure }
   SetGame game ->
     pure state { game = game }
   SetKey key ->
@@ -135,7 +140,7 @@ update state = case _ of
     autoStep game =
       forks \{ dispatch } -> do
         let
-          measure' = measure $ Game.toCells game
+          measure' = measure $ Life.toCells game
           durationMs = duration / Int.toNumber state.speed / Int.toNumber (Array.length measure')
         for_ measure' \notes' -> do
           delay $ Milliseconds durationMs
@@ -174,7 +179,7 @@ update state = case _ of
       state
         { beatsPerMeasure = Preset.beatsPerMeasure p
         , key = Preset.key p
-        , game = gameFromPreset p
+        , game = Preset.toLife p
         , notes = Preset.notes p
         , root = Preset.root p
         , scale = Preset.scale p
@@ -284,42 +289,13 @@ view state dispatch = H.fragment
   ]
   where
     gridView = H.div ("grid py-4 connected" <> M.guard (isJust state.play) " playing") $
-      Life.renderInteractive
-        { life: state.game
-        , rows: state.notes
-        , cols: state.beatsPerMeasure
-        , renderRow: \{ row, content } -> fold do
-            note@(pitchClass \\ _) <- scale state !! row
-            pure $
-              H.div_ "d-flex align-items-center"
-              { style: H.css { lineHeight: 0 } }
-              [ H.div "position-relative text-secondary text-end align-content-center grid-row-label small me-2"
-                [ H.div ("grid-row-label-text text-end" <> M.guard (pitchClass == state.key) " text-salmon") $
-                    Note.display note
-                , M.guard (row == 0) $
-                    H.button_ "btn position-absolute"
-                      { onClick: dispatch <| ChangeRoot (-1)
-                      , style: H.css { bottom: "20px", right: "-35%" }
-                      }
-                      "▲"
-                , M.guard (row == state.notes - 1) $
-                    H.button_ "btn position-absolute"
-                      { onClick: dispatch <| ChangeRoot 1
-                      , style: H.css { top: "20px", right: "-35%" }
-                      }
-                      "▼"
-                ]
-              , content
-              ]
-        , renderCol: \{ living, col, onClick } ->
-            H.div ("d-inline-block m-0 grid-cell-container" <> M.guard (state.play == Just col) " active") $
-              H.div_ ("d-inline-block grid-cell bg-" <> if living then "salmon" else "light")
-                { onClick: dispatch <| SetGame <<< onClick }
-                H.empty
+      InteractiveGrid.view state
+        { onChangeRoot: dispatch <<< ChangeRoot
+        , onSetGame: dispatch <<< SetGame
         }
 
     presets =
-      H.div "row" $ Preset.all <#> \(name /\ p) -> gameFromPreset p # \life ->
+      H.div "row" $ Preset.all <#> \(name /\ p) -> Preset.toLife@Game p # \life ->
         H.div_ "col-6 col-sm-4 col-md-3 pb-3 connected"
           { key: name } $
           PresetButton.component
@@ -342,6 +318,3 @@ scale state =
 
 duration :: Number
 duration = 15_000.0
-
-gameFromPreset :: Preset -> Unbounded Boolean
-gameFromPreset p = Game.fromCells $ Preset.livingCells p

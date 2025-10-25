@@ -1,7 +1,5 @@
 module Life.Game.Bounded
   ( Bounded
-  , fromCells
-  , toCells
   )
   where
 
@@ -14,10 +12,8 @@ import Data.Array ((!!), (..))
 import Data.Array as Array
 import Data.Foldable (foldl)
 import Data.Maybe (fromMaybe, maybe)
-import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
-import Life.Types.Cell (Cell)
 import Life.Types.Life (class InteractiveLife, class Life, class VisibleLife)
 import Life.Utils as U
 
@@ -45,12 +41,37 @@ instance Comonad Bounded where
   extract (Bounded { focus: _ /\ _ /\ x }) = x
 
 instance Life Bounded where
+  label = "bounded"
+  description = "beyond the edges all cells are considered out of bounds and always dead, whereas it is often played on an infinite grid"
+
   neighbors p (Bounded b@{ focus: row /\ col /\ _ }) =
     Array.length $ Array.filter identity do
       row' <- [row - 1, row, row + 1]
       col' <- [col - 1, col, col + 1]
       guard (row /= row' || col /= col')
       pure $ (b.grid !! row' # fromMaybe []) !! col' # maybe false p
+
+  fromCells rows cols livingCells =
+    Bounded { grid: grid', focus: 0 /\ 0 /\ focused 0 0 }
+    where
+      grid' =
+        (0 .. (rows - 1)) <#> \row ->
+          (0 .. (cols - 1)) <#> \col ->
+            focused row col
+
+      focused row col =
+        Set.member (row /\ col) livingCells
+
+  toCells (Bounded b) = foldGrid indexedGrid
+    where
+      foldGrid = Set.empty # foldl \acc ->
+        acc # foldl \acc' (row /\ col /\ living) ->
+          if living then Set.insert (row /\ col) acc' else acc'
+
+      indexedGrid =
+        b.grid # Array.mapWithIndex \row cols ->
+          cols # Array.mapWithIndex \col living ->
+            (row /\ col /\ living)
 
 instance VisibleLife Bounded where
   grid rows cols (Bounded b) =
@@ -59,27 +80,3 @@ instance VisibleLife Bounded where
 instance InteractiveLife Bounded where
   update f row col (Bounded b) = Bounded b
     { grid = U.tryModifyAt row (U.tryModifyAt col f) b.grid }
-
-fromCells :: Int -> Int -> Set Cell -> Bounded Boolean
-fromCells rows cols livingCells =
-  Bounded { grid: grid', focus: 0 /\ 0 /\ focused 0 0 }
-  where
-    grid' =
-      (0 .. (rows - 1)) <#> \row ->
-        (0 .. (cols - 1)) <#> \col ->
-          focused row col
-
-    focused row col =
-      Set.member (row /\ col) livingCells
-
-toCells :: Bounded Boolean -> Set Cell
-toCells (Bounded b) = foldGrid indexedGrid
-  where
-    foldGrid = Set.empty # foldl \acc ->
-      acc # foldl \acc' (row /\ col /\ living) ->
-        if living then Set.insert (row /\ col) acc' else acc'
-
-    indexedGrid =
-      b.grid # Array.mapWithIndex \row cols ->
-        cols # Array.mapWithIndex \col living ->
-          (row /\ col /\ living)
