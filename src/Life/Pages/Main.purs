@@ -264,11 +264,12 @@ view state dispatch = H.fragment
                 [ H.button_ "btn text-salmon hover:text-salmon-highlight px-0"
                     { onClick: E.handleEffect do
                         origin <- window >>= location >>= Loc.origin
+                        path <- window >>= location >>= Loc.pathname
                         _ <-
                           window >>= navigator >>= Clipboard.clipboard
                             >>= traverse \clipboard ->
                               clipboard
-                                # Clipboard.writeText (shareText origin)
+                                # Clipboard.writeText (shareText origin path)
                                 >>= P.then_ \_ -> do
                                   dispatch ShowCopiedFeedback
                                   pure $ P.resolve unit
@@ -437,11 +438,11 @@ view state dispatch = H.fragment
                 scrollIntoView Header.id
             }
 
-    shareText origin = fold
+    shareText origin path = fold
       [ "Made with Songs of Life\n\n"
       , emojiGrid
       , "\n"
-      , shareUrl origin
+      , shareUrl origin path
       ]
       where
         { bounds, instructions } = Grid.fromCells $ Life.toCells $ state.game
@@ -463,8 +464,8 @@ view state dispatch = H.fragment
           Move n -> Array.replicate (n - 1) "⬜️"
           TurnOn n -> Array.replicate n "🟪"
 
-    shareUrl origin =
-      origin <> "/#/" <> case state.shareHash of
+    shareUrl origin path =
+      origin <> path <> "/#/" <> case state.shareHash of
         Just hash -> hash
         Nothing -> shareHash state
 
