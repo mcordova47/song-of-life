@@ -1,4 +1,4 @@
-module EntryPoints.Unbounded.Orchestra
+module EntryPoints.Orchestra.Index
   ( main
   )
   where
@@ -9,12 +9,12 @@ import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
 import Life.Pages.Orchestra as Orchestra
-import Life.Types.Game.Unbounded (Unbounded)
+import Life.Types.Game.Bounded (Bounded)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }
 
-def :: ComponentDef (Orchestra.Message Unbounded) (Orchestra.State Unbounded)
+def :: ComponentDef (Orchestra.Message Bounded) (Orchestra.State Bounded)
 def =
   { init: Orchestra.init
   , update: Orchestra.update
