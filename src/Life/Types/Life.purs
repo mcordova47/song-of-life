@@ -62,10 +62,10 @@ empty :: forall f. TangibleAutomaton f => Int -> Int -> f Boolean
 empty rows cols = fromCells rows cols Set.empty
 
 neighbors :: forall f. CellularAutomaton f => f Boolean -> Int
-neighbors b =
-  Cell.neighbors (extractCell b)
+neighbors g =
+  Cell.neighbors (extractCell g)
   # flip foldl 0 \acc cell ->
-    if extract $ focusCell cell b
+    if extract $ focusCell cell g
       then acc + 1
       else acc
 

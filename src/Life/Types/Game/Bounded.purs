@@ -1,5 +1,6 @@
 module Life.Types.Game.Bounded
   ( Bounded
+  , size
   )
   where
 
@@ -22,7 +23,6 @@ newtype Bounded a = Bounded
   , focus :: Cell
   , default :: a
   }
-derive newtype instance Eq a => Eq (Bounded a)
 
 instance Functor Bounded where
   map f (Bounded b) =
@@ -48,9 +48,9 @@ instance CellularAutomaton Bounded where
 
 instance TangibleAutomaton Bounded where
   fromCells rows cols livingCells =
-    Bounded { grid: grid', focus: 0 /\ 0, default: false }
+    Bounded { grid, focus: 0 /\ 0, default: false }
     where
-      grid' =
+      grid =
         (0 .. (rows - 1)) <#> \row ->
           (0 .. (cols - 1)) <#> \col ->
             focused row col
@@ -76,3 +76,9 @@ instance InteractiveAutomaton Bounded where
 instance Life Bounded where
   label = "bounded"
   description = "beyond the edges all cells are considered out of bounds and always dead, whereas it is often played on an infinite grid"
+
+size :: forall a. Bounded a -> { rows :: Int, cols :: Int }
+size (Bounded { grid }) = { rows, cols }
+  where
+    rows = Array.length grid
+    cols = Array.head grid <#> Array.length # fromMaybe 0
