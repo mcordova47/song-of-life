@@ -43,6 +43,8 @@ import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
+import Life.Types.Rule (RuleType)
+import Life.Types.Rule as Rule
 import Life.Utils (scrollIntoView)
 import Life.Utils as U
 import Web.HTML (window)
@@ -62,6 +64,7 @@ data Message f
   | Reset
   | SetGame (f Boolean)
   | SetKey PitchClass
+  | SetRule RuleType
   | SetScale ScaleType
   | SetSpeed Int
   | SetWave Wave
@@ -77,6 +80,7 @@ type State f =
   , notes :: Int
   , play :: Maybe Int
   , root :: Int
+  , rule :: RuleType
   , scale :: ScaleType
   , shareHash :: Maybe String
   , showCopiedFeedback :: Boolean
@@ -97,6 +101,7 @@ init = do
     , notes: Preset.notes preset
     , play: Nothing
     , root: Preset.root preset
+    , rule: Rule.defaultType
     , scale: Preset.scale preset
     , shareHash: Nothing
     , showCopiedFeedback: false
@@ -109,7 +114,7 @@ update state = case _ of
   -- TODO: Refactor AutoStep logic:
   --  - state.beatsPerMeasure - 1 hack
   AutoStep | Just _ <- state.play -> do
-    let game = Life.step state.game
+    let game = Life.step' (Rule.rule state.rule) state.game
     autoStep game
     pure state { game = game, play = Just (state.beatsPerMeasure - 1) }
   AutoStep ->
@@ -139,10 +144,12 @@ update state = case _ of
     pure state { game = Life.empty state.notes state.beatsPerMeasure }
   SetGame game ->
     pure state { game = game }
-  SetScale s ->
-    pure state { scale = s }
   SetKey key ->
     pure state { key = key }
+  SetRule rule ->
+    pure state { rule = rule }
+  SetScale s ->
+    pure state { scale = s }
   SetSpeed speed ->
     pure state { speed = speed }
   SetWave wave ->
@@ -153,7 +160,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { game = Life.step state.game }
+    pure state { game = Life.step' (Rule.rule state.rule) state.game }
   ToggleConnectNotes ->
     pure state { connectNotes = not state.connectNotes }
   LoadPreset p ->
@@ -277,7 +284,7 @@ view state dispatch = H.fragment
         , H.div "mt-3"
           [ H.h5 "" "Controls"
           , H.div "row mb-3"
-            [ H.div "col-6 col-sm-3 col-lg-4 pt-2" $
+            [ H.div "col-6 col-sm-3 pt-2" $
                 H.label "form-label fw-bold w-100"
                 [ H.div "mb-2" "Key"
                 , H.select_ "form-select"
@@ -290,7 +297,7 @@ view state dispatch = H.fragment
                         { value: C.encode PitchClass.codec key } $
                         PitchClass.display key
                 ]
-            , H.div "col-6 col-sm-3 col-lg-4 pt-2" $
+            , H.div "col-6 col-sm-3 pt-2" $
                 H.label "form-label w-100"
                 [ H.div "fw-bold mb-2" "Scale"
                 , TagSelect.view
@@ -299,10 +306,17 @@ view state dispatch = H.fragment
                     , display: ScaleType.display
                     }
                 ]
-            , H.div "col pt-2" $
-                H.div_ ""
-                { style: H.css { maxWidth: 200 }
-                }
+            , H.div "col-6 col-sm-3 pt-2" $
+                H.label "form-label w-100"
+                [ H.div "fw-bold mb-2" "Rule"
+                , TagSelect.view
+                    { value: state.rule
+                    , onChange: dispatch <<< SetRule
+                    , display: Rule.display
+                    }
+                ]
+            , H.div "col-6 col-sm-3 pt-2" $
+                H.div ""
                 [ H.label_ "form-label fw-bold mb-2"
                     { htmlFor: "speed-input" }
                     "Speed"
@@ -317,6 +331,16 @@ view state dispatch = H.fragment
                     }
                 ]
             ]
+          , H.label "form-label mb-2" "Wave Type"
+          , H.div "row" $ Wave.all <#> \wave ->
+              H.div "col-6 col-sm-3 col-lg-2" $
+                H.div_ ("border rounded card-btn mb-3" <> M.guard (wave == state.wave) " active")
+                  { onClick: dispatch <| SetWave wave } $
+                  H.div "mx-auto text-center"
+                  [ H.div "" $
+                      Wave.icon { size: 48 } wave
+                  , H.div "" $ Wave.display wave
+                  ]
           , H.div "fw-bold mb-2" "Adjacent Notes"
           , H.div "mb-3" $
               H.div_ ("d-inline-block text-center card-btn border rounded py-1 px-3 hover:bg-lightblue" <> M.guard state.connectNotes " connected")
@@ -330,16 +354,6 @@ view state dispatch = H.fragment
                 ]
               , H.div "" if state.connectNotes then "Connected" else "Disconnected"
               ]
-          , H.label "form-label mb-2" "Wave Type"
-          , H.div "row" $ Wave.all <#> \wave ->
-              H.div "col-6 col-sm-3 col-lg-2" $
-                H.div_ ("border rounded card-btn mb-3" <> M.guard (wave == state.wave) " active")
-                  { onClick: dispatch <| SetWave wave } $
-                  H.div "mx-auto text-center"
-                  [ H.div "" $
-                      Wave.icon { size: 48 } wave
-                  , H.div "" $ Wave.display wave
-                  ]
           ]
         , H.div "mt-3"
           [ H.h5 "" "Rules"
