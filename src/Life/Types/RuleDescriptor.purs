@@ -8,6 +8,8 @@ module Life.Types.RuleDescriptor
   , highLife
   , life
   , lifeWithoutDeath
+  , maze
+  , mazeWithMice
   , morley
   , replicator
   , seeds
@@ -16,7 +18,7 @@ module Life.Types.RuleDescriptor
 
 import Prelude
 
-import Data.Array (foldMap, (..))
+import Data.Array (foldMap)
 
 data RuleDescriptor = RuleDescriptor B S
 derive instance Eq RuleDescriptor
@@ -39,7 +41,7 @@ seeds :: RuleDescriptor
 seeds = B [2] |/| S []
 
 lifeWithoutDeath :: RuleDescriptor
-lifeWithoutDeath = B [3] |/| S (0 .. 8)
+lifeWithoutDeath = B [3] |/| S [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 dayAndNight :: RuleDescriptor
 dayAndNight = B [3, 6, 7, 8] |/| S [3, 4, 6, 7, 8]
@@ -49,6 +51,12 @@ morley = B [3, 6, 8] |/| S [2, 4, 5]
 
 replicator :: RuleDescriptor
 replicator = B [1, 3, 5, 7] |/| S [1, 3, 5, 7]
+
+maze :: RuleDescriptor
+maze = B [3] |/| S [1, 2, 3, 4, 5]
+
+mazeWithMice :: RuleDescriptor
+mazeWithMice = B [3, 7] |/| S [1, 2, 3, 4, 5]
 
 display :: RuleDescriptor -> String
 display (RuleDescriptor (B b) (S s)) =
@@ -61,16 +69,11 @@ display (RuleDescriptor (B b) (S s)) =
 -- | **Diamoeba**     | B35678/S5678  | Expanding, chaotic              | Produces diamond-like growing blobs              |
 -- | **Anneal**       | B4678/S35678  | Self-stabilizing                | Behaves like crystallization                     |
 -- | **Coral**        | B3/S45678     | Growth-based                    | Tends to form coral-like branching structures    |
--- | **Maze**         | B3/S12345     | Maze-generating                 | Grows static labyrinths                          |
 -- | **Coagulations** | B378/S235678  | Aggregative                     | Forms semi-stable patterns that merge together   |
 -- | **Assimilation** | B345/S4567    | Invasive                        | Expands slowly, consuming structures             |
 -- | **Move**         | B368/S245     | Like Morley, slightly different | Often confused with Morley but distinct dynamics |
 -- | **Stains**       | B3678/S235678 | Blotchy                         | Leads to fuzzy blotches and patterns             |
 -- | **Serviettes**   | B234/S        | Explosive                       | Every cell eventually dies — dramatic bursts     |
-
--- | Name               | Rule           | Notes                                                                                  |
--- | ------------------ | -------------- | -------------------------------------------------------------------------------------- |
--- | **Maze with Mice** | `B37/S12345`   | Same as Maze, but tiny "mice" crawl through corridors.                                 |
 
 -- | Rule         | B/S      | Behavior                    |
 -- | ------------ | -------- | --------------------------- |

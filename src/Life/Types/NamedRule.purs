@@ -24,6 +24,8 @@ data NamedRule
   | DayAndNight
   | Morley
   | Replicator
+  | Maze
+  | MazeWithMice
 derive instance Generic NamedRule _
 
 instance Serializable NamedRule where
@@ -37,6 +39,8 @@ instance Serializable NamedRule where
         "DayAndNight" -> Just DayAndNight
         "Morley" -> Just Morley
         "Replicator" -> Just Replicator
+        "Maze" -> Just Maze
+        "MazeWithMice" -> Just MazeWithMice
         _ -> Nothing
 
       encode = case _ of
@@ -47,6 +51,8 @@ instance Serializable NamedRule where
         DayAndNight -> "DayAndNight"
         Morley -> "Morley"
         Replicator -> "Replicator"
+        Maze -> "Maze"
+        MazeWithMice -> "MazeWithMice"
 
 descriptorCodec :: Codec RuleDescriptor NamedRule
 descriptorCodec = C.codec decode encode
@@ -59,6 +65,8 @@ descriptorCodec = C.codec decode encode
       | descriptor == D.dayAndNight = Just DayAndNight
       | descriptor == D.morley = Just Morley
       | descriptor == D.replicator = Just Replicator
+      | descriptor == D.maze = Just Maze
+      | descriptor == D.mazeWithMice = Just MazeWithMice
       | otherwise = Nothing
 
     encode = case _ of
@@ -69,6 +77,8 @@ descriptorCodec = C.codec decode encode
       DayAndNight -> D.dayAndNight
       Morley -> D.morley
       Replicator -> D.replicator
+      Maze -> D.maze
+      MazeWithMice -> D.mazeWithMice
 
 default :: NamedRule
 default = Life
@@ -88,3 +98,5 @@ name = case _ of
   DayAndNight -> "Day And Night"
   Morley -> "Morley"
   Replicator -> "Replicator"
+  Maze -> "Maze"
+  MazeWithMice -> "Maze with Mice"

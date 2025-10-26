@@ -8,10 +8,10 @@ module Life.Types.Rule
 import Prelude
 
 import Data.Array (elem)
-import Life.Types.RuleDescriptor (B(..), RuleDescriptor, S(..), (|/|))
-import Life.Types.RuleDescriptor as D
-import Life.Types.NamedRule (NamedRule(..))
+import Data.Codec as C
+import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as N
+import Life.Types.RuleDescriptor (B(..), RuleDescriptor, S(..), (|/|))
 
 type Rule = Boolean -> Int -> Boolean
 
@@ -25,11 +25,4 @@ fromDescriptor ((B birth) |/| (S survival)) living neighbors
   | otherwise = false
 
 fromNamed :: NamedRule -> Rule
-fromNamed = case _ of
-  Life -> fromDescriptor D.life
-  HighLife -> fromDescriptor D.highLife
-  Seeds -> fromDescriptor D.seeds
-  LifeWithoutDeath -> fromDescriptor D.lifeWithoutDeath
-  DayAndNight -> fromDescriptor D.dayAndNight
-  Morley -> fromDescriptor D.morley
-  Replicator -> fromDescriptor D.replicator
+fromNamed = C.encode N.descriptorCodec >>> fromDescriptor

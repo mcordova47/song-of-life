@@ -9,7 +9,7 @@ import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
 import Life.Pages.Main as Main
-import Life.Types.Game.Unbounded (Unbounded)
+import Life.Types.Game.Optimized.Unbounded (Unbounded)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }
