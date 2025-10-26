@@ -232,8 +232,12 @@ view state dispatch = H.fragment
         , H.text """
             will play out. Each row corresponds to a note and each column is a
             beat in a measure. Each beat will play and then the living cells
-            will change and the next measure will play.
-        """
+            will change and the next measure will play. The
+          """
+        , H.a_ "" { href: "#rules" } "rules"
+        , H.text " are explained below and you can also try "
+        , variantLinks
+        , H.text " versions of the game."
         ]
       , gridView
       , H.div ""
@@ -356,7 +360,7 @@ view state dispatch = H.fragment
               ]
           ]
         , H.div "mt-3"
-          [ H.h5 "" "Rules"
+          [ H.h5_ "" { id: "rules" } "Rules"
           , H.p ""
             [ H.text "The "
             , H.strong "text-salmon" "Game of Life"
