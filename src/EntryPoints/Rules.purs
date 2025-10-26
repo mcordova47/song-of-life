@@ -18,18 +18,18 @@ import Life.Components.Header as Header
 import Life.Components.TagSelect as TagSelect
 import Life.Types.Game.Optimized.Unbounded (Unbounded)
 import Life.Types.Life as Life
-import Life.Types.Rule (RuleType)
-import Life.Types.Rule as Rule
+import Life.Types.NamedRule (NamedRule)
+import Life.Types.NamedRule as NamedRule
 
 type State =
   { framesPerSecond :: Int
   , playing :: Boolean
-  , rule :: RuleType
+  , rule :: NamedRule
   , stepsPerFrame :: Int
   }
 
 data Message
-  = SelectRule RuleType
+  = SelectRule NamedRule
   | SetFramesPerSecond Int
   | SetStepsPerFrame Int
   | TogglePlaying
@@ -46,7 +46,7 @@ init :: Transition Message State
 init = pure
   { framesPerSecond: 10
   , playing: false
-  , rule: Rule.defaultType
+  , rule: NamedRule.default
   , stepsPerFrame: 1
   }
 
@@ -90,7 +90,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
                 { style: H.css { maxWidth: "300px" }
                 } $
                 TagSelect.view
-                  { display: Rule.display
+                  { display: NamedRule.display
                   , onChange: dispatch <<< SelectRule
                   , value: state.rule
                   }
@@ -129,7 +129,7 @@ type Args =
   , rows :: Int
   , cols :: Int
   , playing :: Boolean
-  , rule :: RuleType
+  , rule :: NamedRule
   , stepsPerFrame :: Int
   , framesPerSecond :: Int
   , controls :: Controls -> ReactElement

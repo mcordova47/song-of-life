@@ -22,7 +22,7 @@ newtype Unbounded a = Unbounded
 
 instance Automaton Unbounded where
   steps n rule (Unbounded u) =
-    u.cells # Map.keys # Optimized.steps (Rule.rule rule) n # fromCells
+    u.cells # Map.keys # Optimized.steps (Rule.fromNamed rule) n # fromCells
 
 instance CellularAutomaton Unbounded where
   fromCells _ _ = fromCells

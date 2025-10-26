@@ -35,8 +35,8 @@ import Data.Set (Set)
 import Data.Set as Set
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
-import Life.Types.Rule (RuleType)
 import Life.Types.Rule as Rule
+import Life.Types.NamedRule (NamedRule)
 import Life.Utils (times)
 import Life.Utils as U
 
@@ -45,7 +45,7 @@ class Comonad f <= CellularComonad f where
   extractCell :: forall a. f a -> Cell
 
 class Automaton f where
-  steps :: Int -> RuleType -> f Boolean -> f Boolean
+  steps :: Int -> NamedRule -> f Boolean -> f Boolean
 
 class Automaton f <= CellularAutomaton f where
   fromCells :: Int -> Int -> Set Cell -> f Boolean
@@ -111,11 +111,11 @@ comonadicGrid rows cols f =
   U.grid rows cols <#> map \cell ->
     extract $ focusCell cell f
 
-comonadicStep :: forall f. CellularComonad f => RuleType -> f Boolean -> f Boolean
-comonadicStep rule = extend \g -> (Rule.rule rule) (extract g) (neighbors g)
+comonadicStep :: forall f. CellularComonad f => NamedRule -> f Boolean -> f Boolean
+comonadicStep rule = extend \g -> (Rule.fromNamed rule) (extract g) (neighbors g)
 
-comonadicSteps :: forall f. CellularComonad f => Int -> RuleType -> f Boolean -> f Boolean
+comonadicSteps :: forall f. CellularComonad f => Int -> NamedRule -> f Boolean -> f Boolean
 comonadicSteps n rule = n # times (comonadicStep rule)
 
-step :: forall f. Automaton f => RuleType -> f Boolean -> f Boolean
+step :: forall f. Automaton f => NamedRule -> f Boolean -> f Boolean
 step = steps 1

@@ -43,8 +43,8 @@ import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
-import Life.Types.Rule (RuleType)
-import Life.Types.Rule as Rule
+import Life.Types.NamedRule (NamedRule)
+import Life.Types.NamedRule as NamedRule
 import Life.Utils (scrollIntoView)
 import Life.Utils as U
 import Web.HTML (window)
@@ -64,7 +64,7 @@ data Message f
   | Reset
   | SetGame (f Boolean)
   | SetKey PitchClass
-  | SetRule RuleType
+  | SetRule NamedRule
   | SetScale ScaleType
   | SetSpeed Int
   | SetWave Wave
@@ -80,7 +80,7 @@ type State f =
   , notes :: Int
   , play :: Maybe Int
   , root :: Int
-  , rule :: RuleType
+  , rule :: NamedRule
   , scale :: ScaleType
   , shareHash :: Maybe String
   , showCopiedFeedback :: Boolean
@@ -101,7 +101,7 @@ init = do
     , notes: Preset.notes preset
     , play: Nothing
     , root: Preset.root preset
-    , rule: Rule.defaultType
+    , rule: NamedRule.default
     , scale: Preset.scale preset
     , shareHash: Nothing
     , showCopiedFeedback: false
@@ -312,7 +312,7 @@ view state dispatch = H.fragment
                 , TagSelect.view
                     { value: state.rule
                     , onChange: dispatch <<< SetRule
-                    , display: Rule.display
+                    , display: NamedRule.display
                     }
                 ]
             , H.div "col-6 col-sm-3 pt-2" $

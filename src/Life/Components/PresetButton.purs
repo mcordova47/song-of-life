@@ -15,7 +15,7 @@ import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Life.Types.Life (class VisibleAutomaton)
 import Life.Types.Life as Life
-import Life.Types.Rule as Rule
+import Life.Types.NamedRule as NamedRule
 
 type Args f =
   { name :: String
@@ -36,7 +36,7 @@ component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
   Hooks.useEffect' { hovering, cells } \deps -> do
     if deps.hovering then do
       delay $ Milliseconds 200.0
-      liftEffect $ setGame $ Life.step Rule.defaultType game
+      liftEffect $ setGame $ Life.step NamedRule.default game
     else
       liftEffect $ setGame life
 
