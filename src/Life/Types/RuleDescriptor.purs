@@ -5,6 +5,8 @@ module Life.Types.RuleDescriptor
   , S(..)
   , dayAndNight
   , display
+  , dotLife
+  , gnarl
   , highLife
   , life
   , lifeWithoutDeath
@@ -13,6 +15,8 @@ module Life.Types.RuleDescriptor
   , morley
   , replicator
   , seeds
+  , stains
+  , walledCities
   )
   where
 
@@ -84,6 +88,18 @@ maze = B [3] |/| S [1, 2, 3, 4, 5]
 mazeWithMice :: RuleDescriptor
 mazeWithMice = B [3, 7] |/| S [1, 2, 3, 4, 5]
 
+stains :: RuleDescriptor
+stains = B [3, 6, 7, 8] |/| S [2, 3, 5, 6, 7, 8]
+
+dotLife :: RuleDescriptor
+dotLife = B [3] |/| S [0, 2, 3]
+
+walledCities :: RuleDescriptor
+walledCities = B [4, 5, 6, 7, 8] |/| S [2, 3, 4, 5]
+
+gnarl :: RuleDescriptor
+gnarl = B [1] |/| S [1]
+
 display :: RuleDescriptor -> String
 display (RuleDescriptor (B b) (S s)) =
   "B" <> foldMap show b <> "/S" <> foldMap show s
@@ -107,23 +123,13 @@ bsCodec char = C.codec decode encode
 -- | **Coagulations** | B378/S235678  | Aggregative                     | Forms semi-stable patterns that merge together   |
 -- | **Assimilation** | B345/S4567    | Invasive                        | Expands slowly, consuming structures             |
 -- | **Move**         | B368/S245     | Like Morley, slightly different | Often confused with Morley but distinct dynamics |
--- | **Stains**       | B3678/S235678 | Blotchy                         | Leads to fuzzy blotches and patterns             |
 -- | **Serviettes**   | B234/S        | Explosive                       | Every cell eventually dies — dramatic bursts     |
 
 -- | Rule         | B/S      | Behavior                    |
 -- | ------------ | -------- | --------------------------- |
 -- | **LongLife** | B345/S5  | Oscillatory, long-period    |
 -- | **TwoByTwo** | B36/S125 | Tile-like patterns          |
--- | **DotLife**  | B3/S023  | Creates dotted fractals     |
 -- | **Flock**    | B3/S12   | Moves like particle systems |
-
--- | Name             | Rule           | Notes                                                                  |
--- | ---------------- | -------------- | ---------------------------------------------------------------------- |
--- | **Gnarl**        | `B1/S1`        | Every live cell with one neighbor survives or births; spiraling chaos. |
-
--- | Name                     | Rule           | Notes                                                               |
--- | ------------------------ | -------------- | ------------------------------------------------------------------- |
--- | **WalledCities**         | `B45678/S2345` | Creates walls and chambers; “city” morphology.                      |
 
 -- | Name                | Rule       | Notes                                                               |
 -- | ------------------- | ---------- | ------------------------------------------------------------------- |
@@ -134,5 +140,4 @@ bsCodec char = C.codec decode encode
 -- | Name                  | Rule            | Notes                                                           |
 -- | --------------------- | --------------- | --------------------------------------------------------------- |
 -- | **Iceballs**          | `B256/S256`     | Generates expanding ice-like bubbles.                           |
--- | **Stains**            | `B3678/S235678` | Forms patchy, stained-glass-like textures.                      |
 -- | **2×2 (Pseudo-Life)** | `B36/S125`      | Behaves like a block cellular automaton; used in Life research. |

@@ -26,6 +26,10 @@ data NamedRule
   | Replicator
   | Maze
   | MazeWithMice
+  | Stains
+  | DotLife
+  | WalledCities
+  | Gnarl
 derive instance Generic NamedRule _
 
 instance Serializable NamedRule where
@@ -41,6 +45,10 @@ instance Serializable NamedRule where
         "Replicator" -> Just Replicator
         "Maze" -> Just Maze
         "MazeWithMice" -> Just MazeWithMice
+        "Stains" -> Just Stains
+        "DotLife" -> Just DotLife
+        "WalledCities" -> Just WalledCities
+        "Gnarl" -> Just Gnarl
         _ -> Nothing
 
       encode = case _ of
@@ -53,6 +61,10 @@ instance Serializable NamedRule where
         Replicator -> "Replicator"
         Maze -> "Maze"
         MazeWithMice -> "MazeWithMice"
+        Stains -> "Stains"
+        DotLife -> "DotLife"
+        WalledCities -> "WalledCities"
+        Gnarl -> "Gnarl"
 
 descriptorCodec :: Codec RuleDescriptor NamedRule
 descriptorCodec = C.codec decode encode
@@ -67,6 +79,10 @@ descriptorCodec = C.codec decode encode
       | descriptor == D.replicator = Just Replicator
       | descriptor == D.maze = Just Maze
       | descriptor == D.mazeWithMice = Just MazeWithMice
+      | descriptor == D.stains = Just Stains
+      | descriptor == D.dotLife = Just DotLife
+      | descriptor == D.walledCities = Just WalledCities
+      | descriptor == D.gnarl = Just Gnarl
       | otherwise = Nothing
 
     encode = case _ of
@@ -79,6 +95,10 @@ descriptorCodec = C.codec decode encode
       Replicator -> D.replicator
       Maze -> D.maze
       MazeWithMice -> D.mazeWithMice
+      Stains -> D.stains
+      DotLife -> D.dotLife
+      WalledCities -> D.walledCities
+      Gnarl -> D.gnarl
 
 default :: NamedRule
 default = Life
@@ -100,3 +120,7 @@ name = case _ of
   Replicator -> "Replicator"
   Maze -> "Maze"
   MazeWithMice -> "Maze with Mice"
+  Stains -> "Stains"
+  DotLife -> "Dot Life"
+  WalledCities -> "Walled Cities"
+  Gnarl -> "Gnarl"
