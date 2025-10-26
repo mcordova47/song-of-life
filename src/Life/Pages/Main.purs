@@ -12,7 +12,7 @@ import Prelude
 import Data.Array ((!!))
 import Data.Array as Array
 import Data.Codec as C
-import Data.Foldable (foldr, for_)
+import Data.Foldable (foldr, for_, intercalate)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid as M
@@ -40,11 +40,11 @@ import Life.Types.Music.ScaleType (ScaleType)
 import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
+import Life.Types.NamedRule (NamedRule)
+import Life.Types.NamedRule as NamedRule
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
-import Life.Types.NamedRule (NamedRule)
-import Life.Types.NamedRule as NamedRule
 import Life.Utils (scrollIntoView)
 import Life.Utils as U
 import Web.HTML (window)
@@ -405,6 +405,8 @@ view state dispatch = H.fragment
             , H.strong "text-salmon" $ Life.label@f
             , H.text " — "
             , H.text $ Life.description@f
+            , H.text ". Some other grid types are "
+            , variantLinks
             , H.text "."
             ]
           ]
@@ -435,6 +437,25 @@ view state dispatch = H.fragment
                 dispatch $ LoadPreset p
                 scrollIntoView Header.id
             }
+
+    variantLinks = variants <#> variantLink # sentence
+
+    variantLink { label, href } =
+      H.a_ "" { href } label
+
+    variants = case Life.label@f of
+      "unbounded" -> [boundedLink, toroidalLink]
+      "toroidal" -> [boundedLink, unboundedLink]
+      _ -> [unboundedLink, toroidalLink]
+
+    boundedLink = { label: "bounded", href: "/" }
+    unboundedLink = { label: "unbounded", href: "/unbounded" }
+    toroidalLink = { label: "toroidal", href: "/toroidal" }
+
+    sentence xs = case Array.uncons xs of
+      Just { tail } | Array.length tail <= 1 -> intercalate (H.text " and ") xs
+      Just { head, tail } -> head <> H.text ", " <> sentence tail
+      Nothing -> H.empty
 
 duration :: Number
 duration = 15_000.0
