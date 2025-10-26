@@ -2,7 +2,9 @@ module Life.Components.ShareButton where
 
 import Prelude
 
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String (Pattern(..))
+import Data.String as String
 import Data.Traversable (fold, traverse)
 import Effect (Effect)
 import Elmish (ReactElement)
@@ -12,6 +14,7 @@ import Life.Types.Life (class TangibleAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
+import Life.Utils as U
 import Promise as Promise
 import Web.Clipboard as Clipboard
 import Web.HTML (window)
@@ -62,10 +65,12 @@ view className args { onCopied } =
       Just (Route.Share p) -> Preset.toLife p
       _ -> args.game
 
-    shareUrl origin path =
-      origin <> path <> "#/" <> case args.shareHash of
-        Just hash -> hash
-        Nothing -> shareHash args
+    shareUrl origin path = fold
+      [ origin
+      , U.transaction path (String.stripSuffix $ Pattern "/")
+      , "/#/"
+      , args.shareHash # fromMaybe (shareHash args)
+      ]
 
 shareHash :: forall f r. TangibleAutomaton f => Preset.State f r -> String
 shareHash args =

@@ -7,6 +7,7 @@ module Life.Utils
   , randomTag
   , scrollIntoView
   , tags
+  , transaction
   , transpose
   , truthy
   , tryModifyAt
@@ -91,6 +92,9 @@ scrollIntoView = runEffectFn1 scrollIntoView_
 
 truthy :: forall a. a -> Boolean
 truthy = runFn1 truthy_
+
+transaction :: forall a. a -> (a -> Maybe a) -> a
+transaction x f = f x # fromMaybe x
 
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 

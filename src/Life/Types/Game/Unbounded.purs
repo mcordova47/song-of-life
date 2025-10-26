@@ -1,5 +1,5 @@
 module Life.Types.Game.Unbounded
-  ( Unbounded(..)
+  ( Unbounded
   )
   where
 

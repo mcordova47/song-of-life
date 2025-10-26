@@ -20,12 +20,13 @@ import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
-import Elmish (Dispatch, ReactElement, Transition, forkMaybe, forkVoid, forks, (<?|), (<|))
+import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, forks, (<?|), (<|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
 import Life.Components.InteractiveGrid as InteractiveGrid
 import Life.Components.PresetButton as PresetButton
+import Life.Components.ShareButton as ShareButton
 import Life.Components.TagSelect as TagSelect
 import Life.Icons as I
 import Life.Types.Life (class InteractiveAutomaton, class TangibleAutomaton)
@@ -42,12 +43,14 @@ import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Utils as U
+import Record as Record
 
 data Message f
   = AutoStep
   | Beat (Array (Int /\ Note)) Milliseconds
   | ChangeRoot Int
   | GenerateRandom
+  | HideCopiedFeedback
   | LoadPreset Preset
   | Pause
   | Play
@@ -56,7 +59,7 @@ data Message f
   | SetKey PitchClass
   | SetScale ScaleType
   | SetSpeed Int
-  -- | SetStepBy Int
+  | ShowCopiedFeedback
   | Step
 
 type State f =
@@ -67,8 +70,9 @@ type State f =
   , play :: Maybe Int
   , root :: Int
   , scale :: ScaleType
+  , shareHash :: Maybe String
+  , showCopiedFeedback :: Boolean
   , speed :: Int
-  -- , stepBy :: Int
   }
 
 init :: forall f. TangibleAutomaton f => Transition (Message f) (State f)
@@ -83,8 +87,9 @@ init =
     , play: Nothing
     , root: Preset.root preset
     , scale: Preset.scale preset
+    , shareHash: Nothing
+    , showCopiedFeedback: false
     , speed: 5
-    -- , stepBy: 1
     }
 
 update :: forall f. TangibleAutomaton f => State f -> Message f -> Transition (Message f) (State f)
@@ -114,13 +119,15 @@ update state = case _ of
   GenerateRandom -> do
     forkMaybe $ liftEffect $ map LoadPreset <$> Preset.random state.notes state.beatsPerMeasure
     pure state
+  HideCopiedFeedback ->
+    pure state { showCopiedFeedback = false }
   LoadPreset p ->
     pure $ loadPreset p
   Pause ->
-    pure state { play = Nothing }
+    pure state { play = Nothing, shareHash = Nothing }
   Play -> do
     autoStep state.game
-    pure state { play = Just (-1) }
+    pure state { play = Just (-1), shareHash = Just $ ShareButton.shareHash (Record.merge state { wave: Wave.default }) }
   Reset ->
     pure state { game = Life.empty state.notes state.beatsPerMeasure }
   SetGame game ->
@@ -131,8 +138,11 @@ update state = case _ of
     pure state { scale = s }
   SetSpeed speed ->
     pure state { speed = speed }
-  -- SetStepBy stepBy ->
-  --   pure state { stepBy = stepBy }
+  ShowCopiedFeedback -> do
+    fork do
+      delay $ Milliseconds 2000.0
+      pure HideCopiedFeedback
+    pure state { showCopiedFeedback = true }
   Step ->
     pure state { game = Life.step state.game }
   where
@@ -216,6 +226,23 @@ view state dispatch = H.fragment
                 , title: "Step"
                 } $
                 I.arrowBarRight { size: 32 }
+            , H.div "position-relative ms-2"
+              [ ShareButton.view "btn text-salmon hover:text-salmon-highlight px-0"
+                  (Record.merge state { wave: Wave.default })
+                  { onCopied: dispatch ShowCopiedFeedback } $
+                  I.share { size: 32 }
+              , M.guard state.showCopiedFeedback $
+                  H.div_ "position-absolute d-flex align-items-center ms-2"
+                  { style: H.css
+                      { top: "50%"
+                      , left: "100%"
+                      , transform: "translateY(-50%)"
+                      }
+                  }
+                  [ H.div "callout-left callout-secondary translucent" H.empty
+                  , H.div "rounded py-2 px-3 bg-secondary text-white translucent text-nowrap" "Copied link to clipboard!"
+                  ]
+              ]
             ]
         , H.div "mt-3"
           [ H.h5 "" "Controls"
@@ -259,24 +286,6 @@ view state dispatch = H.fragment
                     , id: "speed-input"
                     }
                 ]
-            -- TODO: Bring this back
-            -- , H.div "col pt-2" $
-            --     H.div_ ""
-            --     { style: H.css { maxWidth: 200 }
-            --     }
-            --     [ H.label_ "form-label fw-bold mb-2"
-            --         { htmlFor: "step-by-input" }
-            --         "Step By"
-            --     , H.input_ "form-range"
-            --         { type: "range"
-            --         , min: "1"
-            --         , max: "10"
-            --         , step: "1"
-            --         , value: show state.stepBy
-            --         , onChange: dispatch <?| map SetStepBy <<< Int.fromString <<< E.inputText
-            --         , id: "step-by-input"
-            --         }
-            --     ]
             ]
           ]
         , H.div "mt-3"
