@@ -7,6 +7,7 @@ module Life.Utils
   , randomTag
   , scrollIntoView
   , tags
+  , times
   , transaction
   , transpose
   , truthy
@@ -95,6 +96,11 @@ truthy = runFn1 truthy_
 
 transaction :: forall a. a -> (a -> Maybe a) -> a
 transaction x f = f x # fromMaybe x
+
+times :: forall a. (a -> a) -> Int -> a -> a
+times f n x
+  | n <= 0 = x
+  | otherwise = times f (n - 1) $ f x
 
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 

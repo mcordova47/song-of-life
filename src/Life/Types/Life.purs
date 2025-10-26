@@ -1,8 +1,13 @@
 module Life.Types.Life
   ( class CellularAutomaton
+  , class CellularComonad
   , class InteractiveAutomaton
   , class Life
   , class TangibleAutomaton
+  , class VisibleAutomaton
+  , comonadicGrid
+  , comonadicStep
+  , comonadicSteps
   , description
   , empty
   , extractCell
@@ -14,7 +19,7 @@ module Life.Types.Life
   , render
   , renderInteractive
   , step
-  , step'
+  , steps
   , toCells
   , toggle
   , update
@@ -30,49 +35,31 @@ import Data.Set (Set)
 import Data.Set as Set
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
-import Life.Types.Rule (Rule)
+import Life.Types.Rule (RuleType)
 import Life.Types.Rule as Rule
+import Life.Utils (times)
 import Life.Utils as U
 
-class Comonad f <= CellularAutomaton f where
+class Comonad f <= CellularComonad f where
   focusCell :: forall a. Cell -> f a -> f a
   extractCell :: forall a. f a -> Cell
+
+class CellularAutomaton f where
+  steps :: Int -> RuleType -> f Boolean -> f Boolean
 
 class CellularAutomaton f <= TangibleAutomaton f where
   fromCells :: Int -> Int -> Set Cell -> f Boolean
   toCells :: f Boolean -> Set Cell
 
-class TangibleAutomaton f <= InteractiveAutomaton f where
+class TangibleAutomaton f <= VisibleAutomaton f where
+  grid :: forall a. Int -> Int -> f a -> Array (Array a)
+
+class VisibleAutomaton f <= InteractiveAutomaton f where
   update :: forall a. (a -> a) -> Int -> Int -> f a -> f a
 
 class InteractiveAutomaton f <= Life f where
   label :: String
   description :: String
-
-step :: forall f. CellularAutomaton f => f Boolean -> f Boolean
-step = step' Rule.default
-
-step' :: forall f. CellularAutomaton f => Rule -> f Boolean -> f Boolean
-step' rule = extend \g -> rule (extract g) (neighbors g)
-
-toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
-toggle = update not
-
-empty :: forall f. TangibleAutomaton f => Int -> Int -> f Boolean
-empty rows cols = fromCells rows cols Set.empty
-
-neighbors :: forall f. CellularAutomaton f => f Boolean -> Int
-neighbors g =
-  Cell.neighbors (extractCell g)
-  # flip foldl 0 \acc cell ->
-    if extract $ focusCell cell g
-      then acc + 1
-      else acc
-
-grid :: forall f a. CellularAutomaton f => Int -> Int -> f a -> Array (Array a)
-grid rows cols f =
-  U.grid rows cols <#> map \cell ->
-    extract $ focusCell cell f
 
 type RenderArgs f m = RenderArgs' f m m Boolean
 type RenderInteractiveArgs f m e = RenderArgs' f m
@@ -91,7 +78,21 @@ type RenderArgs' f m r c =
   , renderCol :: c -> m
   }
 
-render :: forall f m. Monoid m => CellularAutomaton f => RenderArgs f m -> m
+toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
+toggle = update not
+
+empty :: forall f. TangibleAutomaton f => Int -> Int -> f Boolean
+empty rows cols = fromCells rows cols Set.empty
+
+neighbors :: forall f. CellularComonad f => f Boolean -> Int
+neighbors g =
+  Cell.neighbors (extractCell g)
+  # flip foldl 0 \acc cell ->
+    if extract $ focusCell cell g
+      then acc + 1
+      else acc
+
+render :: forall f m. Monoid m => VisibleAutomaton f => RenderArgs f m -> m
 render args =
   args.life
   # grid args.rows args.cols
@@ -104,3 +105,17 @@ renderInteractive args =
   # foldMapWithIndex \row ->
   foldMapWithIndex (\col living -> args.renderCol { living, onClick: \_ -> toggle row col args.life, col })
   >>> \content -> args.renderRow { row, content }
+
+comonadicGrid :: forall f a. CellularComonad f => TangibleAutomaton f => Int -> Int -> f a -> Array (Array a)
+comonadicGrid rows cols f =
+  U.grid rows cols <#> map \cell ->
+    extract $ focusCell cell f
+
+comonadicStep :: forall f. CellularComonad f => RuleType -> f Boolean -> f Boolean
+comonadicStep rule = extend \g -> (Rule.rule rule) (extract g) (neighbors g)
+
+comonadicSteps :: forall f. CellularComonad f => Int -> RuleType -> f Boolean -> f Boolean
+comonadicSteps n rule = n # times (comonadicStep rule)
+
+step :: forall f. CellularAutomaton f => RuleType -> f Boolean -> f Boolean
+step = steps 1

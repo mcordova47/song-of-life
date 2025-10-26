@@ -42,6 +42,7 @@ import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave as Wave
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
+import Life.Types.Rule as Rule
 import Life.Utils as U
 import Record as Record
 
@@ -97,7 +98,7 @@ update state = case _ of
   -- TODO: Refactor AutoStep logic:
   --  - state.beatsPerMeasure - 1 hack
   AutoStep | Just _ <- state.play -> do
-    let game = Life.step state.game
+    let game = Life.step Rule.defaultType state.game
     autoStep game
     pure state { game = game, play = Just (state.beatsPerMeasure - 1) }
   AutoStep ->
@@ -144,7 +145,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { game = Life.step state.game }
+    pure state { game = Life.step Rule.defaultType state.game }
   where
     autoStep game =
       forks \{ dispatch } -> do

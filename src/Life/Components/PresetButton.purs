@@ -13,8 +13,9 @@ import Elmish (ReactElement, (<|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Types.Life (class TangibleAutomaton)
+import Life.Types.Life (class VisibleAutomaton)
 import Life.Types.Life as Life
+import Life.Types.Rule as Rule
 
 type Args f =
   { name :: String
@@ -24,7 +25,7 @@ type Args f =
   , onClick :: E.EventHandler E.SyntheticEvent
   }
 
-component :: forall f. TangibleAutomaton f => Args f -> ReactElement
+component :: forall f. VisibleAutomaton f => Args f -> ReactElement
 component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
   game /\ setGame <- Hooks.useState life
   hovering /\ setHovering <- Hooks.useState false
@@ -35,7 +36,7 @@ component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
   Hooks.useEffect' { hovering, cells } \deps -> do
     if deps.hovering then do
       delay $ Milliseconds 200.0
-      liftEffect $ setGame $ Life.step game
+      liftEffect $ setGame $ Life.step Rule.defaultType game
     else
       liftEffect $ setGame life
 

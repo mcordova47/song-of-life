@@ -20,6 +20,7 @@ import Elmish.Hooks as Hooks
 import Life.Components.Header as Header
 import Life.Game.Optimized.Unbounded as Game
 import Life.Types.Cell (Cell)
+import Life.Types.Rule as Rule
 
 type State =
   { playing :: Boolean
@@ -151,13 +152,14 @@ grid { cells, rows, cols, playing, stepsPerFrame, controls } = Hooks.component H
   let
     framesPerSecond = 60.0
     msPerFrame = 1000.0 / framesPerSecond
+
   livingCells /\ setLivingCells <- Hooks.useState cells
   step /\ setStep <- Hooks.useState 0
 
   Hooks.useEffect' { playing, step } \deps -> do
     when deps.playing do
       delay $ Milliseconds msPerFrame
-      liftEffect $ setLivingCells $ Game.steps stepsPerFrame livingCells
+      liftEffect $ setLivingCells $ Game.steps Rule.default stepsPerFrame livingCells
       liftEffect $ setStep (deps.step + stepsPerFrame)
 
   let toggleCell cell = (if Set.member cell livingCells then Set.delete else Set.insert) cell livingCells
@@ -166,7 +168,7 @@ grid { cells, rows, cols, playing, stepsPerFrame, controls } = Hooks.component H
     H.fragment
     [ controls
         { stepBy: \n -> do
-            setLivingCells $ Game.steps n livingCells
+            setLivingCells $ Game.steps Rule.default n livingCells
             setStep $ step + 1
         , reset: do
             setLivingCells Set.empty

@@ -114,7 +114,7 @@ update state = case _ of
   -- TODO: Refactor AutoStep logic:
   --  - state.beatsPerMeasure - 1 hack
   AutoStep | Just _ <- state.play -> do
-    let game = Life.step' (Rule.rule state.rule) state.game
+    let game = Life.step state.rule state.game
     autoStep game
     pure state { game = game, play = Just (state.beatsPerMeasure - 1) }
   AutoStep ->
@@ -160,7 +160,7 @@ update state = case _ of
       pure HideCopiedFeedback
     pure state { showCopiedFeedback = true }
   Step ->
-    pure state { game = Life.step' (Rule.rule state.rule) state.game }
+    pure state { game = Life.step state.rule state.game }
   ToggleConnectNotes ->
     pure state { connectNotes = not state.connectNotes }
   LoadPreset p ->

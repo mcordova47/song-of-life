@@ -15,7 +15,7 @@ import Data.Maybe (fromMaybe)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
-import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton, class Life, class TangibleAutomaton)
+import Life.Types.Life (class CellularAutomaton, class CellularComonad, class InteractiveAutomaton, class Life, class TangibleAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
 import Life.Utils as U
 
 newtype Bounded a = Bounded
@@ -42,9 +42,12 @@ instance Comonad Bounded where
   extract (Bounded b@{ focus: row /\ col }) =
     fromMaybe b.default (b.grid !! row >>= flip Array.index col)
 
-instance CellularAutomaton Bounded where
+instance CellularComonad Bounded where
   focusCell cell (Bounded b') = Bounded b' { focus = cell }
   extractCell (Bounded { focus }) = focus
+
+instance CellularAutomaton Bounded where
+  steps = comonadicSteps
 
 instance TangibleAutomaton Bounded where
   fromCells rows cols livingCells =
@@ -68,6 +71,9 @@ instance TangibleAutomaton Bounded where
         b.grid # Array.mapWithIndex \row cols ->
           cols # Array.mapWithIndex \col living ->
             (row /\ col /\ living)
+
+instance VisibleAutomaton Bounded where
+  grid = comonadicGrid
 
 instance InteractiveAutomaton Bounded where
   update f row col (Bounded b) = Bounded b
