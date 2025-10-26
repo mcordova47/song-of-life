@@ -6,6 +6,7 @@ module Life.Types.Codec
   , (<\>)
   , (\>)
   , Codec
+  , chars
   , class Serializable
   , codec
   , discardFirst
@@ -29,9 +30,11 @@ import Control.Alternative (guard)
 import Data.Array as Array
 import Data.Codec as C
 import Data.Int as Int
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Profunctor (dimap)
+import Data.String (Pattern(..))
 import Data.String as S
+import Data.String as String
 import Data.String.Regex (Regex)
 import Data.String.Regex as R
 import Data.Traversable (foldMap, traverse)
@@ -122,3 +125,7 @@ match regex codec = C.codec decode encode
 
     encode =
       foldMap (C.encode codec)
+
+chars :: Codec String (Array String)
+chars =
+  C.codec (Just <<< String.split (Pattern "")) Array.fold

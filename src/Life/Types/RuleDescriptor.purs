@@ -19,6 +19,18 @@ module Life.Types.RuleDescriptor
 import Prelude
 
 import Data.Array (foldMap)
+import Data.Array as Array
+import Data.Codec as C
+import Data.Int as Int
+import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Profunctor (dimap)
+import Data.String (Pattern(..))
+import Data.String as String
+import Data.Traversable (traverse)
+import Data.Tuple.Nested ((/\))
+import Life.Types.Codec (class Serializable, Codec, codec)
+import Life.Types.Codec as Codec
 
 data RuleDescriptor = RuleDescriptor B S
 derive instance Eq RuleDescriptor
@@ -27,9 +39,23 @@ infixl 5 RuleDescriptor as |/|
 
 newtype B = B (Array Int)
 derive newtype instance Eq B
+derive instance Newtype B _
 
 newtype S = S (Array Int)
 derive newtype instance Eq S
+derive instance Newtype S _
+
+instance Serializable RuleDescriptor where
+  codec = dimap toTuple fromTuple (Codec.ljoin "." codec codec)
+    where
+      toTuple (b |/| s) = b /\ s
+      fromTuple (b /\ s) = b |/| s
+
+instance Serializable B where
+  codec = bsCodec "B"
+
+instance Serializable S where
+  codec = bsCodec "S"
 
 life :: RuleDescriptor
 life = B [3] |/| S [2, 3]
@@ -61,6 +87,15 @@ mazeWithMice = B [3, 7] |/| S [1, 2, 3, 4, 5]
 display :: RuleDescriptor -> String
 display (RuleDescriptor (B b) (S s)) =
   "B" <> foldMap show b <> "/S" <> foldMap show s
+
+bsCodec :: forall a. Newtype a (Array Int) => String -> Codec String a
+bsCodec char = C.codec decode encode
+  where
+    decode str = case Array.uncons (String.split (Pattern "") str) of
+      Just { head, tail } | head == char -> wrap <$> traverse Int.fromString tail
+      _ -> Nothing
+
+    encode = unwrap >>> Array.sort >>> Array.nub >>> map show >>> Array.fold >>> ((<>) char)
 
 -- Other rules:
 
