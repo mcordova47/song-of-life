@@ -11,7 +11,7 @@ import Data.Set (Set)
 import Data.Tuple.Nested (type (/\), (/\))
 import Life.Game.Optimized.Unbounded as Optimized
 import Life.Types.Cell (Cell)
-import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton, class Life, class TangibleAutomaton, class VisibleAutomaton)
+import Life.Types.Life (class Automaton, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton)
 import Life.Types.Rule as Rule
 import Life.Utils as U
 
@@ -20,11 +20,11 @@ newtype Unbounded a = Unbounded
   , default :: a
   }
 
-instance CellularAutomaton Unbounded where
+instance Automaton Unbounded where
   steps n rule (Unbounded u) =
     u.cells # Map.keys # Optimized.steps (Rule.rule rule) n # fromCells
 
-instance TangibleAutomaton Unbounded where
+instance CellularAutomaton Unbounded where
   fromCells _ _ = fromCells
 
   toCells (Unbounded { cells }) = cells # Map.filter identity # Map.keys

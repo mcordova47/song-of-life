@@ -17,7 +17,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
-import Life.Types.Life (class CellularAutomaton, class CellularComonad, class InteractiveAutomaton, class Life, class TangibleAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
+import Life.Types.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
 import Life.Utils (truthy)
 
 newtype Unbounded a = Unbounded
@@ -56,10 +56,10 @@ instance CellularComonad Unbounded where
   focusCell cell (Unbounded u') = Unbounded u' { focus = cell }
   extractCell (Unbounded { focus }) = focus
 
-instance CellularAutomaton Unbounded where
+instance Automaton Unbounded where
   steps = comonadicSteps
 
-instance TangibleAutomaton Unbounded where
+instance CellularAutomaton Unbounded where
   fromCells _ _ cells =
     cells
     # Array.fromFoldable

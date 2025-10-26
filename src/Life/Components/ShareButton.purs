@@ -10,7 +10,7 @@ import Effect (Effect)
 import Elmish (ReactElement)
 import Elmish.Dispatch as E
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class TangibleAutomaton, class VisibleAutomaton)
+import Life.Types.Life (class CellularAutomaton, class VisibleAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
@@ -72,6 +72,6 @@ view className args { onCopied } =
       , args.shareHash # fromMaybe (shareHash args)
       ]
 
-shareHash :: forall f r. TangibleAutomaton f => Preset.State f r -> String
+shareHash :: forall f r. CellularAutomaton f => Preset.State f r -> String
 shareHash args =
   Route.encode $ Route.Share $ Preset.fromState args

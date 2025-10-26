@@ -1,9 +1,9 @@
 module Life.Types.Life
-  ( class CellularAutomaton
+  ( class Automaton
   , class CellularComonad
   , class InteractiveAutomaton
   , class Life
-  , class TangibleAutomaton
+  , class CellularAutomaton
   , class VisibleAutomaton
   , comonadicGrid
   , comonadicStep
@@ -44,14 +44,14 @@ class Comonad f <= CellularComonad f where
   focusCell :: forall a. Cell -> f a -> f a
   extractCell :: forall a. f a -> Cell
 
-class CellularAutomaton f where
+class Automaton f where
   steps :: Int -> RuleType -> f Boolean -> f Boolean
 
-class CellularAutomaton f <= TangibleAutomaton f where
+class Automaton f <= CellularAutomaton f where
   fromCells :: Int -> Int -> Set Cell -> f Boolean
   toCells :: f Boolean -> Set Cell
 
-class TangibleAutomaton f <= VisibleAutomaton f where
+class CellularAutomaton f <= VisibleAutomaton f where
   grid :: forall a. Int -> Int -> f a -> Array (Array a)
 
 class VisibleAutomaton f <= InteractiveAutomaton f where
@@ -81,7 +81,7 @@ type RenderArgs' f m r c =
 toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
 toggle = update not
 
-empty :: forall f. TangibleAutomaton f => Int -> Int -> f Boolean
+empty :: forall f. CellularAutomaton f => Int -> Int -> f Boolean
 empty rows cols = fromCells rows cols Set.empty
 
 neighbors :: forall f. CellularComonad f => f Boolean -> Int
@@ -106,7 +106,7 @@ renderInteractive args =
   foldMapWithIndex (\col living -> args.renderCol { living, onClick: \_ -> toggle row col args.life, col })
   >>> \content -> args.renderRow { row, content }
 
-comonadicGrid :: forall f a. CellularComonad f => TangibleAutomaton f => Int -> Int -> f a -> Array (Array a)
+comonadicGrid :: forall f a. CellularComonad f => CellularAutomaton f => Int -> Int -> f a -> Array (Array a)
 comonadicGrid rows cols f =
   U.grid rows cols <#> map \cell ->
     extract $ focusCell cell f
@@ -117,5 +117,5 @@ comonadicStep rule = extend \g -> (Rule.rule rule) (extract g) (neighbors g)
 comonadicSteps :: forall f. CellularComonad f => Int -> RuleType -> f Boolean -> f Boolean
 comonadicSteps n rule = n # times (comonadicStep rule)
 
-step :: forall f. CellularAutomaton f => RuleType -> f Boolean -> f Boolean
+step :: forall f. Automaton f => RuleType -> f Boolean -> f Boolean
 step = steps 1
