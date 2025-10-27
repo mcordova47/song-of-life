@@ -1,5 +1,6 @@
 module Life.Utils
   ( (>>>>)
+  , Opaque(..)
   , chunksOf
   , compose2
   , fill
@@ -105,3 +106,8 @@ times f n x
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 
 foreign import truthy_ :: forall a. Fn1 a Boolean
+
+data Opaque a = Opaque a
+
+instance Eq (Opaque a) where
+  eq _ _ = true

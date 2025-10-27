@@ -12,14 +12,11 @@ import Data.Tuple.Nested ((/\))
 import Effect (Effect, foreachE)
 import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
+import Effect.Ref as Ref
 import Elmish (Dispatch, ReactElement, Transition, (<?|), (<|))
 import Elmish.Boot (defaultMain)
-import Elmish.Foreign (class CanReceiveFromJavaScript)
-import Elmish.HTML as HH
-import Elmish.HTML.Events (EventHandler, MouseEvent(..))
+import Elmish.HTML.Events (MouseEvent(..))
 import Elmish.HTML.Events as E
-import Elmish.HTML.Events.Methods (class IsSyntheticEvent)
-import Elmish.HTML.Internal as I
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Graphics.Canvas as C
@@ -31,7 +28,13 @@ import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as NamedRule
 import Unsafe.Coerce (unsafeCoerce)
-import Web.DOM.Element (getBoundingClientRect)
+import Web.DOM.Element (getBoundingClientRect, toEventTarget)
+import Web.DOM.NonElementParentNode (getElementById)
+import Web.Event.Event (EventType(..), preventDefault, stopPropagation)
+import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument as Doc
+import Web.HTML.Window (document)
 
 type State =
   { framesPerSecond :: Int
@@ -74,7 +77,7 @@ update state = case _ of
     pure state { playing = not state.playing }
 
 view :: State -> Dispatch Message -> ReactElement
-view state dispatch = H.div "d-flex flex-column vh-100 overflow-hidden"
+view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
   [ Header.view
   , H.div "container flex-grow-1 d-flex flex-column pt-4" $
       grid
@@ -157,8 +160,8 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
 
   let
     gridSize = 200
-    cellSize = zoom
     msPerFrame = 1000.0 / Int.toNumber framesPerSecond
+    cellSize = zoom
     numRows = Int.ceil (Int.toNumber height / cellSize)
     numCols = Int.ceil (Int.toNumber width / cellSize)
     isVisible (r /\ c) =
@@ -168,7 +171,30 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
   step /\ setStep <- Hooks.useState 0
   renderId /\ setRenderId <- Hooks.useState 0
 
-  Hooks.useEffect' { playing, renderId } \{ playing: playing' } -> do
+  let
+    zoomBy factor zr = do
+      z <- Ref.read zr
+      let zoom' = max 1.0 $ min 50.0 (z * factor)
+      Ref.write zoom' zr
+      setZoom zoom'
+
+  Hooks.useEffect $ liftEffect do
+    z <- Ref.new zoom
+
+    mCanvas <- window >>= document <#> Doc.toNonElementParentNode >>= getElementById "canvas"
+    for_ mCanvas \canvas -> do
+      listener <- eventListener \e -> do
+        preventDefault e
+        stopPropagation e
+
+        if (unsafeCoerce e).deltaY > 0 then
+          zoomBy 0.98 z
+        else
+          zoomBy 1.02 z
+
+      canvas # toEventTarget # addEventListenerWithOptions (EventType "wheel") listener { capture: false, once: false, passive: false }
+
+  Hooks.useEffect' { playing, renderId, zoom } \{ playing: playing' } -> do
     liftEffect do
       mCanvasElem <- C.getCanvasElementById "canvas"
       for_ mCanvasElem \canvasElem -> do
@@ -184,7 +210,7 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
           let
             x = Int.toNumber col * cellSize -- + pan.x
             y = Int.toNumber row * cellSize -- + pan.y
-          C.fillRect ctx { x, y, height: cellSize - 1.0, width: cellSize - 1.0 }
+          C.fillRect ctx { x, y, height: cellSize, width: cellSize }
 
     when playing' do
       delay $ Milliseconds msPerFrame
@@ -206,7 +232,7 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
             setRenderId (renderId + 1)
         , currentStep: step
         }
-    , canvas_ ""
+    , H.canvas_ "cursor-pointer"
         { id: "canvas"
         , width: show width <> "px"
         , height: show height <> "px"
@@ -220,24 +246,9 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
               row = Int.floor (y / cellSize)
             setGame $ Life.toggle row col game
             setRenderId (renderId + 1)
-        , onWheel: E.handleEffect \e@(WheelEvent ev) -> do
-            E.preventDefault e
-            E.stopPropagation e
-            let
-              delta = if ev.deltaY > 0 then 0.99 else 1.01
-
-            setZoom $ max 1.0 (min 50.0 (zoom * delta))
-            setRenderId $ (renderId + 1)
         }
         H.empty
     ]
-
-newtype WheelEvent = WheelEvent { deltaY :: Int }
-derive newtype instance CanReceiveFromJavaScript WheelEvent
-instance IsSyntheticEvent WheelEvent
-
-canvas_ :: I.StyledTag_ ( onWheel :: EventHandler WheelEvent | HH.Props_canvas )
-canvas_ = I.styledTag_ "canvas"
 
 gliderGunWithEater :: Set Cell
 gliderGunWithEater = Set.fromFoldable
