@@ -15,7 +15,6 @@
 
 body {
   font-family: 'Terminal Grotesque', 'Lucida Console', 'Courier New', monospace;
-  padding-bottom: 2rem;
 }
 
 .bg-lightblue, .grid-cell-container.active, .grid-cell-container.active .grid-cell {

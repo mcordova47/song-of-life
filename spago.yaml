@@ -3,6 +3,7 @@ package:
     - aff
     - argonaut
     - arrays
+    - canvas
     - codec
     - console
     - control

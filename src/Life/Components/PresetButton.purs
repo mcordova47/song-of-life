@@ -50,7 +50,7 @@ component { name, life, rows, cols, onClick } = Hooks.component Hooks.do
         , onTouchEnd: setHovering <| false
         } $
         H.div "preset-grid mx-auto" $
-          Life.render
+          Life.foldMap
             { life: viewGame
             , rows
             , cols

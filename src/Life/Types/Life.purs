@@ -1,9 +1,9 @@
 module Life.Types.Life
   ( class Automaton
+  , class CellularAutomaton
   , class CellularComonad
   , class InteractiveAutomaton
   , class Life
-  , class CellularAutomaton
   , class VisibleAutomaton
   , comonadicGrid
   , comonadicStep
@@ -12,11 +12,12 @@ module Life.Types.Life
   , empty
   , extractCell
   , focusCell
+  , foldMap
+  , foldMapWithIndex
   , fromCells
   , grid
   , label
   , neighbors
-  , render
   , renderInteractive
   , step
   , steps
@@ -29,14 +30,14 @@ module Life.Types.Life
 import Prelude
 
 import Control.Comonad (class Comonad, extend, extract)
-import Data.Foldable (foldMap, foldl)
-import Data.FoldableWithIndex (foldMapWithIndex)
+import Data.Foldable as F
+import Data.FoldableWithIndex as FI
 import Data.Set (Set)
 import Data.Set as Set
 import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
-import Life.Types.Rule as Rule
 import Life.Types.NamedRule (NamedRule)
+import Life.Types.Rule as Rule
 import Life.Utils (times)
 import Life.Utils as U
 
@@ -62,12 +63,21 @@ class InteractiveAutomaton f <= Life f where
   description :: String
 
 type RenderArgs f m = RenderArgs' f m m Boolean
+type RenderWithIndexArgs f m = RenderArgs' f m
+  { row :: Int
+  , content :: m
+  }
+  { col :: Int
+  , row :: Int
+  , living :: Boolean
+  }
 type RenderInteractiveArgs f m e = RenderArgs' f m
   { row :: Int
   , content :: m
   }
-  { living :: Boolean
-  , col :: Int
+  { col :: Int
+  , row :: Int
+  , living :: Boolean
   , onClick :: e -> f Boolean
   }
 type RenderArgs' f m r c =
@@ -81,30 +91,38 @@ type RenderArgs' f m r c =
 toggle :: forall f. InteractiveAutomaton f => Int -> Int -> f Boolean -> f Boolean
 toggle = update not
 
-empty :: forall f. CellularAutomaton f => Int -> Int -> f Boolean
+empty :: forall @f. CellularAutomaton f => Int -> Int -> f Boolean
 empty rows cols = fromCells rows cols Set.empty
 
 neighbors :: forall f. CellularComonad f => f Boolean -> Int
 neighbors g =
   Cell.neighbors (extractCell g)
-  # flip foldl 0 \acc cell ->
+  # flip F.foldl 0 \acc cell ->
     if extract $ focusCell cell g
       then acc + 1
       else acc
 
-render :: forall f m. Monoid m => VisibleAutomaton f => RenderArgs f m -> m
-render args =
+foldMap :: forall f m. Monoid m => VisibleAutomaton f => RenderArgs f m -> m
+foldMap args =
+  foldMapWithIndex args
+    { renderRow =  args.renderRow <<< _.content
+    , renderCol = args.renderCol <<< _.living
+    }
+
+foldMapWithIndex :: forall f m. Monoid m => VisibleAutomaton f => RenderWithIndexArgs f m -> m
+foldMapWithIndex args =
   args.life
   # grid args.rows args.cols
-  # foldMap (foldMap args.renderCol >>> args.renderRow)
+  # FI.foldMapWithIndex \row ->
+  FI.foldMapWithIndex (\col living -> args.renderCol { living, row, col })
+  >>> \content -> args.renderRow { row, content }
 
 renderInteractive :: forall f m e. Monoid m => InteractiveAutomaton f => RenderInteractiveArgs f m e -> m
 renderInteractive args =
-  args.life
-  # grid args.rows args.cols
-  # foldMapWithIndex \row ->
-  foldMapWithIndex (\col living -> args.renderCol { living, onClick: \_ -> toggle row col args.life, col })
-  >>> \content -> args.renderRow { row, content }
+  foldMapWithIndex args
+    { renderCol = \{ row, col, living } ->
+        args.renderCol { row, col, living, onClick: \_ -> toggle row col args.life }
+    }
 
 comonadicGrid :: forall f a. CellularComonad f => CellularAutomaton f => Int -> Int -> f a -> Array (Array a)
 comonadicGrid rows cols f =

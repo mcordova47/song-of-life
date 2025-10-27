@@ -50,7 +50,7 @@ view className args { onCopied } =
   where
     shareText origin path = fold
       [ "Made with Songs of Life\n\n"
-      , Life.render
+      , Life.foldMap
           { life: shareGame
           , rows: 6
           , cols: 6
