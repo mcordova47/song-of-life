@@ -1,9 +1,3 @@
-const NEIGHBOR_OFFSETS = [
-  -0x10001, -0x10000, -0x0ffff,
-  -1,                 +1,
-  +0xffff,  +0x10000, +0x10001
-]
-
 export const steps_ = (rule, n, cells) => {
   let set = cellSet(cells)
   for (let i = 0; i < n; i++) {
@@ -26,13 +20,23 @@ const stepCell = (rule, cell, cells, next) => {
   else next.delete(cell)
 }
 
-const pack = ({ row, col }) => (row << 16) | (col & 0xffff)
-const unpack = i => ({ row: i >> 16, col: i & 0xffff })
+const pack = ({ row, col }) => ((row & 0xffff) << 16) | (col & 0xffff)
+
+const unpack = i => ({
+  row: i >> 16,
+  col: (i << 16) >> 16
+})
 
 const cellSet = arr => new Set(arr.map(pack))
 const fromCellSet = set => [...set].map(unpack)
 
-const neighbors = cell => NEIGHBOR_OFFSETS.map(o => cell + o)
+const neighbors = cell => {
+  const { row, col } = unpack(cell)
+  return NEIGHBOR_OFFSETS.map(o => {
+    const { row: dr, col: dc } = unpack(o)
+    return pack({ row: row + dr, col: col + dc })
+  })
+}
 
 const relevantCells = cells => {
   const rel = new Set(cells)
@@ -52,3 +56,9 @@ const livingNeighbors = (cell, cells) => {
   }
   return acc
 }
+
+const NEIGHBOR_OFFSETS = [
+  pack({ row: -1, col: -1 }), pack({ row: -1, col: 0 }), pack({ row: -1, col: 1 }),
+  pack({ row: 0, col: -1 }), pack({ row: 0, col: 1 }),
+  pack({ row: 1, col: -1 }), pack({ row: 1, col: 0 }), pack({ row: 1, col: 1 }),
+]

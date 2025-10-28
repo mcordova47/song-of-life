@@ -3,8 +3,9 @@ module EntryPoints.Lab where
 import Prelude
 
 import Data.Array as Array
-import Data.Foldable (for_)
+import Data.Foldable (fold, for_)
 import Data.Int as Int
+import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Data.Set (Set)
 import Data.Set as Set
@@ -27,12 +28,15 @@ import Life.Types.Game.Optimized.Unbounded (Unbounded)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as NamedRule
+import Life.Utils (Opaque(..))
+import Record as Record
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM.Element (getBoundingClientRect, toEventTarget)
 import Web.DOM.NonElementParentNode (getElementById)
 import Web.Event.Event (EventType(..), preventDefault, stopPropagation)
 import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
 import Web.HTML (window)
+import Web.HTML.HTMLDivElement as Div
 import Web.HTML.HTMLDocument as Doc
 import Web.HTML.Window (document)
 
@@ -80,10 +84,8 @@ view :: State -> Dispatch Message -> ReactElement
 view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
   [ Header.view
   , H.div "container flex-grow-1 d-flex flex-column pt-4" $
-      grid
-        { width: 1000
-        , height: 1000
-        , playing: state.playing
+      gridContainer
+        { playing: state.playing
         , stepsPerFrame: state.stepsPerFrame
         , framesPerSecond: state.framesPerSecond
         , rule: state.rule
@@ -138,15 +140,19 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
         }
   ]
 
-type Args =
-  { width :: Int
-  , height :: Int
-  , playing :: Boolean
+type Args r =
+  { playing :: Boolean
   , stepsPerFrame :: Int
   , framesPerSecond :: Int
   , rule :: NamedRule
   , controls :: Controls -> ReactElement
+  | r
   }
+
+type Size =
+  ( width :: Int
+  , height :: Int
+  )
 
 type Controls =
   { stepBy :: Dispatch Int
@@ -154,25 +160,59 @@ type Controls =
   , currentStep :: Int
   }
 
-grid :: Args -> ReactElement
+gridContainer :: Args () -> ReactElement
+gridContainer args = Hooks.component Hooks.do
+  size /\ setSize <- Hooks.useState Nothing
+  elem /\ ref <- Hooks.useRef
+
+  Hooks.useEffect' (Opaque <$> elem) \maybeEl -> liftEffect do
+    for_ maybeEl \(Opaque el) -> do
+      box <- el # Div.toElement # getBoundingClientRect
+      setSize $ Just { width: Int.floor box.width, height: Int.floor box.height }
+
+  Hooks.pure $
+    H.div_ "flex-grow-1"
+      { ref } $
+      fold do
+        size' <- size
+        pure $ grid $ Record.merge args size'
+
+-- TODO:
+-- - [ ] requestAnimationFrame, playing :: Maybe DateTime, zooming / steps / anything that triggers a redraw gets handled at the same scheduled ticks
+-- - [ ] Diff cells and only redraw changes
+-- - [x] Canvas 100% of parent element
+-- - [ ] Grid lines at large zoom?
+-- - [x] Origin in center, zooming keeps origin the same
+-- - [x] Fix jittering when zooming
+-- - [ ] Pan by dragging
+grid :: Args Size -> ReactElement
 grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } = Hooks.component Hooks.do
   zoom /\ setZoom <- Hooks.useState 5.0
+  origin /\ _ <- Hooks.useState (0 /\ 0)
 
   let
-    gridSize = 200
+    gridSize = 0 -- Number of cells doesn't matter for unbounded grid
     msPerFrame = 1000.0 / Int.toNumber framesPerSecond
     cellSize = zoom
-    numRows = Int.ceil (Int.toNumber height / cellSize)
-    numCols = Int.ceil (Int.toNumber width / cellSize)
+    numRows = Int.toNumber height / cellSize
+    numCols = Int.toNumber width / cellSize
+    originX /\ originY = origin
+    offsetX = cellSize * (numCols / 2.0 - 0.5)
+    offsetY = cellSize * (numRows / 2.0 - 0.5)
+    minX = originX - Int.ceil offsetX
+    minY = originY - Int.ceil offsetY
+    maxX = originX + Int.ceil offsetX
+    maxY = originY + Int.ceil offsetY
     isVisible (r /\ c) =
-      r <= numRows && r >= 0 && c <= numCols && c >= 0
+      r <= maxY && r >= minY && c <= maxX && c >= minX
 
   game /\ setGame <- Hooks.useState $ Life.fromCells@Game gridSize gridSize gliderGunWithEater
   step /\ setStep <- Hooks.useState 0
   renderId /\ setRenderId <- Hooks.useState 0
 
   let
-    zoomBy factor zr = do
+    zoomBy delta zr = do
+      let factor = clamp 0.85 1.15 (1.0 - 0.015 * Int.toNumber delta)
       z <- Ref.read zr
       let zoom' = max 1.0 $ min 50.0 (z * factor)
       Ref.write zoom' zr
@@ -186,11 +226,7 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
       listener <- eventListener \e -> do
         preventDefault e
         stopPropagation e
-
-        if (unsafeCoerce e).deltaY > 0 then
-          zoomBy 0.98 z
-        else
-          zoomBy 1.02 z
+        zoomBy (unsafeCoerce e).deltaY z
 
       canvas # toEventTarget # addEventListenerWithOptions (EventType "wheel") listener { capture: false, once: false, passive: false }
 
@@ -208,8 +244,8 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
 
         foreachE (Life.toCells game # Set.filter isVisible # Array.fromFoldable) \(row /\ col) -> do
           let
-            x = Int.toNumber col * cellSize -- + pan.x
-            y = Int.toNumber row * cellSize -- + pan.y
+            x = Int.toNumber col * cellSize + offsetX
+            y = Int.toNumber row * cellSize + offsetY
           C.fillRect ctx { x, y, height: cellSize, width: cellSize }
 
     when playing' do
@@ -240,8 +276,8 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
         , onClick: unsafeCoerce $ E.handleEffect \(MouseEvent e) -> do
             rect <- getBoundingClientRect e.target
             let
-              x = e.clientX - rect.left -- - pan.x
-              y = e.clientY - rect.top -- - pan.y
+              x = e.clientX - rect.left - offsetX
+              y = e.clientY - rect.top - offsetY
               col = Int.floor (x / cellSize)
               row = Int.floor (y / cellSize)
             setGame $ Life.toggle row col game
@@ -252,47 +288,47 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
 
 gliderGunWithEater :: Set Cell
 gliderGunWithEater = Set.fromFoldable
-  [ 4 /\ 33
-  , 5 /\ 31
-  , 5 /\ 33
-  , 6 /\ 21
-  , 6 /\ 22
-  , 6 /\ 29
-  , 6 /\ 30
-  , 6 /\ 43
-  , 6 /\ 44
-  , 7 /\ 20
-  , 7 /\ 24
-  , 7 /\ 29
-  , 7 /\ 30
-  , 7 /\ 43
-  , 7 /\ 44
-  , 8 /\ 9
-  , 8 /\ 10
-  , 8 /\ 19
-  , 8 /\ 25
-  , 8 /\ 29
-  , 8 /\ 30
-  , 9 /\ 9
-  , 9 /\ 10
-  , 9 /\ 19
-  , 9 /\ 23
-  , 9 /\ 25
-  , 9 /\ 26
-  , 9 /\ 31
-  , 9 /\ 33
-  , 10 /\ 19
-  , 10 /\ 25
-  , 10 /\ 33
-  , 11 /\ 20
-  , 11 /\ 24
-  , 12 /\ 21
-  , 12 /\ 22
-  , 117 /\ 135
-  , 117 /\ 136
-  , 118 /\ 135
-  , 119 /\ 136
-  , 119 /\ 137
-  , 119 /\ 138
-  , 120 /\ 138
+  [ -71 /\ -42
+  , -70 /\ -44
+  , -70 /\ -42
+  , -69 /\ -54
+  , -69 /\ -53
+  , -69 /\ -46
+  , -69 /\ -45
+  , -69 /\ -32
+  , -69 /\ -31
+  , -68 /\ -55
+  , -68 /\ -51
+  , -68 /\ -46
+  , -68 /\ -45
+  , -68 /\ -32
+  , -68 /\ -31
+  , -67 /\ -66
+  , -67 /\ -65
+  , -67 /\ -56
+  , -67 /\ -50
+  , -67 /\ -46
+  , -67 /\ -45
+  , -66 /\ -66
+  , -66 /\ -65
+  , -66 /\ -56
+  , -66 /\ -52
+  , -66 /\ -50
+  , -66 /\ -49
+  , -66 /\ -44
+  , -66 /\ -42
+  , -65 /\ -56
+  , -65 /\ -50
+  , -65 /\ -42
+  , -64 /\ -55
+  , -64 /\ -51
+  , -63 /\ -54
+  , -63 /\ -53
+  , 42 /\ 60
+  , 42 /\ 61
+  , 43 /\ 60
+  , 44 /\ 61
+  , 44 /\ 62
+  , 44 /\ 63
+  , 45 /\ 63
   ]
