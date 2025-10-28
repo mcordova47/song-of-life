@@ -7,6 +7,8 @@ import Data.Foldable (fold, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
+import Data.Number (sqrt)
+import Data.Number as Number
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
@@ -182,16 +184,17 @@ gridContainer args = Hooks.component Hooks.do
 
 -- TODO:
 -- - [ ] requestAnimationFrame, playing :: Maybe DateTime, zooming / steps / anything that triggers a redraw gets handled at the same scheduled ticks
--- - [ ] Diff cells and only redraw changes
--- - [x] Canvas 100% of parent element
 -- - [ ] Grid lines at large zoom?
+-- - [x] Canvas 100% of parent element
 -- - [x] Origin in center, zooming keeps origin the same
 -- - [x] Fix jittering when zooming
--- - [ ] Pan by dragging
+-- - [x] Pan by dragging
 grid :: Args Size -> ReactElement
 grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } = Hooks.component Hooks.do
   zoom /\ setZoom <- Hooks.useState 5.0
-  origin /\ _ <- Hooks.useState (0 /\ 0)
+  origin /\ setOrigin <- Hooks.useState (0.0 /\ 0.0)
+  dragging /\ setDragging <- Hooks.useState Nothing
+  dragged /\ setDragged <- Hooks.useState false
 
   let
     gridSize = 0 -- Number of cells doesn't matter for unbounded grid
@@ -200,12 +203,13 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
     numRows = Int.toNumber height / cellSize
     numCols = Int.toNumber width / cellSize
     originX /\ originY = origin
-    offsetX = cellSize * (numCols / 2.0 - 0.5)
-    offsetY = cellSize * (numRows / 2.0 - 0.5)
-    minX = originX - Int.ceil offsetX
-    minY = originY - Int.ceil offsetY
-    maxX = originX + Int.ceil offsetX
-    maxY = originY + Int.ceil offsetY
+    offsetX = cellSize * (numCols / 2.0 - originX - 0.5)
+    offsetY = cellSize * (numRows / 2.0 - originY - 0.5)
+    maxX = Int.ceil (numCols - offsetX / cellSize)
+    maxY = Int.ceil (numRows - offsetY / cellSize)
+    minX = Int.floor (-offsetX / cellSize)
+    minY = Int.floor (-offsetY / cellSize)
+    isVisible :: Cell -> Boolean
     isVisible (r /\ c) =
       r <= maxY && r >= minY && c <= maxX && c >= minX
 
@@ -221,6 +225,19 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
       Ref.write zoom' zr
       setZoom zoom'
 
+    blankSlate ctx = do
+      C.clearRect ctx { x: 0.0, y: 0.0, height: Int.toNumber height, width: Int.toNumber width }
+      C.setFillStyle ctx "#f5f5f5"
+      C.fillRect ctx { x: 0.0, y: 0.0, height: Int.toNumber height, width: Int.toNumber width }
+
+    drawCells ctx cells = do
+      C.setFillStyle ctx "#ff75aa"
+      foreachE (cells # Set.filter isVisible # Array.fromFoldable) \(row /\ col) -> do
+        let
+          x = Int.toNumber col * cellSize + offsetX
+          y = Int.toNumber row * cellSize + offsetY
+        C.fillRect ctx { x, y, height: cellSize, width: cellSize }
+
   Hooks.useEffect $ liftEffect do
     z <- Ref.new zoom
 
@@ -233,23 +250,13 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
 
       canvas # toEventTarget # addEventListenerWithOptions (EventType "wheel") listener { capture: false, once: false, passive: false }
 
-  Hooks.useEffect' { playing, renderId, zoom } \{ playing: playing' } -> do
+  Hooks.useEffect' { playing, renderId, zoom, origin } \{ playing: playing' } -> do
     liftEffect do
       mCanvasElem <- C.getCanvasElementById "canvas"
       for_ mCanvasElem \canvasElem -> do
         ctx <- C.getContext2D canvasElem
-        C.clearRect ctx { x: 0.0, y: 0.0, height: Int.toNumber height, width: Int.toNumber width }
-
-        C.setFillStyle ctx "#f5f5f5"
-        C.fillRect ctx { x: 0.0, y: 0.0, height: Int.toNumber height, width: Int.toNumber width }
-
-        C.setFillStyle ctx "#ff75aa"
-
-        foreachE (Life.toCells game # Set.filter isVisible # Array.fromFoldable) \(row /\ col) -> do
-          let
-            x = Int.toNumber col * cellSize + offsetX
-            y = Int.toNumber row * cellSize + offsetY
-          C.fillRect ctx { x, y, height: cellSize, width: cellSize }
+        blankSlate ctx
+        drawCells ctx (Life.toCells game)
 
     when playing' do
       delay $ Milliseconds msPerFrame
@@ -271,20 +278,44 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
             setRenderId (renderId + 1)
         , currentStep: step
         }
-    , H.canvas_ "cursor-pointer"
+    , H.canvas_ (if dragged then "cursor-grabbing" else "cursor-pointer")
         { id: "canvas"
         , width: show width <> "px"
         , height: show height <> "px"
         , style: H.css { width, height }
-        , onClick: unsafeCoerce $ E.handleEffect \(MouseEvent e) -> do
-            rect <- getBoundingClientRect e.target
-            let
-              x = e.clientX - rect.left - offsetX
-              y = e.clientY - rect.top - offsetY
-              col = Int.floor (x / cellSize)
-              row = Int.floor (y / cellSize)
-            setGame $ Life.toggle row col game
-            setRenderId (renderId + 1)
+        , onMouseDown: E.handleEffect \(MouseEvent e) -> do
+            setDragging $ Just
+              { startX: e.clientX - offsetX
+              , startY: e.clientY - offsetY
+              , offsetX
+              , offsetY
+              }
+        , onMouseMove: E.handleEffect \(MouseEvent e) ->
+            for_ dragging \d -> do
+              let
+                offsetX' = e.clientX - d.startX
+                offsetY' = e.clientY - d.startY
+                hypotenuse = sqrt (Number.pow (offsetX' - d.offsetX) 2.0 + Number.pow (offsetY' - d.offsetY) 2.0)
+
+              when (hypotenuse >= 2.0) $
+                setDragged true
+
+              when dragged $
+                setOrigin $
+                  (numCols / 2.0 - offsetX' / cellSize - 0.5) /\
+                  (numRows / 2.0 - offsetY' / cellSize - 0.5)
+        , onMouseUp: E.handleEffect \(MouseEvent e) -> do
+            unless dragged do
+              rect <- getBoundingClientRect e.target
+              let
+                x = e.clientX - rect.left - offsetX
+                y = e.clientY - rect.top - offsetY
+                col = Int.floor (x / cellSize)
+                row = Int.floor (y / cellSize)
+              setGame $ Life.toggle row col game
+              setRenderId (renderId + 1)
+            setDragging Nothing
+            setDragged false
         }
         H.empty
     ]

@@ -206,6 +206,10 @@ button.btn-outline-theme:hover {
   cursor: pointer;
 }
 
+.cursor-grabbing {
+  cursor: grabbing;
+}
+
 .scale-75 {
   scale: 75%;
 }
