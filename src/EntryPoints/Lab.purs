@@ -83,13 +83,13 @@ update state = case _ of
 view :: State -> Dispatch Message -> ReactElement
 view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
   [ Header.view
-  , H.div "container flex-grow-1 d-flex flex-column pt-4" $
-      gridContainer
-        { playing: state.playing
-        , stepsPerFrame: state.stepsPerFrame
-        , framesPerSecond: state.framesPerSecond
-        , rule: state.rule
-        , controls: \{ stepBy, reset, currentStep } ->
+  , gridContainer
+      { playing: state.playing
+      , stepsPerFrame: state.stepsPerFrame
+      , framesPerSecond: state.framesPerSecond
+      , rule: state.rule
+      , controls: \{ stepBy, reset, currentStep } ->
+          H.div "container pt-3" $
             H.div "d-inline-flex align-items-center mb-3"
             [ H.button_ "btn bg-salmon hover:bright text-white"
                 { onClick: dispatch <| TogglePlaying }
@@ -137,7 +137,10 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
               , H.div "h4 text-salmon ms-1 mb-0" $ show currentStep
               ]
             ]
-        }
+      }
+  , H.style "" """
+      body { padding-bottom: 0 !important; }
+    """
   ]
 
 type Args r =
