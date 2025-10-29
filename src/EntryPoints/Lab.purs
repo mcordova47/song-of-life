@@ -3,18 +3,21 @@ module EntryPoints.Lab where
 import Prelude
 
 import Data.Array as Array
+import Data.DateTime.Instant (instant, unInstant)
 import Data.Foldable (fold, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
+import Data.Newtype (unwrap, wrap)
 import Data.Number (sqrt)
 import Data.Number as Number
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Effect (Effect, foreachE)
-import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
+import Effect.Now (now)
+import Effect.Random (random)
 import Effect.Ref as Ref
 import Elmish (Dispatch, ReactElement, Transition, (<?|), (<|))
 import Elmish.Boot (defaultMain)
@@ -40,19 +43,17 @@ import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
 import Web.HTML (window)
 import Web.HTML.HTMLDivElement as Div
 import Web.HTML.HTMLDocument as Doc
-import Web.HTML.Window (document)
+import Web.HTML.Window (document, requestAnimationFrame)
 
 type State =
-  { framesPerSecond :: Int
-  , playing :: Boolean
+  { playing :: Boolean
   , rule :: NamedRule
-  , stepsPerFrame :: Int
+  , stepsPerSecond :: Int
   }
 
 data Message
   = SelectRule NamedRule
-  | SetFramesPerSecond Int
-  | SetStepsPerFrame Int
+  | SetStepsPerSecond Int
   | TogglePlaying
 
 type Game = Unbounded
@@ -65,20 +66,17 @@ main = defaultMain
 
 init :: Transition Message State
 init = pure
-  { framesPerSecond: 10
-  , playing: false
+  { playing: false
   , rule: NamedRule.default
-  , stepsPerFrame: 1
+  , stepsPerSecond: 10
   }
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
   SelectRule rule ->
     pure state { rule = rule }
-  SetFramesPerSecond n ->
-    pure state { framesPerSecond = n }
-  SetStepsPerFrame n ->
-    pure state { stepsPerFrame = n }
+  SetStepsPerSecond n ->
+    pure state { stepsPerSecond = n }
   TogglePlaying ->
     pure state { playing = not state.playing }
 
@@ -87,10 +85,9 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
   [ Header.view
   , gridContainer
       { playing: state.playing
-      , stepsPerFrame: state.stepsPerFrame
-      , framesPerSecond: state.framesPerSecond
+      , stepsPerSecond: state.stepsPerSecond
       , rule: state.rule
-      , controls: \{ stepBy, reset, currentStep } ->
+      , controls: \{ next, reset, currentStep } ->
           H.div "container pt-3" $
             H.div "d-inline-flex align-items-center mb-3"
             [ H.button_ "btn bg-salmon hover:bright text-white"
@@ -98,7 +95,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
                 if state.playing then "Pause" else "Play"
             , guard (not state.playing) $
                 H.button_ "btn btn-outline-theme ms-2"
-                  { onClick: stepBy <| 1 }
+                  { onClick: E.handleEffect next }
                   "Next"
             , guard (not state.playing) $
                 H.button_ "btn btn-outline-theme ms-2"
@@ -112,30 +109,19 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
                   , onChange: dispatch <<< SelectRule
                   , value: state.rule
                   }
-            , H.div "ms-2" "Step by:"
+            , H.div "ms-2" "Speed:"
             , H.input_ "form-range ms-2"
                 { type: "range"
                 , min: "1"
                 , max: "100"
                 , step: "1"
-                , value: show state.stepsPerFrame
-                , onChange: dispatch <?| map SetStepsPerFrame <<< Int.fromString <<< E.inputText
-                , id: "steps-input"
-                , style: H.css { maxWidth: "150px" }
-                }
-            , H.div "ms-2" "FPS:"
-            , H.input_ "form-range ms-2"
-                { type: "range"
-                , min: "1"
-                , max: "60"
-                , step: "1"
-                , value: show state.framesPerSecond
-                , onChange: dispatch <?| map SetFramesPerSecond <<< Int.fromString <<< E.inputText
-                , id: "fps-input"
+                , value: show state.stepsPerSecond
+                , onChange: dispatch <?| map SetStepsPerSecond <<< Int.fromString <<< E.inputText
+                , id: "speed-input"
                 , style: H.css { maxWidth: "150px" }
                 }
             , H.div "d-flex align-items-center ms-2"
-              [ H.div "" "Step #"
+              [ H.div "text-nowrap" "Step #"
               , H.div "h4 text-salmon ms-1 mb-0" $ show currentStep
               ]
             ]
@@ -147,8 +133,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
 
 type Args r =
   { playing :: Boolean
-  , stepsPerFrame :: Int
-  , framesPerSecond :: Int
+  , stepsPerSecond :: Int
   , rule :: NamedRule
   , controls :: Controls -> ReactElement
   | r
@@ -160,7 +145,7 @@ type Size =
   )
 
 type Controls =
-  { stepBy :: Dispatch Int
+  { next :: Effect Unit
   , reset :: Effect Unit
   , currentStep :: Int
   }
@@ -182,23 +167,19 @@ gridContainer args = Hooks.component Hooks.do
         size' <- size
         pure $ grid $ Record.merge args size'
 
--- TODO:
--- - [ ] requestAnimationFrame, playing :: Maybe DateTime, zooming / steps / anything that triggers a redraw gets handled at the same scheduled ticks
--- - [ ] Grid lines at large zoom?
--- - [x] Canvas 100% of parent element
--- - [x] Origin in center, zooming keeps origin the same
--- - [x] Fix jittering when zooming
--- - [x] Pan by dragging
+-- TODO: Grid lines at large zoom?
 grid :: Args Size -> ReactElement
-grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } = Hooks.component Hooks.do
+grid { width, height, controls, playing, stepsPerSecond, rule } = Hooks.component Hooks.do
   zoom /\ setZoom <- Hooks.useState 5.0
   origin /\ setOrigin <- Hooks.useState (0.0 /\ 0.0)
   dragging /\ setDragging <- Hooks.useState Nothing
   dragged /\ setDragged <- Hooks.useState false
+  tick /\ setTick <- Hooks.useState Nothing
+  tickRef /\ setTickRef <- Hooks.useState Nothing
+  step /\ setStep <- Hooks.useState 0
 
   let
     gridSize = 0 -- Number of cells doesn't matter for unbounded grid
-    msPerFrame = 1000.0 / Int.toNumber framesPerSecond
     cellSize = zoom
     numRows = Int.toNumber height / cellSize
     numCols = Int.toNumber width / cellSize
@@ -209,13 +190,10 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
     maxY = Int.ceil (numRows - offsetY / cellSize)
     minX = Int.floor (-offsetX / cellSize)
     minY = Int.floor (-offsetY / cellSize)
-    isVisible :: Cell -> Boolean
     isVisible (r /\ c) =
       r <= maxY && r >= minY && c <= maxX && c >= minX
 
   game /\ setGame <- Hooks.useState $ Life.fromCells@Game gridSize gridSize gliderGunWithEater
-  step /\ setStep <- Hooks.useState 0
-  renderId /\ setRenderId <- Hooks.useState 0
 
   let
     zoomBy delta zr = do
@@ -238,7 +216,45 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
           y = Int.toNumber row * cellSize + offsetY
         C.fillRect ctx { x, y, height: cellSize, width: cellSize }
 
+    repaint cells = liftEffect do
+      mCanvasElem <- C.getCanvasElementById "canvas"
+      for_ mCanvasElem \canvasElem -> do
+        ctx <- C.getContext2D canvasElem
+        blankSlate ctx
+        drawCells ctx cells
+
+    onTick = do
+      tick' <- now
+      jitter <- random
+      setTick $ instant $ wrap (unwrap (unInstant tick') + jitter / 10.0)
+
+      for_ tickRef \ref -> do
+        prevState <- Ref.read ref
+
+        let
+          duration = 1.0 / 60.0
+          newSteps = if playing then Int.toNumber stepsPerSecond * duration else 0.0
+          accumulatedSteps = prevState.buffer + newSteps
+          presentSteps = Int.floor accumulatedSteps
+          buffer = max 0.0 (accumulatedSteps - Int.toNumber presentSteps)
+          game' = if presentSteps > 0 then Life.steps presentSteps rule game else game
+          cells = Life.toCells game'
+
+        Ref.write { buffer, origin, zoom, cells } ref
+
+        when (presentSteps > 0) $
+          setStep $ step + presentSteps
+
+        when (cells /= prevState.cells || origin /= prevState.origin || zoom /= prevState.zoom) do
+          repaint cells
+
+          when (presentSteps > 0) $
+            setGame game'
+
   Hooks.useEffect $ liftEffect do
+    b <- Ref.new $ { buffer: 0.0, origin, zoom, cells: Set.empty }
+    setTickRef $ Just b
+
     z <- Ref.new zoom
 
     mCanvas <- window >>= document <#> Doc.toNonElementParentNode >>= getElementById "canvas"
@@ -250,32 +266,21 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
 
       canvas # toEventTarget # addEventListenerWithOptions (EventType "wheel") listener { capture: false, once: false, passive: false }
 
-  Hooks.useEffect' { playing, renderId, zoom, origin } \{ playing: playing' } -> do
-    liftEffect do
-      mCanvasElem <- C.getCanvasElementById "canvas"
-      for_ mCanvasElem \canvasElem -> do
-        ctx <- C.getContext2D canvasElem
-        blankSlate ctx
-        drawCells ctx (Life.toCells game)
-
-    when playing' do
-      delay $ Milliseconds msPerFrame
-      liftEffect do
-        setGame $ Life.steps stepsPerFrame rule game
-        setStep $ step + stepsPerFrame
-        setRenderId (renderId + 1)
+  Hooks.useEffect' tick \_ -> liftEffect $ void $
+    window >>= requestAnimationFrame onTick
 
   Hooks.pure $
     H.fragment
     [ controls
-        { stepBy: \n -> do
-            setGame $ Life.steps n rule game
+        { next: do
+            setGame $ Life.steps 1 rule game
             setStep (step + 1)
-            setRenderId (renderId + 1)
+            for_ tickRef \ref -> do
+              prevState <- Ref.read ref
+              Ref.write prevState { buffer = prevState.buffer + 1.0 } ref
         , reset: do
             setGame $ Life.empty gridSize gridSize
             setStep 0
-            setRenderId (renderId + 1)
         , currentStep: step
         }
     , H.canvas_ (if dragged then "cursor-grabbing" else "cursor-pointer")
@@ -313,7 +318,6 @@ grid { width, height, controls, playing, stepsPerFrame, framesPerSecond, rule } 
                 col = Int.floor (x / cellSize)
                 row = Int.floor (y / cellSize)
               setGame $ Life.toggle row col game
-              setRenderId (renderId + 1)
             setDragging Nothing
             setDragged false
         }
