@@ -3,12 +3,10 @@ module EntryPoints.Lab where
 import Prelude
 
 import Data.Array as Array
-import Data.DateTime.Instant (instant, unInstant)
 import Data.Foldable (fold, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
-import Data.Newtype (unwrap, wrap)
 import Data.Number (sqrt)
 import Data.Number as Number
 import Data.Set (Set)
@@ -16,8 +14,6 @@ import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Effect (Effect, foreachE)
 import Effect.Class (liftEffect)
-import Effect.Now (now)
-import Effect.Random (random)
 import Effect.Ref as Ref
 import Elmish (Dispatch, ReactElement, Transition, (<?|), (<|))
 import Elmish.Boot (defaultMain)
@@ -174,7 +170,7 @@ grid { width, height, controls, playing, stepsPerSecond, rule } = Hooks.componen
   origin /\ setOrigin <- Hooks.useState (0.0 /\ 0.0)
   dragging /\ setDragging <- Hooks.useState Nothing
   dragged /\ setDragged <- Hooks.useState false
-  tick /\ setTick <- Hooks.useState Nothing
+  tick /\ setTick <- Hooks.useState 0
   tickRef /\ setTickRef <- Hooks.useState Nothing
   step /\ setStep <- Hooks.useState 0
 
@@ -224,9 +220,7 @@ grid { width, height, controls, playing, stepsPerSecond, rule } = Hooks.componen
         drawCells ctx cells
 
     onTick = do
-      tick' <- now
-      jitter <- random
-      setTick $ instant $ wrap (unwrap (unInstant tick') + jitter / 10.0)
+      setTick $ tick + 1
 
       for_ tickRef \ref -> do
         prevState <- Ref.read ref
