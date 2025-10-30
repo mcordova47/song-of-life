@@ -30,6 +30,7 @@ data NamedRule
   | DotLife
   | WalledCities
   | Gnarl
+derive instance Eq NamedRule
 derive instance Generic NamedRule _
 
 instance Serializable NamedRule where

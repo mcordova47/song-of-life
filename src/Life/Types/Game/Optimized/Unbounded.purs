@@ -19,6 +19,7 @@ newtype Unbounded a = Unbounded
   { cells :: Map Cell a
   , default :: a
   }
+derive newtype instance Eq a => Eq (Unbounded a)
 
 instance Automaton Unbounded where
   steps n rule (Unbounded u) =
