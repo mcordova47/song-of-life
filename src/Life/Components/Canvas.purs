@@ -90,7 +90,7 @@ component className args = Hooks.component Hooks.do
   let eventHandler = handleEvent propsRef stateRef
 
   Hooks.useEffect $ liftEffect do
-    mCanvas <- window >>= document <#> Doc.toNonElementParentNode >>= getElementById "canvas"
+    mCanvas <- window >>= document <#> Doc.toNonElementParentNode >>= getElementById args.id
     for_ mCanvas \canvas -> do
       listener <- eventListener \e -> do
         preventDefault e
