@@ -28,11 +28,14 @@ import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Life.Components.Canvas (CanvasElement)
 import Life.Components.Canvas as Canvas
+import Life.HTML.Events.WheelEvent (WheelEvent(..))
+import Life.HTML.Events.WheelEvent as WE
 import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Utils as U
 import Web.DOM.Element (getBoundingClientRect)
+import Web.Event.Event (preventDefault, stopPropagation)
 
 type Args r =
   { playing :: Boolean
@@ -191,14 +194,13 @@ update args props state = case _ of
         col = Int.floor (x / state.zoom)
         row = Int.floor (y / state.zoom)
       pure state { dragging = Nothing, game = Life.toggle row col state.game }
-  Canvas.Wheel (Canvas.WheelEvent e) ->
-    pure state { zoom = zoomBy e.deltaY }
-  where
-    zoomBy delta =
-      max 1.0 $ min 50.0 (state.zoom * zoomFactor delta)
-
-    zoomFactor delta =
-      clamp 0.85 1.15 (1.0 - 0.015 * Int.toNumber delta)
+  Canvas.Wheel we@(WheelEvent e) -> do
+    preventDefault e
+    stopPropagation e
+    let
+      zoomFactor = clamp 0.85 1.15 (1.0 - 0.015 * WE.deltaY we)
+      zoom = max 1.0 $ min 50.0 (state.zoom * zoomFactor)
+    pure state { zoom = zoom }
 
 view :: forall f r. CellularAutomaton f => ComponentArgs f r -> State f -> CanvasElement
 view args state = fold

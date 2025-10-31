@@ -15,10 +15,11 @@ import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Graphics.Canvas as C
+import Life.HTML.Events.WheelEvent (WheelEvent)
+import Life.HTML.Events.WheelEvent as WheelEvent
 import Life.Hooks.UseMutableRef (useMutableRef)
-import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM.Element (toEventTarget)
-import Web.Event.Event (EventType(..), preventDefault, stopPropagation)
+import Web.Event.Event (EventType(..))
 import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
 import Web.HTML (window)
 import Web.HTML.HTMLCanvasElement as CE
@@ -30,8 +31,6 @@ data Message
   | MouseMove MouseEvent
   | MouseUp MouseEvent
   | Wheel WheelEvent
-
-newtype WheelEvent = WheelEvent { deltaY :: Int }
 
 type Args props state =
   { id :: String
@@ -93,11 +92,9 @@ component className args = Hooks.component Hooks.do
   Hooks.useEffect' (isJust canvasElement) \_ -> liftEffect do
     for_ canvasElement \canvas -> do
       listener <- eventListener \e -> do
-        preventDefault e
-        stopPropagation e
         state <- Ref.read stateRef
         props <- Ref.read propsRef
-        state' <- args.update props state.current $ Wheel $ WheelEvent $ unsafeCoerce e
+        state' <- args.update props state.current $ Wheel $ WheelEvent.fromEvent e
         Ref.write state { current = state' } stateRef
 
       canvas # CE.toElement # toEventTarget # addEventListenerWithOptions
