@@ -4,7 +4,8 @@ import Prelude
 
 import Data.Foldable (for_, traverse_)
 import Data.Int as Int
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
+import Data.Tuple.Nested ((/\))
 import Effect (Effect, foreachE)
 import Effect.Class (liftEffect)
 import Effect.Ref as Ref
@@ -17,12 +18,11 @@ import Graphics.Canvas as C
 import Life.Hooks.UseMutableRef (useMutableRef)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM.Element (toEventTarget)
-import Web.DOM.NonElementParentNode (getElementById)
 import Web.Event.Event (EventType(..), preventDefault, stopPropagation)
 import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
 import Web.HTML (window)
-import Web.HTML.HTMLDocument as Doc
-import Web.HTML.Window (document, requestAnimationFrame)
+import Web.HTML.HTMLCanvasElement as CE
+import Web.HTML.Window (requestAnimationFrame)
 
 data Message
   = Tick
@@ -86,12 +86,12 @@ component :: forall props state. Eq props => Eq state => String -> Args props st
 component className args = Hooks.component Hooks.do
   stateRef <- useMutableRef { current: args.init, previous: Nothing }
   propsRef <- useMutableRef args.props
+  canvasElement /\ canvasRef <- Hooks.useRef
 
   let eventHandler = handleEvent propsRef stateRef
 
-  Hooks.useEffect $ liftEffect do
-    mCanvas <- window >>= document <#> Doc.toNonElementParentNode >>= getElementById args.id
-    for_ mCanvas \canvas -> do
+  Hooks.useEffect' (isJust canvasElement) \_ -> liftEffect do
+    for_ canvasElement \canvas -> do
       listener <- eventListener \e -> do
         preventDefault e
         stopPropagation e
@@ -100,7 +100,7 @@ component className args = Hooks.component Hooks.do
         state' <- args.update props state.current $ Wheel $ WheelEvent $ unsafeCoerce e
         Ref.write state { current = state' } stateRef
 
-      canvas # toEventTarget # addEventListenerWithOptions
+      canvas # CE.toElement # toEventTarget # addEventListenerWithOptions
         (EventType "wheel")
         listener
         { capture: false, once: false, passive: false }
@@ -116,6 +116,7 @@ component className args = Hooks.component Hooks.do
         { id: args.id
         , width: show args.width
         , height: show args.height
+        , ref: canvasRef
         , style: H.css { width: args.width, height: args.height }
         , onMouseDown: eventHandler MouseDown
         , onMouseMove: eventHandler MouseMove
