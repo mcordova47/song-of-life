@@ -26,6 +26,9 @@ import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericFr
 import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Monoid (power)
+import Data.Monoid.Endo (Endo(..))
+import Data.Newtype (unwrap)
 import Data.String as String
 import Data.Tuple.Nested ((/\))
 import Data.Unfoldable (class Unfoldable1, unfoldr1)
@@ -101,9 +104,7 @@ transaction :: forall a. a -> (a -> Maybe a) -> a
 transaction x f = f x # fromMaybe x
 
 times :: forall a. (a -> a) -> Int -> a -> a
-times f n x
-  | n <= 0 = x
-  | otherwise = times f (n - 1) $ f x
+times f = unwrap <<< power (Endo f)
 
 padLeft :: Int -> String -> String -> String
 padLeft n s str

@@ -97,7 +97,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
             , H.input_ "form-range ms-2"
                 { type: "range"
                 , min: "1"
-                , max: "100"
+                , max: "150"
                 , step: "1"
                 , value: show state.speed
                 , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
