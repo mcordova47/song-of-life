@@ -32,12 +32,12 @@ import Web.HTML.HTMLDivElement as Div
 type State =
   { playing :: Boolean
   , rule :: NamedRule
-  , stepsPerSecond :: Int
+  , speed :: Int
   }
 
 data Message
   = SelectRule NamedRule
-  | SetStepsPerSecond Int
+  | SetSpeed Int
   | TogglePlaying
 
 type Game = Unbounded
@@ -52,15 +52,15 @@ init :: Transition Message State
 init = pure
   { playing: false
   , rule: NamedRule.default
-  , stepsPerSecond: 10
+  , speed: 50
   }
 
 update :: State -> Message -> Transition Message State
 update state = case _ of
   SelectRule rule ->
     pure state { rule = rule }
-  SetStepsPerSecond n ->
-    pure state { stepsPerSecond = n }
+  SetSpeed n ->
+    pure state { speed = n }
   TogglePlaying ->
     pure state { playing = not state.playing }
 
@@ -69,7 +69,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
   [ Header.view
   , gridContainer
       { playing: state.playing
-      , stepsPerSecond: state.stepsPerSecond
+      , speed: state.speed
       , rule: state.rule
       , controls: \{ next, reset, currentStep } ->
           H.div "container pt-3" $
@@ -99,8 +99,8 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
                 , min: "1"
                 , max: "100"
                 , step: "1"
-                , value: show state.stepsPerSecond
-                , onChange: dispatch <?| map SetStepsPerSecond <<< Int.fromString <<< E.inputText
+                , value: show state.speed
+                , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
                 , id: "speed-input"
                 , style: H.css { maxWidth: "150px" }
                 }

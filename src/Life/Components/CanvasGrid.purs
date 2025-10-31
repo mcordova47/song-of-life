@@ -36,7 +36,7 @@ import Web.DOM.Element (getBoundingClientRect)
 
 type Args r =
   { playing :: Boolean
-  , stepsPerSecond :: Int
+  , speed :: Int
   , rule :: NamedRule
   , controls :: Controls -> ReactElement
   | r
@@ -59,7 +59,7 @@ type Props =
   { playing :: Boolean
   , rule :: NamedRule
   , step :: Int
-  , stepsPerSecond :: Int
+  , speed :: Int
   }
 
 type State f =
@@ -70,7 +70,6 @@ type State f =
   , zoom :: Number
   }
 
--- TODO: Grid lines at large zoom?
 component :: forall f r. Eq (f Boolean) => InteractiveAutomaton f => ComponentArgs f r -> ReactElement
 component args = Hooks.component Hooks.do
   dragged /\ setDragged <- Hooks.useState false
@@ -87,11 +86,11 @@ component args = Hooks.component Hooks.do
           { playing: args.playing
           , rule: args.rule
           , step
-          , stepsPerSecond: args.stepsPerSecond
+          , speed: args.speed
           }
       , update: update
           { playing: args.playing
-          , stepsPerSecond: args.stepsPerSecond
+          , speed: args.speed
           , rule: args.rule
           , controls: args.controls
           , width: args.width
@@ -136,7 +135,8 @@ update args props state = case _ of
   Canvas.Tick -> do
     let
       duration = 1.0 / 60.0
-      newSteps = if props.playing then Int.toNumber props.stepsPerSecond * duration else 0.0
+      stepsPerSecond = Int.floor $ Number.pow 10.0 (Int.toNumber props.speed / 50.0)
+      newSteps = if props.playing then Int.toNumber stepsPerSecond * duration else 0.0
       accumulatedSteps = state.buffer + newSteps
       presentSteps = Int.floor accumulatedSteps
       buffer = max 0.0 (accumulatedSteps - Int.toNumber presentSteps)
