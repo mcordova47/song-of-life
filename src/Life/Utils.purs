@@ -5,6 +5,7 @@ module Life.Utils
   , compose2
   , fill
   , grid
+  , padLeft
   , randomTag
   , scrollIntoView
   , tags
@@ -25,6 +26,7 @@ import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum, genericFr
 import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String as String
 import Data.Tuple.Nested ((/\))
 import Data.Unfoldable (class Unfoldable1, unfoldr1)
 import Effect (Effect)
@@ -102,6 +104,11 @@ times :: forall a. (a -> a) -> Int -> a -> a
 times f n x
   | n <= 0 = x
   | otherwise = times f (n - 1) $ f x
+
+padLeft :: Int -> String -> String -> String
+padLeft n s str
+  | n - String.length str > 0 = padLeft (n - 1) s str
+  | otherwise = str
 
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 

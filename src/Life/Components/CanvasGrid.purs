@@ -11,9 +11,13 @@ module Life.Components.CanvasGrid
 
 import Prelude
 
+import Control.Alternative (guard)
+import Data.Array (fold, (..))
 import Data.Array as Array
+import Data.Foldable (foldMap)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
+import Data.Monoid (power)
 import Data.Number as Number
 import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
@@ -27,6 +31,7 @@ import Life.Components.Canvas as Canvas
 import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
+import Life.Utils as U
 import Web.DOM.Element (getBoundingClientRect)
 
 type Args r =
@@ -195,16 +200,36 @@ update args props state = case _ of
       clamp 0.85 1.15 (1.0 - 0.015 * Int.toNumber delta)
 
 view :: forall f r. CellularAutomaton f => ComponentArgs f r -> State f -> CanvasElement
-view args state =
-  Canvas.Fragment $
-    state.game # Life.toCells # Set.filter isVisible # Array.fromFoldable <#> \(row /\ col) ->
-      Canvas.Rect
-        { x: Int.toNumber col * state.zoom + offsetX
-        , y: Int.toNumber row * state.zoom + offsetY
-        , height: state.zoom
-        , width: state.zoom
-        , fill: "#ff75aa"
-        }
+view args state = fold
+  [ gridLineConfig # foldMap \config ->
+      Canvas.Fragment
+      [ Canvas.Fragment $
+          (0 .. Int.ceil (numCols args state)) <#> \col ->
+            Canvas.Line
+              { start: { x: colX config col, y: 0.0 }
+              , end: { x: colX config col, y: Int.toNumber args.height }
+              , stroke: config.stroke
+              }
+      , Canvas.Fragment $
+          (0 .. Int.ceil (numRows args state)) <#> \row ->
+            Canvas.Line
+              { start: { x: 0.0, y: rowY config row }
+              , end: { x: Int.toNumber args.width, y: rowY config row }
+              , stroke: config.stroke
+              }
+      ]
+  , Canvas.Fragment $
+      state.game # Life.toCells # Set.filter isVisible # Array.fromFoldable <#> \(row /\ col) ->
+        Canvas.Rect
+          { position:
+              { x: Int.toNumber col * state.zoom + offsetX
+              , y: Int.toNumber row * state.zoom + offsetY
+              }
+          , height: state.zoom
+          , width: state.zoom
+          , fill: "#ff75aa"
+          }
+  ]
   where
     offsetX /\ offsetY = offset args state
 
@@ -219,6 +244,24 @@ view args state =
       r <= maxY && r >= minY && c <= maxX && c >= minX
       where
         { maxX, maxY, minX, minY } = bounds
+
+    colX config col = Int.toNumber col * state.zoom + config.adjustX
+    rowY config row = Int.toNumber row * state.zoom + config.adjustY
+
+    gridLineConfig :: Maybe _
+    gridLineConfig = do
+      guard (state.zoom >= 10.0)
+      let
+        brightness = max 0 (245 - Int.floor (state.zoom - 10.0) * 2)
+        hex = Int.toStringAs Int.hexadecimal brightness # U.padLeft 2 "0"
+        stroke = "#" <> power hex 3
+        adjustX = Number.remainder offsetX state.zoom
+        adjustY = Number.remainder offsetY state.zoom
+      pure
+        { stroke
+        , adjustX
+        , adjustY
+        }
 
 offset :: forall f r. ComponentArgs f r -> State f -> Number /\ Number
 offset args state@{ origin: originX /\ originY } =

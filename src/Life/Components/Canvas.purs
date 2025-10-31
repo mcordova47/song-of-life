@@ -51,6 +51,7 @@ data CanvasElement
   = Empty
   | Fragment (Array CanvasElement)
   | Rect Rect
+  | Line Line
 
 instance Semigroup CanvasElement where
   append Empty m = m
@@ -64,11 +65,21 @@ instance Monoid CanvasElement where
   mempty = Empty
 
 type Rect =
-  { x :: Number
-  , y :: Number
+  { position :: Point
   , width :: Number
   , height :: Number
   , fill :: String
+  }
+
+type Line =
+  { start :: Point
+  , end :: Point
+  , stroke :: String
+  }
+
+type Point =
+  { x :: Number
+  , y :: Number
   }
 
 component :: forall props state. Eq props => Eq state => String -> Props props state -> ReactElement
@@ -133,9 +144,14 @@ component className props = Hooks.component Hooks.do
         pure unit
       Fragment elems ->
         foreachE elems $ drawElement ctx
-      Rect r -> do
-        C.setFillStyle ctx r.fill
-        C.fillRect ctx { x: r.x, y: r.y, width: r.width, height: r.height }
+      Rect { position: { x, y }, width, height, fill } -> do
+        C.setFillStyle ctx fill
+        C.fillRect ctx { x, y, width, height }
+      Line { start, end, stroke } -> do
+        C.setStrokeStyle ctx stroke
+        C.strokePath ctx do
+          C.moveTo ctx start.x start.y
+          C.lineTo ctx end.x end.y
 
     renderLoop propsRef stateRef ctx = do
       p <- Ref.read propsRef
