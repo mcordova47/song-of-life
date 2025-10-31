@@ -5,7 +5,6 @@ import Prelude
 import Data.Foldable (for_, traverse_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
-import Data.Tuple.Nested ((/\))
 import Effect (Effect, foreachE)
 import Effect.Class (liftEffect)
 import Effect.Ref as Ref
@@ -15,6 +14,7 @@ import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Graphics.Canvas as C
+import Life.Hooks.UseMutableRef (useMutableRef)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM.Element (toEventTarget)
 import Web.DOM.NonElementParentNode (getElementById)
@@ -33,7 +33,7 @@ data Message
 
 newtype WheelEvent = WheelEvent { deltaY :: Int }
 
-type Props props state =
+type Args props state =
   { id :: String
   , height :: Int
   , width :: Int
@@ -82,52 +82,41 @@ type Point =
   , y :: Number
   }
 
-component :: forall props state. Eq props => Eq state => String -> Props props state -> ReactElement
-component className props = Hooks.component Hooks.do
-  stateRef /\ setStateRef <- Hooks.useState Nothing
-  propsRef /\ setPropsRef <- Hooks.useState Nothing
-  let
-    eventHandler = handleEvent propsRef stateRef
+component :: forall props state. Eq props => Eq state => String -> Args props state -> ReactElement
+component className args = Hooks.component Hooks.do
+  stateRef <- useMutableRef { current: args.init, previous: Nothing }
+  propsRef <- useMutableRef args.props
 
-    setState f =
-      for_ stateRef \ref -> do
-        state <- Ref.read ref
-        Ref.write state { current = f state.current } ref
-
-    setProps p' =
-      for_ propsRef $ Ref.write p'
+  let eventHandler = handleEvent propsRef stateRef
 
   Hooks.useEffect $ liftEffect do
-    stateRef' <- Ref.new { current: props.init, previous: Nothing }
-    setStateRef $ Just stateRef'
-
-    propsRef' <- Ref.new props.props
-    setPropsRef $ Just propsRef'
-
     mCanvas <- window >>= document <#> Doc.toNonElementParentNode >>= getElementById "canvas"
     for_ mCanvas \canvas -> do
       listener <- eventListener \e -> do
         preventDefault e
         stopPropagation e
-        state <- Ref.read stateRef'
-        p <- Ref.read propsRef'
-        state' <- props.update p state.current $ Wheel $ WheelEvent $ unsafeCoerce e
-        Ref.write state { current = state' } stateRef'
+        state <- Ref.read stateRef
+        props <- Ref.read propsRef
+        state' <- args.update props state.current $ Wheel $ WheelEvent $ unsafeCoerce e
+        Ref.write state { current = state' } stateRef
 
-      canvas # toEventTarget # addEventListenerWithOptions (EventType "wheel") listener { capture: false, once: false, passive: false }
+      canvas # toEventTarget # addEventListenerWithOptions
+        (EventType "wheel")
+        listener
+        { capture: false, once: false, passive: false }
 
-    C.getCanvasElementById props.id >>= traverse_ \canvas ->
-      C.getContext2D canvas >>= renderLoop propsRef' stateRef'
+    C.getCanvasElementById args.id >>= traverse_ \canvas ->
+      C.getContext2D canvas >>= renderLoop propsRef stateRef
 
-  Hooks.useEffect' props.props (liftEffect <<< setProps)
+  Hooks.useEffect' args.props (liftEffect <<< flip Ref.write propsRef)
 
   Hooks.pure $
-    props.render setState $
+    args.render (setState stateRef) $
       H.canvas_ className
-        { id: props.id
-        , width: show props.width
-        , height: show props.height
-        , style: H.css { width: props.width, height: props.height }
+        { id: args.id
+        , width: show args.width
+        , height: show args.height
+        , style: H.css { width: args.width, height: args.height }
         , onMouseDown: eventHandler MouseDown
         , onMouseMove: eventHandler MouseMove
         , onMouseUp: eventHandler MouseUp
@@ -135,9 +124,9 @@ component className props = Hooks.component Hooks.do
         H.empty
   where
     clearCanvas ctx = do
-      C.clearRect ctx { x: 0.0, y: 0.0, height: Int.toNumber props.height, width: Int.toNumber props.width }
-      C.setFillStyle ctx props.fill
-      C.fillRect ctx { x: 0.0, y: 0.0, height: Int.toNumber props.height, width: Int.toNumber props.width }
+      C.clearRect ctx { x: 0.0, y: 0.0, height: Int.toNumber args.height, width: Int.toNumber args.width }
+      C.setFillStyle ctx args.fill
+      C.fillRect ctx { x: 0.0, y: 0.0, height: Int.toNumber args.height, width: Int.toNumber args.width }
 
     drawElement ctx = case _ of
       Empty ->
@@ -154,20 +143,23 @@ component className props = Hooks.component Hooks.do
           C.lineTo ctx end.x end.y
 
     renderLoop propsRef stateRef ctx = do
-      p <- Ref.read propsRef
+      props <- Ref.read propsRef
       { current, previous } <- Ref.read stateRef
-      state <- props.update p current Tick
+      state <- args.update props current Tick
 
       when (Just state /= previous) do
         clearCanvas ctx
-        drawElement ctx $ props.view state
+        drawElement ctx $ args.view state
         Ref.write { current: state, previous: Just state } stateRef
 
       void $ window >>= requestAnimationFrame (renderLoop propsRef stateRef ctx)
 
-    handleEvent propsRef stateRef handler = E.handleEffect \e ->
-      for_ ((/\) <$> propsRef <*> stateRef) \(pr /\ sr) -> do
-        p <- Ref.read pr
-        state <- Ref.read sr
-        state' <- props.update p state.current $ handler e
-        Ref.write state { current = state' } sr
+    handleEvent propsRef stateRef handler = E.handleEffect \e -> do
+      props <- Ref.read propsRef
+      state <- Ref.read stateRef
+      state' <- args.update props state.current $ handler e
+      Ref.write state { current = state' } stateRef
+
+    setState stateRef f = do
+      state <- Ref.read stateRef
+      Ref.write state { current = f state.current } stateRef
