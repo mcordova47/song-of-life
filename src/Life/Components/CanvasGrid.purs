@@ -107,8 +107,9 @@ component args = Hooks.component Hooks.do
               { next: do
                   setState \s -> s { game = Life.steps 1 args.rule s.game }
                   setStep (step + 1)
-              , reset:
+              , reset: do
                   setState \s -> s { game = Life.empty 0 0 }
+                  setStep 0
               , currentStep: step
               }
           , canvas
