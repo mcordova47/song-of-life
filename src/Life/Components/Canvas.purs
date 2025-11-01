@@ -5,8 +5,10 @@ import Prelude
 import Data.Foldable (for_, traverse_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
+import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple.Nested ((/\))
 import Effect (Effect, foreachE)
+import Effect.Aff (delay)
 import Effect.Class (liftEffect)
 import Effect.Ref as Ref
 import Elmish (ReactElement)
@@ -18,6 +20,7 @@ import Graphics.Canvas as C
 import Life.HTML.Events.WheelEvent (WheelEvent)
 import Life.HTML.Events.WheelEvent as WheelEvent
 import Life.Hooks.UseMutableRef (useMutableRef)
+import Life.Utils ((:=))
 import Web.DOM.Element (toEventTarget)
 import Web.Event.Event (EventType(..))
 import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
@@ -26,7 +29,7 @@ import Web.HTML.HTMLCanvasElement as CE
 import Web.HTML.Window (requestAnimationFrame)
 
 data Message
-  = Tick
+  = Tick Milliseconds
   | MouseDown MouseEvent
   | MouseMove MouseEvent
   | MouseUp MouseEvent
@@ -89,13 +92,17 @@ component className args = Hooks.component Hooks.do
 
   let eventHandler = handleEvent propsRef stateRef
 
+  Hooks.useEffect $ simulationLoop propsRef stateRef
+
   Hooks.useEffect' (isJust canvasElement) \_ -> liftEffect do
+    -- wheel event needs to be attached this way because React doesn't support
+    -- the `passive: false` option
     for_ canvasElement \canvas -> do
       listener <- eventListener \e -> do
         state <- Ref.read stateRef
         props <- Ref.read propsRef
         state' <- args.update props state.current $ Wheel $ WheelEvent.fromEvent e
-        Ref.write state { current = state' } stateRef
+        stateRef := state { current = state' }
 
       canvas # CE.toElement # toEventTarget # addEventListenerWithOptions
         (EventType "wheel")
@@ -103,9 +110,9 @@ component className args = Hooks.component Hooks.do
         { capture: false, once: false, passive: false }
 
     C.getCanvasElementById args.id >>= traverse_ \canvas ->
-      C.getContext2D canvas >>= renderLoop propsRef stateRef
+      C.getContext2D canvas >>= renderLoop stateRef
 
-  Hooks.useEffect' args.props (liftEffect <<< flip Ref.write propsRef)
+  Hooks.useEffect' args.props (liftEffect <<< (propsRef := _))
 
   Hooks.pure $
     args.render (setState stateRef) $
@@ -140,24 +147,32 @@ component className args = Hooks.component Hooks.do
           C.moveTo ctx start.x start.y
           C.lineTo ctx end.x end.y
 
-    renderLoop propsRef stateRef ctx = do
-      props <- Ref.read propsRef
+    simulationLoop propsRef stateRef = do
+      let interval = Milliseconds (1000.0 / 60.0)
+      liftEffect do
+        props <- Ref.read propsRef
+        { current, previous } <- Ref.read stateRef
+        state <- args.update props current $ Tick interval
+        stateRef := { current: state, previous }
+      delay interval
+      simulationLoop propsRef stateRef
+
+    renderLoop stateRef ctx = do
       { current, previous } <- Ref.read stateRef
-      state <- args.update props current Tick
 
-      when (Just state /= previous) do
+      when (Just current /= previous) do
         clearCanvas ctx
-        drawElement ctx $ args.view state
-        Ref.write { current: state, previous: Just state } stateRef
+        drawElement ctx $ args.view current
+        stateRef := { current, previous: Just current }
 
-      void $ window >>= requestAnimationFrame (renderLoop propsRef stateRef ctx)
+      void $ window >>= requestAnimationFrame (renderLoop stateRef ctx)
 
     handleEvent propsRef stateRef handler = E.handleEffect \e -> do
       props <- Ref.read propsRef
       state <- Ref.read stateRef
       state' <- args.update props state.current $ handler e
-      Ref.write state { current = state' } stateRef
+      stateRef := state { current = state' }
 
     setState stateRef f = do
       state <- Ref.read stateRef
-      Ref.write state { current = f state.current } stateRef
+      stateRef := state { current = f state.current }

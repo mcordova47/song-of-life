@@ -1,5 +1,6 @@
 module Life.Utils
-  ( (>>>>)
+  ( (:=)
+  , (>>>>)
   , Opaque(..)
   , chunksOf
   , compose2
@@ -14,6 +15,7 @@ module Life.Utils
   , transpose
   , truthy
   , tryModifyAt
+  , writeRefFlipped
   )
   where
 
@@ -34,6 +36,8 @@ import Data.Tuple.Nested ((/\))
 import Data.Unfoldable (class Unfoldable1, unfoldr1)
 import Effect (Effect)
 import Effect.Random as R
+import Effect.Ref (Ref)
+import Effect.Ref as Ref
 import Effect.Uncurried (EffectFn1, runEffectFn1)
 import Life.Types.Cell (Cell)
 
@@ -110,6 +114,11 @@ padLeft :: Int -> String -> String -> String
 padLeft n s str
   | n - String.length str > 0 = padLeft (n - 1) s str
   | otherwise = str
+
+writeRefFlipped :: forall a. Ref a -> a -> Effect Unit
+writeRefFlipped = flip Ref.write
+
+infixr 0 writeRefFlipped as :=
 
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 

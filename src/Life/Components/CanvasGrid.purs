@@ -20,6 +20,7 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid (power)
 import Data.Number as Number
 import Data.Set as Set
+import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Elmish (ReactElement, Dispatch)
@@ -136,9 +137,9 @@ update :: forall f
   -> Canvas.Message
   -> Effect (State f)
 update args props state = case _ of
-  Canvas.Tick -> do
+  Canvas.Tick (Milliseconds ms) -> do
     let
-      duration = 1.0 / 60.0
+      duration = ms / 1000.0
       stepsPerSecond = Int.floor $ Number.pow 10.0 (Int.toNumber props.speed / 50.0)
       newSteps = if props.playing then Int.toNumber stepsPerSecond * duration else 0.0
       accumulatedSteps = state.buffer + newSteps
