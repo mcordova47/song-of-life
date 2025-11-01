@@ -46,6 +46,16 @@ data Message
 
 type Game = Unbounded
 
+type GridContainerArgs = GridScene.Args ( controls :: Controls -> ReactElement )
+
+type GridArgs = GridScene.GridArgs ( controls :: Controls -> ReactElement )
+
+type Controls =
+  { next :: Effect Unit
+  , reset :: Effect Unit
+  , currentStep :: Int
+  }
+
 main :: Effect Unit
 main = defaultMain
   { def: { init, view, update }
@@ -123,16 +133,6 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
       body { padding-bottom: 0 !important; }
     """
   ]
-
-type GridContainerArgs = GridScene.Args ( controls :: Controls -> ReactElement )
-
-type GridArgs = GridScene.GridArgs ( controls :: Controls -> ReactElement )
-
-type Controls =
-  { next :: Effect Unit
-  , reset :: Effect Unit
-  , currentStep :: Int
-  }
 
 gridContainer :: GridContainerArgs -> ReactElement
 gridContainer args = Hooks.component Hooks.do
