@@ -91,14 +91,14 @@ type Point =
   , y :: Number
   }
 
-type UseScene p s t = UseMutableRef p <> UseMutableRef (State s) <> UseRef HTMLCanvasElement <> UseEffect Unit <> UseEffect Boolean <> UseEffect p <> t
-
 type State s =
   { current :: s
   , previous :: Maybe s
   }
 
 type SetState s = (s -> s) -> Effect Unit
+
+type UseScene p s t = UseMutableRef p <> UseMutableRef (State s) <> UseRef HTMLCanvasElement <> UseEffect Unit <> UseEffect Boolean <> UseEffect p <> t
 
 component :: forall props state. Eq props => Eq state => Args props state -> ReactElement
 component args =

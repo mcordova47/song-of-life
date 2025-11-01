@@ -2,15 +2,13 @@ module EntryPoints.Lab where
 
 import Prelude
 
-import Data.Foldable (foldMap, for_)
+import Data.Foldable (foldMap)
 import Data.Int as Int
-import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
-import Effect.Class (liftEffect)
 import Elmish (Dispatch, ReactElement, Transition, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
@@ -21,15 +19,14 @@ import Life.Components.GridScene (useGridScene)
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.TagSelect as TagSelect
+import Life.Hooks.UseBoundingBox (useBoundingBox)
 import Life.Types.Cell (Cell)
 import Life.Types.Game.Optimized.Unbounded (Unbounded)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as NamedRule
-import Life.Utils (Opaque(..), (><))
+import Life.Utils ((><))
 import Record as Record
-import Web.DOM.Element (getBoundingClientRect)
-import Web.HTML.HTMLDivElement as Div
 
 type State =
   { playing :: Boolean
@@ -136,14 +133,8 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
 
 gridContainer :: GridContainerArgs -> ReactElement
 gridContainer args = Hooks.component Hooks.do
-  size /\ setSize <- Hooks.useState Nothing
-  elem /\ ref <- Hooks.useRef
-
-  Hooks.useEffect' (Opaque <$> elem) \maybeEl -> liftEffect do
-    for_ maybeEl \(Opaque el) -> do
-      box <- el # Div.toElement # getBoundingClientRect
-      setSize $ Just { width: Int.floor box.width, height: Int.floor box.height }
-
+  box /\ ref <- useBoundingBox
+  let size = box <#> \b -> { width: Int.floor b.width, height: Int.floor b.height }
   Hooks.pure $
     H.div_ "flex-grow-1"
       { ref } $

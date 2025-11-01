@@ -81,6 +81,9 @@ newtype State f = State
   , origin :: Number /\ Number
   , zoom :: Number
   }
+
+-- Custom `Eq` instance to prevent needless redraws — the scene doesn't change
+-- if `buffer` or `dragging` change
 instance Eq (f Boolean) => Eq (State f) where
   eq (State a) (State b) =
     a.zoom == b.zoom &&

@@ -4,24 +4,17 @@ module Life.Hooks.UseMutableRef
   )
   where
 
-import Prelude
+import Prelude hiding ((>>=))
 
-import Data.Foldable (foldMap)
-import Data.Maybe (Maybe(..))
+import Data.Tuple (fst)
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
-import Elmish.Component (ComponentName(..), fork)
-import Elmish.Hooks (Hook, HookType, mkHook)
+import Elmish.Hooks (type (<>), Hook)
+import Life.Hooks.UseInit (UseInit, useInit)
 
-foreign import data UseMutableRef :: Type -> HookType
+type UseMutableRef s t = UseInit (Ref s) <> t
 
 useMutableRef :: forall s. s -> Hook (UseMutableRef s) (Ref s)
 useMutableRef init =
-  mkHook (ComponentName "UseMutableRef") \render ->
-    { init: do
-        fork $ liftEffect $ Ref.new init
-        pure Nothing
-    , update: const $ pure <<< Just
-    , view: const <<< foldMap render
-    }
+  useInit (liftEffect $ Ref.new init) <#> fst
