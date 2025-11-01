@@ -112,7 +112,7 @@ times f = unwrap <<< power (Endo f)
 
 padLeft :: Int -> String -> String -> String
 padLeft n s str
-  | n - String.length str > 0 = padLeft (n - 1) s str
+  | n - String.length str > 0 = padLeft (n - 1) s (s <> str)
   | otherwise = str
 
 writeRefFlipped :: forall a. Ref a -> a -> Effect Unit

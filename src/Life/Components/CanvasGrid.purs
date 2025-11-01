@@ -17,7 +17,6 @@ import Data.Array as Array
 import Data.Foldable (foldMap)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
-import Data.Monoid (power)
 import Data.Number as Number
 import Data.Set as Set
 import Data.Time.Duration (Milliseconds(..))
@@ -205,7 +204,18 @@ update args props state = case _ of
 
 view :: forall f r. CellularAutomaton f => ComponentArgs f r -> State f -> CanvasElement
 view args state = fold
-  [ gridLineConfig # foldMap \config ->
+  [ Canvas.Fragment $
+      state.game # Life.toCells # Set.filter isVisible # Array.fromFoldable <#> \(row /\ col) ->
+        Canvas.Rect
+          { position:
+              { x: Int.toNumber col * state.zoom + offsetX
+              , y: Int.toNumber row * state.zoom + offsetY
+              }
+          , height: state.zoom
+          , width: state.zoom
+          , fill: "#ff75aa"
+          }
+  , gridLineConfig # foldMap \config ->
       Canvas.Fragment
       [ Canvas.Fragment $
           (0 .. Int.ceil (numCols args state)) <#> \col ->
@@ -222,17 +232,6 @@ view args state = fold
               , stroke: config.stroke
               }
       ]
-  , Canvas.Fragment $
-      state.game # Life.toCells # Set.filter isVisible # Array.fromFoldable <#> \(row /\ col) ->
-        Canvas.Rect
-          { position:
-              { x: Int.toNumber col * state.zoom + offsetX
-              , y: Int.toNumber row * state.zoom + offsetY
-              }
-          , height: state.zoom
-          , width: state.zoom
-          , fill: "#ff75aa"
-          }
   ]
   where
     offsetX /\ offsetY = offset args state
@@ -256,9 +255,9 @@ view args state = fold
     gridLineConfig = do
       guard (state.zoom >= 10.0)
       let
-        brightness = max 0 (245 - Int.floor (state.zoom - 10.0) * 2)
-        hex = Int.toStringAs Int.hexadecimal brightness # U.padLeft 2 "0"
-        stroke = "#" <> power hex 3
+        opacity = min 255 ((Int.floor state.zoom - 10) * 2)
+        hex = Int.toStringAs Int.hexadecimal opacity # U.padLeft 2 "0"
+        stroke = "#575757" <> hex
         adjustX = Number.remainder offsetX state.zoom
         adjustY = Number.remainder offsetY state.zoom
       pure
