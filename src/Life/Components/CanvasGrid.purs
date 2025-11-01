@@ -136,7 +136,7 @@ update :: forall f
   -> Canvas.Message
   -> Effect (State f)
 update args props state = case _ of
-  Canvas.Tick (Milliseconds ms) -> do
+  Canvas.Tick (Milliseconds ms) | props.playing -> do
     let
       duration = ms / 1000.0
       stepsPerSecond = Int.floor $ Number.pow 10.0 (Int.toNumber props.speed / 50.0)
@@ -150,6 +150,8 @@ update args props state = case _ of
       args.setStep $ props.step + presentSteps
 
     pure state { buffer = buffer, game = game }
+  Canvas.Tick _ ->
+    pure state { buffer = 0.0 }
   Canvas.MouseDown (MouseEvent e) -> do
     let offsetX /\ offsetY = offset args state
     pure state
