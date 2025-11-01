@@ -26,10 +26,7 @@ useBoundingBox' toElement = Hooks.do
 
   Hooks.useEffect' (isJust elem) \_ -> liftEffect do
     for_ elem \el -> do
-      el
-        # toElement
-        # Elem.getBoundingClientRect
-        <#> Just
-        <#> setBox
+      box' <- el # toElement # Elem.getBoundingClientRect
+      setBox $ Just box'
 
   Hooks.pure (box /\ ref)
