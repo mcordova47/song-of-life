@@ -13,6 +13,7 @@ module Life.Utils
   , times
   , transaction
   , transpose
+  , trim
   , truthy
   , tryModifyAt
   , writeRefFlipped
@@ -40,6 +41,8 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (EffectFn1, runEffectFn1)
 import Life.Types.Cell (Cell)
+import Prim.Row (class Union)
+import Unsafe.Coerce (unsafeCoerce)
 
 tags :: forall f a rep
   . Generic a rep
@@ -117,6 +120,9 @@ padLeft n s str
 
 writeRefFlipped :: forall a. Ref a -> a -> Effect Unit
 writeRefFlipped = flip Ref.write
+
+trim :: forall @a @b r. Union b r a => Record a -> Record b
+trim = unsafeCoerce
 
 infixr 0 writeRefFlipped as :=
 

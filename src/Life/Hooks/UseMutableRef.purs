@@ -14,9 +14,9 @@ import Effect.Ref as Ref
 import Elmish.Component (ComponentName(..), fork)
 import Elmish.Hooks (Hook, HookType, mkHook)
 
-foreign import data UseMutableRef :: HookType
+foreign import data UseMutableRef :: Type -> HookType
 
-useMutableRef :: forall s. s -> Hook UseMutableRef (Ref s)
+useMutableRef :: forall s. s -> Hook (UseMutableRef s) (Ref s)
 useMutableRef init =
   mkHook (ComponentName "UseMutableRef") \render ->
     { init: do

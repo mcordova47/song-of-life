@@ -1,4 +1,4 @@
-module Life.Components.CanvasGrid
+module Life.Components.GridScene
   ( Args
   , ComponentArgs
   , Controls
@@ -26,14 +26,15 @@ import Elmish (ReactElement, Dispatch)
 import Elmish.HTML.Events (MouseEvent(..))
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Components.Canvas (CanvasElement)
-import Life.Components.Canvas as Canvas
+import Life.Components.Scene (useScene)
+import Life.Components.Scene as Scene
 import Life.HTML.Events.WheelEvent (WheelEvent(..))
 import Life.HTML.Events.WheelEvent as WE
 import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Utils as U
+import Record as Record
 import Web.DOM.Element (getBoundingClientRect)
 import Web.Event.Event (preventDefault, stopPropagation)
 
@@ -78,45 +79,42 @@ component args = Hooks.component Hooks.do
   dragged /\ setDragged <- Hooks.useState false
   step /\ setStep <- Hooks.useState 0
 
+  let updateArgs = Record.merge args' { setStep, dragged, setDragged }
+  scene /\ setScene <- useScene $ sceneArgs updateArgs step
+
   Hooks.pure $
-    Canvas.component (if dragged then "cursor-grabbing" else "cursor-pointer")
+    H.fragment
+    [ args.controls
+        { next: do
+            setScene \s -> s { game = Life.steps 1 args.rule s.game }
+            setStep (step + 1)
+        , reset: do
+            setScene \s -> s { game = Life.empty 0 0 }
+            setStep 0
+        , currentStep: step
+        }
+    , scene if dragged then "cursor-grabbing" else "cursor-pointer"
+    ]
+  where
+    args' :: ComponentArgs f ()
+    args' = U.trim args
+
+    props step =
+      { playing: args.playing
+      , rule: args.rule
+      , step
+      , speed: args.speed
+      }
+
+    sceneArgs updateArgs step =
       { id: "canvas"
       , width: args.width
       , height: args.height
       , fill: "#f5f5f5"
       , init: init args
-      , props:
-          { playing: args.playing
-          , rule: args.rule
-          , step
-          , speed: args.speed
-          }
-      , update: update
-          { playing: args.playing
-          , speed: args.speed
-          , rule: args.rule
-          , controls: args.controls
-          , width: args.width
-          , height: args.height
-          , game: args.game
-          , setStep
-          , dragged
-          , setDragged
-          }
+      , props: props step
+      , update: update updateArgs
       , view: view args
-      , render: \setState canvas ->
-          H.fragment
-          [ args.controls
-              { next: do
-                  setState \s -> s { game = Life.steps 1 args.rule s.game }
-                  setStep (step + 1)
-              , reset: do
-                  setState \s -> s { game = Life.empty 0 0 }
-                  setStep 0
-              , currentStep: step
-              }
-          , canvas
-          ]
       }
 
 init :: forall f r. ComponentArgs f r -> State f
@@ -133,10 +131,10 @@ update :: forall f
   => ComponentArgs f ( setStep :: Dispatch Int, setDragged :: Dispatch Boolean, dragged :: Boolean )
   -> Props
   -> State f
-  -> Canvas.Message
+  -> Scene.Message
   -> Effect (State f)
 update args props state = case _ of
-  Canvas.Tick (Milliseconds ms) | props.playing -> do
+  Scene.Tick (Milliseconds ms) | props.playing -> do
     let
       duration = ms / 1000.0
       stepsPerSecond = Int.floor $ Number.pow 10.0 (Int.toNumber props.speed / 50.0)
@@ -150,9 +148,9 @@ update args props state = case _ of
       args.setStep $ props.step + presentSteps
 
     pure state { buffer = buffer, game = game }
-  Canvas.Tick _ ->
+  Scene.Tick _ ->
     pure state { buffer = 0.0 }
-  Canvas.MouseDown (MouseEvent e) -> do
+  Scene.MouseDown (MouseEvent e) -> do
     let offsetX /\ offsetY = offset args state
     pure state
       { dragging = Just
@@ -162,7 +160,7 @@ update args props state = case _ of
           , offsetY
           }
       }
-  Canvas.MouseMove (MouseEvent e) ->
+  Scene.MouseMove (MouseEvent e) ->
     case state.dragging of
       Just d -> do
         let
@@ -183,7 +181,7 @@ update args props state = case _ of
           pure state
       Nothing ->
         pure state
-  Canvas.MouseUp (MouseEvent e) -> do
+  Scene.MouseUp (MouseEvent e) -> do
     if args.dragged then do
       args.setDragged false
       pure state { dragging = Nothing }
@@ -196,7 +194,7 @@ update args props state = case _ of
         col = Int.floor (x / state.zoom)
         row = Int.floor (y / state.zoom)
       pure state { dragging = Nothing, game = Life.toggle row col state.game }
-  Canvas.Wheel we@(WheelEvent e) -> do
+  Scene.Wheel we@(WheelEvent e) -> do
     preventDefault e
     stopPropagation e
     let
@@ -204,11 +202,11 @@ update args props state = case _ of
       zoom = max 1.0 $ min 50.0 (state.zoom * zoomFactor)
     pure state { zoom = zoom }
 
-view :: forall f r. CellularAutomaton f => ComponentArgs f r -> State f -> CanvasElement
+view :: forall f r. CellularAutomaton f => ComponentArgs f r -> State f -> Scene.Element
 view args state = fold
-  [ Canvas.Fragment $
+  [ Scene.Fragment $
       state.game # Life.toCells # Set.filter isVisible # Array.fromFoldable <#> \(row /\ col) ->
-        Canvas.Rect
+        Scene.Rect
           { position:
               { x: Int.toNumber col * state.zoom + offsetX
               , y: Int.toNumber row * state.zoom + offsetY
@@ -218,17 +216,17 @@ view args state = fold
           , fill: "#ff75aa"
           }
   , gridLineConfig # foldMap \config ->
-      Canvas.Fragment
-      [ Canvas.Fragment $
+      Scene.Fragment
+      [ Scene.Fragment $
           (0 .. Int.ceil (numCols args state)) <#> \col ->
-            Canvas.Line
+            Scene.Line
               { start: { x: colX config col, y: 0.0 }
               , end: { x: colX config col, y: Int.toNumber args.height }
               , stroke: config.stroke
               }
-      , Canvas.Fragment $
+      , Scene.Fragment $
           (0 .. Int.ceil (numRows args state)) <#> \row ->
-            Canvas.Line
+            Scene.Line
               { start: { x: 0.0, y: rowY config row }
               , end: { x: Int.toNumber args.width, y: rowY config row }
               , stroke: config.stroke

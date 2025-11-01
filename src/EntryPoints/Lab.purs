@@ -16,7 +16,7 @@ import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Components.CanvasGrid as CanvasGrid
+import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.TagSelect as TagSelect
 import Life.Types.Cell (Cell)
@@ -115,7 +115,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
     """
   ]
 
-gridContainer :: CanvasGrid.Args () -> ReactElement
+gridContainer :: GridScene.Args () -> ReactElement
 gridContainer args = Hooks.component Hooks.do
   size /\ setSize <- Hooks.useState Nothing
   elem /\ ref <- Hooks.useRef
@@ -130,7 +130,7 @@ gridContainer args = Hooks.component Hooks.do
       { ref } $
       fold do
         size' <- size
-        pure $ CanvasGrid.component $ Record.merge args $ Record.merge size' { game: Life.fromCells@Game 0 0 gliderGunWithEater }
+        pure $ GridScene.component $ Record.merge args $ Record.merge size' { game: Life.fromCells@Game 0 0 gliderGunWithEater }
 
 gliderGunWithEater :: Set Cell
 gliderGunWithEater = Set.fromFoldable

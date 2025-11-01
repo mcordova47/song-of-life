@@ -1,4 +1,4 @@
-module Life.Components.Canvas where
+module Life.Components.Scene where
 
 import Prelude
 
@@ -6,7 +6,8 @@ import Data.Foldable (for_, traverse_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Time.Duration (Milliseconds(..))
-import Data.Tuple.Nested ((/\))
+import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect, foreachE)
 import Effect.Aff (delay)
 import Effect.Class (liftEffect)
@@ -15,16 +16,18 @@ import Elmish (ReactElement)
 import Elmish.HTML.Events (MouseEvent)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
+import Elmish.Hooks (type (<>), Hook, UseEffect, UseRef, (=/>))
 import Elmish.Hooks as Hooks
 import Graphics.Canvas as C
 import Life.HTML.Events.WheelEvent (WheelEvent)
 import Life.HTML.Events.WheelEvent as WheelEvent
-import Life.Hooks.UseMutableRef (useMutableRef)
+import Life.Hooks.UseMutableRef (UseMutableRef, useMutableRef)
 import Life.Utils ((:=))
+import Life.Utils as U
 import Web.DOM.Element (toEventTarget)
 import Web.Event.Event (EventType(..))
 import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
-import Web.HTML (window)
+import Web.HTML (HTMLCanvasElement, window)
 import Web.HTML.HTMLCanvasElement as CE
 import Web.HTML.Window (requestAnimationFrame)
 
@@ -35,7 +38,11 @@ data Message
   | MouseUp MouseEvent
   | Wheel WheelEvent
 
-type Args props state =
+type Args props state = Args' props state ( render :: (SetState state) -> (String -> ReactElement) -> ReactElement )
+
+type HookArgs props state = Args' props state ()
+
+type Args' props state r =
   { id :: String
   , height :: Int
   , width :: Int
@@ -43,19 +50,19 @@ type Args props state =
   , init :: state
   , props :: props
   , update :: props -> state -> Message -> Effect state
-  , view :: state -> CanvasElement
-  , render :: ((state -> state) -> Effect Unit) -> ReactElement -> ReactElement
+  , view :: state -> Element
+  | r
   }
 
 type Dispatch event state = event -> state -> Effect state
 
-data CanvasElement
+data Element
   = Empty
-  | Fragment (Array CanvasElement)
+  | Fragment (Array Element)
   | Rect Rect
   | Line Line
 
-instance Semigroup CanvasElement where
+instance Semigroup Element where
   append Empty m = m
   append m Empty = m
   append (Fragment f) (Fragment f') = Fragment (f <> f')
@@ -63,7 +70,7 @@ instance Semigroup CanvasElement where
   append m (Fragment f) = Fragment ([m] <> f)
   append m m' = Fragment [m, m']
 
-instance Monoid CanvasElement where
+instance Monoid Element where
   mempty = Empty
 
 type Rect =
@@ -84,10 +91,23 @@ type Point =
   , y :: Number
   }
 
-component :: forall props state. Eq props => Eq state => String -> Args props state -> ReactElement
-component className args = Hooks.component Hooks.do
-  stateRef <- useMutableRef { current: args.init, previous: Nothing }
+type UseScene p s t = UseMutableRef p <> UseMutableRef (State s) <> UseRef HTMLCanvasElement <> UseEffect Unit <> UseEffect Boolean <> UseEffect p <> t
+
+type State s =
+  { current :: s
+  , previous :: Maybe s
+  }
+
+type SetState s = (s -> s) -> Effect Unit
+
+component :: forall props state. Eq props => Eq state => Args props state -> ReactElement
+component args =
+  useScene (U.trim args) =/> flip args.render
+
+useScene :: forall p s. Eq p => Eq s => HookArgs p s -> Hook (UseScene p s) ((String -> ReactElement) /\ SetState s)
+useScene args = Hooks.do
   propsRef <- useMutableRef args.props
+  stateRef <- useMutableRef { current: args.init, previous: Nothing }
   canvasElement /\ canvasRef <- Hooks.useRef
 
   let eventHandler = handleEvent propsRef stateRef
@@ -115,7 +135,9 @@ component className args = Hooks.component Hooks.do
   Hooks.useEffect' args.props (liftEffect <<< (propsRef := _))
 
   Hooks.pure $
-    args.render (setState stateRef) $
+    (flip Tuple)
+    (setState stateRef)
+    \className ->
       H.canvas_ className
         { id: args.id
         , width: show args.width
@@ -128,7 +150,7 @@ component className args = Hooks.component Hooks.do
         }
         H.empty
   where
-    clearCanvas ctx = do
+    clearScene ctx = do
       C.clearRect ctx { x: 0.0, y: 0.0, height: Int.toNumber args.height, width: Int.toNumber args.width }
       C.setFillStyle ctx args.fill
       C.fillRect ctx { x: 0.0, y: 0.0, height: Int.toNumber args.height, width: Int.toNumber args.width }
@@ -161,7 +183,7 @@ component className args = Hooks.component Hooks.do
       { current, previous } <- Ref.read stateRef
 
       when (Just current /= previous) do
-        clearCanvas ctx
+        clearScene ctx
         drawElement ctx $ args.view current
         stateRef := { current, previous: Just current }
 
