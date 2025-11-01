@@ -87,10 +87,10 @@ instance Eq (f Boolean) => Eq (State f) where
     a.origin == b.origin &&
     a.game == b.game
 
+type UseGridScene f t = UseState Boolean <> UseScene Props (State f) <> t
+
 component :: forall f r. Eq (f Boolean) => InteractiveAutomaton f => ComponentArgs f r -> ReactElement
 component args = useGridScene args =/> flip args.render
-
-type UseGridScene f t = UseState Boolean <> UseScene Props (State f) <> t
 
 useGridScene :: forall f r. Eq (f Boolean) => InteractiveAutomaton f => HookArgs f r -> Hook (UseGridScene f) (ReactElement /\ Scene.SetState (State f))
 useGridScene args = Hooks.do
