@@ -2,7 +2,7 @@ module EntryPoints.Lab where
 
 import Prelude
 
-import Data.Foldable (fold, for_)
+import Data.Foldable (foldMap, for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
@@ -15,7 +15,9 @@ import Elmish (Dispatch, ReactElement, Transition, (<?|), (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
+import Elmish.Hooks ((=/>))
 import Elmish.Hooks as Hooks
+import Life.Components.GridScene (useGridScene)
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.TagSelect as TagSelect
@@ -24,7 +26,7 @@ import Life.Types.Game.Optimized.Unbounded (Unbounded)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as NamedRule
-import Life.Utils (Opaque(..))
+import Life.Utils (Opaque(..), (><))
 import Record as Record
 import Web.DOM.Element (getBoundingClientRect)
 import Web.HTML.HTMLDivElement as Div
@@ -33,11 +35,13 @@ type State =
   { playing :: Boolean
   , rule :: NamedRule
   , speed :: Int
+  , step :: Int
   }
 
 data Message
   = SelectRule NamedRule
   | SetSpeed Int
+  | SetStep Int
   | TogglePlaying
 
 type Game = Unbounded
@@ -53,6 +57,7 @@ init = pure
   { playing: false
   , rule: NamedRule.default
   , speed: 50
+  , step: 0
   }
 
 update :: State -> Message -> Transition Message State
@@ -61,6 +66,8 @@ update state = case _ of
     pure state { rule = rule }
   SetSpeed n ->
     pure state { speed = n }
+  SetStep n ->
+    pure state { step = n }
   TogglePlaying ->
     pure state { playing = not state.playing }
 
@@ -71,6 +78,8 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
       { playing: state.playing
       , speed: state.speed
       , rule: state.rule
+      , step: state.step
+      , onStep: dispatch <<< SetStep
       , controls: \{ next, reset, currentStep } ->
           H.div "container pt-3" $
             H.div "d-inline-flex align-items-center mb-3"
@@ -115,7 +124,17 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
     """
   ]
 
-gridContainer :: GridScene.Args () -> ReactElement
+type GridContainerArgs = GridScene.Args ( controls :: Controls -> ReactElement )
+
+type GridArgs = GridScene.GridArgs ( controls :: Controls -> ReactElement )
+
+type Controls =
+  { next :: Effect Unit
+  , reset :: Effect Unit
+  , currentStep :: Int
+  }
+
+gridContainer :: GridContainerArgs -> ReactElement
 gridContainer args = Hooks.component Hooks.do
   size /\ setSize <- Hooks.useState Nothing
   elem /\ ref <- Hooks.useRef
@@ -128,9 +147,23 @@ gridContainer args = Hooks.component Hooks.do
   Hooks.pure $
     H.div_ "flex-grow-1"
       { ref } $
-      fold do
-        size' <- size
-        pure $ GridScene.component $ Record.merge args $ Record.merge size' { game: Life.fromCells@Game 0 0 gliderGunWithEater }
+      foldMap (grid <<< Record.merge args) size
+
+grid :: GridArgs -> ReactElement
+grid args =
+  useGridScene (args >< { game: Life.fromCells@Game 0 0 gliderGunWithEater }) =/> \scene setScene ->
+    H.fragment
+    [ args.controls
+        { next: do
+            setScene \(GridScene.State s) -> GridScene.State s { game = Life.steps 1 args.rule s.game }
+            args.onStep (args.step + 1)
+        , reset: do
+            setScene \(GridScene.State s) -> GridScene.State s { game = Life.empty 0 0 }
+            args.onStep 0
+        , currentStep: args.step
+        }
+    , scene
+    ]
 
 gliderGunWithEater :: Set Cell
 gliderGunWithEater = Set.fromFoldable

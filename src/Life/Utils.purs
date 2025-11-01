@@ -1,5 +1,6 @@
 module Life.Utils
   ( (:=)
+  , (><)
   , (>>>>)
   , Opaque(..)
   , chunksOf
@@ -42,6 +43,7 @@ import Effect.Ref as Ref
 import Effect.Uncurried (EffectFn1, runEffectFn1)
 import Life.Types.Cell (Cell)
 import Prim.Row (class Union)
+import Record as Record
 import Unsafe.Coerce (unsafeCoerce)
 
 tags :: forall f a rep
@@ -125,6 +127,8 @@ trim :: forall @a @b r. Union b r a => Record a -> Record b
 trim = unsafeCoerce
 
 infixr 0 writeRefFlipped as :=
+
+infixr 1 Record.merge as ><
 
 foreign import scrollIntoView_ :: EffectFn1 String Unit
 
