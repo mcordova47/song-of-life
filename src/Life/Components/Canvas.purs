@@ -92,7 +92,7 @@ component className args = Hooks.component Hooks.do
 
   let eventHandler = handleEvent propsRef stateRef
 
-  Hooks.useEffect $ simulationLoop propsRef stateRef
+  Hooks.useEffect $ updateLoop propsRef stateRef
 
   Hooks.useEffect' (isJust canvasElement) \_ -> liftEffect do
     -- wheel event needs to be attached this way because React doesn't support
@@ -147,7 +147,7 @@ component className args = Hooks.component Hooks.do
           C.moveTo ctx start.x start.y
           C.lineTo ctx end.x end.y
 
-    simulationLoop propsRef stateRef = do
+    updateLoop propsRef stateRef = do
       let interval = Milliseconds (1000.0 / 60.0)
       liftEffect do
         props <- Ref.read propsRef
@@ -155,7 +155,7 @@ component className args = Hooks.component Hooks.do
         state <- args.update props current $ Tick interval
         stateRef := { current: state, previous }
       delay interval
-      simulationLoop propsRef stateRef
+      updateLoop propsRef stateRef
 
     renderLoop stateRef ctx = do
       { current, previous } <- Ref.read stateRef
