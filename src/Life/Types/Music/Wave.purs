@@ -16,7 +16,7 @@ import Data.Bounded.Generic (genericBottom)
 import Data.Generic.Rep (class Generic)
 import Effect (Effect)
 import Elmish (ReactElement)
-import Life.Icons as I
+import Life.Components.Icons as I
 import Life.Types.Codec (class Serializable, Codec)
 import Life.Types.Codec as Codec
 import Life.Utils.Generic as G

@@ -8,7 +8,7 @@ import Prelude
 
 import Elmish (ReactElement)
 import Elmish.HTML.Styled as H
-import Life.Icons as I
+import Life.Components.Icons as I
 
 view ∷ ReactElement
 view =

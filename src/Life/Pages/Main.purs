@@ -25,11 +25,11 @@ import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, fo
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Components.Header as Header
+import Life.Components.Icons as I
 import Life.Components.InteractiveGrid as InteractiveGrid
 import Life.Components.PresetButton as PresetButton
 import Life.Components.ShareButton as ShareButton
 import Life.Components.TagSelect as TagSelect
-import Life.Icons as I
 import Life.Types.Game.Life (class Life, class CellularAutomaton)
 import Life.Types.Game.Life as Life
 import Life.Types.Music.Note (Note)

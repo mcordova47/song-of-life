@@ -1,4 +1,4 @@
-module Life.Icons
+module Life.Components.Icons
   ( Props
   , arrowBarRight
   , dice
