@@ -15,6 +15,7 @@ package:
     - ordered-collections
     - prelude
     - tuples
+    - undefined-is-not-a-problem
     - web-clipboard
   name: my-project
 workspace:

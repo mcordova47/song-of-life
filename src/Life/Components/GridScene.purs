@@ -3,6 +3,7 @@ module Life.Components.GridScene
   , ComponentArgs
   , GridArgs
   , HookArgs
+  , HookArgs'
   , Props
   , State(..)
   , component
@@ -21,10 +22,14 @@ import Data.Array as Array
 import Data.Foldable (foldMap)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Number as Number
 import Data.Set as Set
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Undefined.NoProblem (Opt, Req, (!))
+import Data.Undefined.NoProblem as Opt
+import Data.Undefined.NoProblem.Closed as Closed
 import Effect (Effect)
 import Elmish (Dispatch, ReactElement)
 import Elmish.HTML.Events (MouseEvent(..))
@@ -37,6 +42,7 @@ import Life.HTML.Events.WheelEvent as WE
 import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
+import Life.Types.NamedRule as NamedRule
 import Life.Utils ((><))
 import Life.Utils as U
 import Web.DOM.Element (getBoundingClientRect)
@@ -44,12 +50,13 @@ import Web.Event.Event (preventDefault, stopPropagation)
 
 type Args r =
   { playing :: Boolean
-  , speed :: Int
-  , rule :: NamedRule
-  , step :: Int
-  , onStep :: Dispatch Int
-  , backgroundColor :: String
-  , cellColor :: String
+  , speed :: Opt Int
+  , rule :: Opt NamedRule
+  , step :: Opt Int
+  , onStep :: Opt (Dispatch Int)
+  , backgroundColor :: Opt String
+  , cellColor :: Opt String
+  , originColor :: Opt String
   | r
   }
 
@@ -59,15 +66,18 @@ type GridArgs r = Args
   | r
   )
 
-type HookArgs f r = GridArgs
-  ( game :: f Boolean
+type HookArgs f = HookArgs' f ()
+
+type HookArgs' f r = GridArgs
+  ( game :: Req (f Boolean)
   | r
   )
 
-type ComponentArgs f r = HookArgs f
-  ( render :: Scene.SetState (State f) -> ReactElement -> ReactElement
-  | r
-  )
+type ComponentArgs f = HookArgs' f
+  ( render :: Opt (Scene.SetState (State f) -> ReactElement -> ReactElement) )
+
+type UpdateArgs f = HookArgs' f
+  ( setDragged :: Dispatch Boolean, dragged :: Boolean )
 
 type Props =
   { playing :: Boolean
@@ -94,10 +104,29 @@ instance Eq (f Boolean) => Eq (State f) where
 
 type UseGridScene f t = UseState Boolean <> UseScene Props (State f) <> t
 
-component :: forall f r. Eq (f Boolean) => InteractiveAutomaton f => ComponentArgs f r -> ReactElement
-component args = useGridScene args =/> flip args.render
+component :: forall args f. Eq (f Boolean) => InteractiveAutomaton f => Closed.Coerce args (ComponentArgs f) => args -> ReactElement
+component args = useGridScene hookArgs' =/> flip (args'.render ! const identity)
+  where
+    args' = componentArgs args :: ComponentArgs f
+    hookArgs' =
+      { playing: args'.playing
+      , speed: args'.speed ! 25
+      , rule: args'.rule ! NamedRule.default
+      , step: args'.step ! 0
+      , onStep: args'.onStep ! const (pure unit)
+      , backgroundColor: args'.backgroundColor ! ""
+      , cellColor: args'.cellColor ! ""
+      , width: args'.width
+      , height: args'.height
+      , game: unwrap args'.game
+      }
 
-useGridScene :: forall f r. Eq (f Boolean) => InteractiveAutomaton f => HookArgs f r -> Hook (UseGridScene f) (ReactElement /\ Scene.SetState (State f))
+useGridScene :: forall args f
+  . Eq (f Boolean)
+  => InteractiveAutomaton f
+  => Closed.Coerce args (HookArgs f)
+  => args
+  -> Hook (UseGridScene f) (ReactElement /\ Scene.SetState (State f))
 useGridScene args = Hooks.do
   dragged /\ setDragged <- Hooks.useState false
   scene /\ setScene <- useScene $ sceneArgs { dragged, setDragged }
@@ -106,39 +135,39 @@ useGridScene args = Hooks.do
     /\
     setScene
   where
-    args' :: HookArgs f ()
-    args' = U.trim args
+    args' :: HookArgs f
+    args' = hookArgs args
 
     props step =
-      { playing: args.playing
-      , rule: args.rule
+      { playing: args'.playing
+      , rule: args'.rule ! NamedRule.default
       , step
-      , speed: args.speed
+      , speed: args'.speed ! 25
       }
 
     sceneArgs { dragged, setDragged } =
       { id: "canvas"
-      , width: args.width
-      , height: args.height
-      , fill: args.backgroundColor
-      , init: init args
-      , props: props args.step
+      , width: args'.width
+      , height: args'.height
+      , fill: args'.backgroundColor ! "#f5f5f5"
+      , init: init args'
+      , props: props (args'.step ! 0)
       , update: update $ args' >< { dragged, setDragged }
-      , view: view args
+      , view: view args'
       }
 
-init :: forall f r. HookArgs f r -> State f
+init :: forall f. HookArgs f -> State f
 init args = State
   { buffer: 0.0
   , dragging: Nothing
-  , game: args.game
+  , game: unwrap args.game
   , origin: 0.0 /\ 0.0
   , zoom: 5.0
   }
 
 update :: forall f
   . InteractiveAutomaton f
-  => HookArgs f ( setDragged :: Dispatch Boolean, dragged :: Boolean )
+  => UpdateArgs f
   -> Props
   -> State f
   -> Scene.Message
@@ -155,13 +184,13 @@ update args props state@(State s) = case _ of
       game = if presentSteps > 0 then Life.steps presentSteps props.rule s.game else s.game
 
     when (presentSteps > 0) $
-      args.onStep $ props.step + presentSteps
+      (args.onStep ! const (pure unit)) $ props.step + presentSteps
 
     pure' s { buffer = buffer, game = game }
   Scene.Tick _ ->
     pure' s { buffer = 0.0 }
   Scene.MouseDown (MouseEvent e) -> do
-    let offsetX /\ offsetY = offset args state
+    let offsetX /\ offsetY = offset (U.trim args) state
     pure' s
       { dragging = Just
           { startX: e.clientX - offsetX
@@ -184,8 +213,8 @@ update args props state@(State s) = case _ of
         if args.dragged then
           pure' s
             { origin =
-                (numCols args state / 2.0 - offsetX' / s.zoom - 0.5) /\
-                (numRows args state / 2.0 - offsetY' / s.zoom - 0.5)
+                (numCols (U.trim args) state / 2.0 - offsetX' / s.zoom - 0.5) /\
+                (numRows (U.trim args) state / 2.0 - offsetY' / s.zoom - 0.5)
             }
         else
           pure state
@@ -198,7 +227,7 @@ update args props state@(State s) = case _ of
     else do
       rect <- getBoundingClientRect e.target
       let
-        offsetX /\ offsetY = offset args state
+        offsetX /\ offsetY = offset (U.trim args) state
         x = e.clientX - rect.left - offsetX
         y = e.clientY - rect.top - offsetY
         col = Int.floor (x / s.zoom)
@@ -214,9 +243,19 @@ update args props state@(State s) = case _ of
   where
     pure' = pure <<< State
 
-view :: forall f r. CellularAutomaton f => HookArgs f r -> State f -> Scene.Element
+view :: forall f. CellularAutomaton f => HookArgs f -> State f -> Scene.Element
 view args state@(State s) = fold
-  [ Scene.Fragment $
+  [ Opt.toMaybe args.originColor # foldMap \color ->
+      Scene.Rect
+      { position:
+          { x: offsetX
+          , y: offsetY
+          }
+      , height: s.zoom
+      , width: s.zoom
+      , fill: color
+      }
+  , Scene.Fragment $
       s.game # Life.toCells # Set.filter isVisible # Array.fromFoldable <#> \(row /\ col) ->
         Scene.Rect
           { position:
@@ -225,7 +264,7 @@ view args state@(State s) = fold
               }
           , height: s.zoom
           , width: s.zoom
-          , fill: args.cellColor
+          , fill: args.cellColor ! "#ff75aa"
           }
   , gridLineConfig # foldMap \config ->
       Scene.Fragment
@@ -278,13 +317,19 @@ view args state@(State s) = fold
         , adjustY
         }
 
-offset :: forall f r. HookArgs f r -> State f -> Number /\ Number
+offset :: forall f. HookArgs f -> State f -> Number /\ Number
 offset args state@(State { origin: originX /\ originY, zoom }) =
   (zoom * (numCols args state / 2.0 - originX - 0.5)) /\
   zoom * (numRows args state / 2.0 - originY - 0.5)
 
-numRows :: forall f r. HookArgs f r -> State f -> Number
+numRows :: forall f. HookArgs f -> State f -> Number
 numRows args (State state) = Int.toNumber args.height / state.zoom
 
-numCols :: forall f r. HookArgs f r -> State f -> Number
+numCols :: forall f. HookArgs f -> State f -> Number
 numCols args (State state) = Int.toNumber args.width / state.zoom
+
+componentArgs :: forall args f. Closed.Coerce args (ComponentArgs f) => args -> ComponentArgs f
+componentArgs = Closed.coerce
+
+hookArgs :: forall args f. Closed.Coerce args (HookArgs f) => args -> HookArgs f
+hookArgs = Closed.coerce

@@ -25,7 +25,6 @@ import Life.Types.Game.Optimized.Unbounded (Unbounded)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as NamedRule
-import Life.Utils ((><))
 import Record as Record
 
 type State =
@@ -43,9 +42,19 @@ data Message
 
 type Game = Unbounded
 
-type GridContainerArgs = GridScene.Args ( controls :: Controls -> ReactElement )
+type SharedArgs r =
+  { playing :: Boolean
+  , speed :: Int
+  , rule :: NamedRule
+  , step :: Int
+  , onStep :: Dispatch Int
+  , controls :: Controls -> ReactElement
+  | r
+  }
 
-type GridArgs = GridScene.GridArgs ( controls :: Controls -> ReactElement )
+type GridContainerArgs = SharedArgs ()
+
+type GridArgs = SharedArgs ( width :: Int, height :: Int )
 
 type Controls =
   { next :: Effect Unit
@@ -87,8 +96,6 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
       , rule: state.rule
       , step: state.step
       , onStep: dispatch <<< SetStep
-      , backgroundColor: "#f5f5f5"
-      , cellColor: "#ff75aa"
       , controls: \{ next, reset, currentStep } ->
           H.div "container pt-3" $
             H.div "d-inline-flex align-items-center mb-3"
@@ -144,7 +151,7 @@ gridContainer args = Hooks.component Hooks.do
 
 grid :: GridArgs -> ReactElement
 grid args =
-  useGridScene (args >< { game: Life.fromCells@Game 0 0 gliderGunWithEater }) =/> \scene setScene ->
+  useGridScene hookArgs =/> \scene setScene ->
     H.fragment
     [ args.controls
         { next: do
@@ -157,6 +164,18 @@ grid args =
         }
     , scene
     ]
+  where
+    hookArgs =
+      { playing: args.playing
+      , speed: args.speed
+      , rule: args.rule
+      , step: args.step
+      , onStep: args.onStep
+      , width: args.width
+      , height: args.height
+      , originColor: "#bad5ff50"
+      , game: Life.fromCells@Game 0 0 gliderGunWithEater
+      }
 
 gliderGunWithEater :: Set Cell
 gliderGunWithEater = Set.fromFoldable
