@@ -4,6 +4,7 @@ module Life.Types.RuleDescriptor
   , RuleDescriptor(..)
   , S(..)
   , dayAndNight
+  , diamoeba
   , display
   , dotLife
   , gnarl
@@ -100,6 +101,9 @@ walledCities = B [4, 5, 6, 7, 8] |/| S [2, 3, 4, 5]
 gnarl :: RuleDescriptor
 gnarl = B [1] |/| S [1]
 
+diamoeba :: RuleDescriptor
+diamoeba = B [3, 5, 6, 7, 8] |/| S [5, 6, 7, 8]
+
 display :: RuleDescriptor -> String
 display (RuleDescriptor (B b) (S s)) =
   "B" <> foldMap show b <> "/S" <> foldMap show s
@@ -117,7 +121,6 @@ bsCodec char = C.codec decode encode
 
 -- | Rule Name        | B/S Code      | Behavior                        | Notes                                            |
 -- | ---------------- | ------------- | ------------------------------- | ------------------------------------------------ |
--- | **Diamoeba**     | B35678/S5678  | Expanding, chaotic              | Produces diamond-like growing blobs              |
 -- | **Anneal**       | B4678/S35678  | Self-stabilizing                | Behaves like crystallization                     |
 -- | **Coral**        | B3/S45678     | Growth-based                    | Tends to form coral-like branching structures    |
 -- | **Coagulations** | B378/S235678  | Aggregative                     | Forms semi-stable patterns that merge together   |

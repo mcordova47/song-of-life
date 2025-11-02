@@ -30,6 +30,7 @@ data NamedRule
   | DotLife
   | WalledCities
   | Gnarl
+  | Diamoeba
 derive instance Eq NamedRule
 derive instance Generic NamedRule _
 
@@ -50,6 +51,7 @@ instance Serializable NamedRule where
         "DotLife" -> Just DotLife
         "WalledCities" -> Just WalledCities
         "Gnarl" -> Just Gnarl
+        "Diamoeba" -> Just Diamoeba
         _ -> Nothing
 
       encode = case _ of
@@ -66,6 +68,7 @@ instance Serializable NamedRule where
         DotLife -> "DotLife"
         WalledCities -> "WalledCities"
         Gnarl -> "Gnarl"
+        Diamoeba -> "Diamoeba"
 
 descriptorCodec :: Codec RuleDescriptor NamedRule
 descriptorCodec = C.codec decode encode
@@ -100,6 +103,7 @@ descriptorCodec = C.codec decode encode
       DotLife -> D.dotLife
       WalledCities -> D.walledCities
       Gnarl -> D.gnarl
+      Diamoeba -> D.diamoeba
 
 default :: NamedRule
 default = Life
@@ -125,3 +129,4 @@ name = case _ of
   DotLife -> "Dot Life"
   WalledCities -> "Walled Cities"
   Gnarl -> "Gnarl"
+  Diamoeba -> "Diamoeba"
