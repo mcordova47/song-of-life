@@ -57,6 +57,7 @@ type Args r =
   , backgroundColor :: Opt String
   , cellColor :: Opt String
   , originColor :: Opt String
+  , defaultZoom :: Opt Number
   | r
   }
 
@@ -110,12 +111,13 @@ component args = useGridScene hookArgs' =/> flip (args'.render ! const identity)
     args' = componentArgs args :: ComponentArgs f
     hookArgs' =
       { playing: args'.playing
-      , speed: args'.speed ! 25
-      , rule: args'.rule ! NamedRule.default
-      , step: args'.step ! 0
-      , onStep: args'.onStep ! const (pure unit)
-      , backgroundColor: args'.backgroundColor ! ""
-      , cellColor: args'.cellColor ! ""
+      , speed: args'.speed
+      , rule: args'.rule
+      , step: args'.step
+      , onStep: args'.onStep
+      , backgroundColor: args'.backgroundColor
+      , cellColor: args'.cellColor
+      , defaultZoom: args'.defaultZoom
       , width: args'.width
       , height: args'.height
       , game: unwrap args'.game
@@ -142,7 +144,7 @@ useGridScene args = Hooks.do
       { playing: args'.playing
       , rule: args'.rule ! NamedRule.default
       , step
-      , speed: args'.speed ! 25
+      , speed: args'.speed ! 50
       }
 
     sceneArgs { dragged, setDragged } =
@@ -162,7 +164,7 @@ init args = State
   , dragging: Nothing
   , game: unwrap args.game
   , origin: 0.0 /\ 0.0
-  , zoom: 5.0
+  , zoom: args.defaultZoom ! 5.0
   }
 
 update :: forall f
