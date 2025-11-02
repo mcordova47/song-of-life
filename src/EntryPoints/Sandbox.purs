@@ -1,4 +1,4 @@
-module EntryPoints.Lab where
+module EntryPoints.Sandbox where
 
 import Prelude
 
