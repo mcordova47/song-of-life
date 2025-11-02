@@ -9,7 +9,7 @@ import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
 import Life.Pages.Orchestra as Orchestra
-import Life.Types.Game.Unbounded (Unbounded)
+import Life.Types.Game.Engines.Unbounded (Unbounded)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }

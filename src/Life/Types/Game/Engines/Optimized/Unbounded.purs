@@ -1,5 +1,8 @@
-module Life.Types.Game.Optimized.Unbounded where
-
+module Life.Types.Game.Engines.Optimized.Unbounded
+  ( Unbounded
+  , fromCells
+  )
+  where
 
 import Prelude
 
@@ -10,9 +13,9 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Tuple.Nested (type (/\), (/\))
 import Life.Game.Optimized.Unbounded as Optimized
-import Life.Types.Cell (Cell)
-import Life.Types.Life (class Automaton, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton)
-import Life.Types.Rule as Rule
+import Life.Types.Game.Life (class Automaton, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton)
+import Life.Types.Game.Rule as Rule
+import Life.Types.Grid.Cell (Cell)
 import Life.Utils.Array as A
 
 newtype Unbounded a = Unbounded

@@ -1,4 +1,4 @@
-module Life.Types.NamedRule
+module Life.Types.Game.NamedRule
   ( NamedRule(..)
   , default
   , descriptorCodec
@@ -14,8 +14,8 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Life.Types.Codec (class Serializable, Codec)
 import Life.Types.Codec as Codec
-import Life.Types.RuleDescriptor (RuleDescriptor)
-import Life.Types.RuleDescriptor as D
+import Life.Types.Game.RuleDescriptor (RuleDescriptor)
+import Life.Types.Game.RuleDescriptor as D
 
 data NamedRule
   = Life

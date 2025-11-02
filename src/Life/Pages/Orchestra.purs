@@ -29,8 +29,8 @@ import Life.Components.PresetButton as PresetButton
 import Life.Components.ShareButton as ShareButton
 import Life.Components.TagSelect as TagSelect
 import Life.Icons as I
-import Life.Types.Life (class InteractiveAutomaton, class CellularAutomaton)
-import Life.Types.Life as Life
+import Life.Types.Game.Life (class InteractiveAutomaton, class CellularAutomaton)
+import Life.Types.Game.Life as Life
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat)
 import Life.Types.Music.Note (Note)
@@ -40,7 +40,7 @@ import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.ScaleType (ScaleType)
 import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave as Wave
-import Life.Types.NamedRule as NamedRule
+import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Utils as U

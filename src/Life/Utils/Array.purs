@@ -12,7 +12,7 @@ import Data.Array ((..))
 import Data.Array as Array
 import Data.Maybe (fromMaybe)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
+import Life.Types.Grid.Cell (Cell)
 
 chunksOf :: forall a. Int -> Array a -> Array (Array a)
 chunksOf n xs = Array.splitAt n xs # go

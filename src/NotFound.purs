@@ -16,8 +16,8 @@ import Life.Components.GridScene (State(..), useGridScene)
 import Life.Components.Header as Header
 import Life.Hooks.UseBoundingBox (useBoundingBox)
 import Life.NotFound.Mazes (mazes)
-import Life.Types.Game.Optimized.Unbounded (Unbounded)
-import Life.Types.NamedRule as NamedRule
+import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
+import Life.Types.Game.NamedRule as NamedRule
 
 type Game = Unbounded
 

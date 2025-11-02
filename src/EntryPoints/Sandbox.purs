@@ -20,11 +20,11 @@ import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.TagSelect as TagSelect
 import Life.Hooks.UseBoundingBox (useBoundingBox)
-import Life.Types.Cell (Cell)
-import Life.Types.Game.Optimized.Unbounded (Unbounded)
-import Life.Types.Life as Life
-import Life.Types.NamedRule (NamedRule)
-import Life.Types.NamedRule as NamedRule
+import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
+import Life.Types.Game.Life as Life
+import Life.Types.Game.NamedRule (NamedRule)
+import Life.Types.Game.NamedRule as NamedRule
+import Life.Types.Grid.Cell (Cell)
 import Record as Record
 
 type State =

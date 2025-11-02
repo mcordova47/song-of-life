@@ -6,7 +6,7 @@ import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
 import Life.Pages.Main as Main
-import Life.Types.Game.Toroidal (Toroidal)
+import Life.Types.Game.Engines.Toroidal (Toroidal)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }

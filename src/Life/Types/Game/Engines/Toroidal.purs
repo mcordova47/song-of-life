@@ -1,4 +1,4 @@
-module Life.Types.Game.Toroidal
+module Life.Types.Game.Engines.Toroidal
   ( Toroidal
   )
   where
@@ -8,10 +8,10 @@ import Prelude
 import Control.Comonad (class Comonad)
 import Control.Extend (class Extend)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
-import Life.Types.Game.Bounded (Bounded)
-import Life.Types.Game.Bounded as Bounded
-import Life.Types.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps, extractCell, focusCell, fromCells, toCells, update)
+import Life.Types.Game.Engines.Bounded (Bounded)
+import Life.Types.Game.Engines.Bounded as Bounded
+import Life.Types.Game.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps, extractCell, focusCell, fromCells, toCells, update)
+import Life.Types.Grid.Cell (Cell)
 
 newtype Toroidal a = Toroidal (Bounded a)
 derive newtype instance Functor Toroidal

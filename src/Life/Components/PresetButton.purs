@@ -13,9 +13,9 @@ import Elmish (ReactElement, (<|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Types.Life (class VisibleAutomaton)
-import Life.Types.Life as Life
-import Life.Types.NamedRule as NamedRule
+import Life.Types.Game.Life (class VisibleAutomaton)
+import Life.Types.Game.Life as Life
+import Life.Types.Game.NamedRule as NamedRule
 
 type Args f =
   { name :: String

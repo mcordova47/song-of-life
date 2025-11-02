@@ -1,4 +1,4 @@
-module Life.Types.Rule
+module Life.Types.Game.Rule
   ( Rule
   , default
   , fromNamed
@@ -9,9 +9,9 @@ import Prelude
 
 import Data.Array (elem)
 import Data.Codec as C
-import Life.Types.NamedRule (NamedRule)
-import Life.Types.NamedRule as N
-import Life.Types.RuleDescriptor (B(..), RuleDescriptor, S(..), (|/|))
+import Life.Types.Game.NamedRule (NamedRule)
+import Life.Types.Game.NamedRule as N
+import Life.Types.Game.RuleDescriptor (B(..), RuleDescriptor, S(..), (|/|))
 
 type Rule = Boolean -> Int -> Boolean
 

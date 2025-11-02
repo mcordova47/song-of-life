@@ -1,4 +1,4 @@
-module Life.Types.Game.Unbounded
+module Life.Types.Game.Engines.Unbounded
   ( Unbounded
   )
   where
@@ -15,9 +15,9 @@ import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
-import Life.Types.Cell as Cell
-import Life.Types.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
+import Life.Types.Game.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
+import Life.Types.Grid.Cell (Cell)
+import Life.Types.Grid.Cell as Cell
 import Life.Utils (truthy)
 
 newtype Unbounded a = Unbounded

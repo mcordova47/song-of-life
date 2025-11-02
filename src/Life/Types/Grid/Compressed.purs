@@ -8,7 +8,7 @@ module Life.Types.Grid.Compressed
 import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
+import Life.Types.Grid.Cell (Cell)
 import Life.Types.Codec (Codec, (</>))
 import Life.Types.Grid (Grid)
 import Life.Types.Grid as G

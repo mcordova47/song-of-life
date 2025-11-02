@@ -7,7 +7,7 @@ import Data.Function.Uncurried (Fn2, Fn3, mkFn2, runFn3)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
+import Life.Types.Grid.Cell (Cell)
 
 steps :: (Boolean -> Int -> Boolean) -> Int -> Set Cell -> Set Cell
 steps rule n cells =

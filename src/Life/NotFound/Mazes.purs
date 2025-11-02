@@ -9,8 +9,8 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NA
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
-import Life.Types.Life (class CellularAutomaton)
-import Life.Types.Life as Life
+import Life.Types.Game.Life (class CellularAutomaton)
+import Life.Types.Game.Life as Life
 
 mazes :: forall @f. CellularAutomaton f => NonEmptyArray (f Boolean)
 mazes = Life.fromCells 0 0 <<< Set.fromFoldable <$> cells

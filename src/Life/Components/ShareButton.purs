@@ -10,8 +10,8 @@ import Effect (Effect)
 import Elmish (ReactElement)
 import Elmish.Dispatch as E
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class CellularAutomaton, class VisibleAutomaton)
-import Life.Types.Life as Life
+import Life.Types.Game.Life (class CellularAutomaton, class VisibleAutomaton)
+import Life.Types.Game.Life as Life
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
 import Life.Utils.Function as F

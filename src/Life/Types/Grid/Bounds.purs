@@ -3,9 +3,9 @@ module Life.Types.Grid.Bounds where
 
 import Data.Profunctor (dimap)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
 import Life.Types.Codec (Codec)
 import Life.Types.Codec as Codec
+import Life.Types.Grid.Cell (Cell)
 
 type Bounds =
   { start :: Cell

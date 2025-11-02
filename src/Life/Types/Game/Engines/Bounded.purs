@@ -1,4 +1,4 @@
-module Life.Types.Game.Bounded
+module Life.Types.Game.Engines.Bounded
   ( Bounded
   , size
   )
@@ -14,8 +14,8 @@ import Data.Foldable (foldl)
 import Data.Maybe (fromMaybe)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
-import Life.Types.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
+import Life.Types.Game.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
+import Life.Types.Grid.Cell (Cell)
 import Life.Utils.Array as A
 
 newtype Bounded a = Bounded

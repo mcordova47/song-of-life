@@ -1,4 +1,4 @@
-module Life.Types.Cell
+module Life.Types.Grid.Cell
   ( Cell
   , neighbors
   , random

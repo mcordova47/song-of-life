@@ -9,7 +9,7 @@ import Effect (Effect)
 import Elmish (ComponentDef)
 import Elmish.Boot (defaultMain)
 import Life.Pages.Orchestra as Orchestra
-import Life.Types.Game.Toroidal (Toroidal)
+import Life.Types.Game.Engines.Toroidal (Toroidal)
 
 main :: Effect Unit
 main = defaultMain { def, elementId: "app" }

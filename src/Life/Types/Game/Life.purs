@@ -1,4 +1,4 @@
-module Life.Types.Life
+module Life.Types.Game.Life
   ( class Automaton
   , class CellularAutomaton
   , class CellularComonad
@@ -34,10 +34,10 @@ import Data.Foldable as F
 import Data.FoldableWithIndex as FI
 import Data.Set (Set)
 import Data.Set as Set
-import Life.Types.Cell (Cell)
-import Life.Types.Cell as Cell
-import Life.Types.NamedRule (NamedRule)
-import Life.Types.Rule as Rule
+import Life.Types.Game.NamedRule (NamedRule)
+import Life.Types.Game.Rule as Rule
+import Life.Types.Grid.Cell (Cell)
+import Life.Types.Grid.Cell as Cell
 import Life.Utils.Array as A
 import Life.Utils.Function (times)
 

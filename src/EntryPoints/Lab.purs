@@ -14,9 +14,9 @@ import Elmish.Boot (defaultMain)
 import Elmish.HTML.Styled as H
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
-import Life.Types.Cell (Cell)
-import Life.Types.Game.Optimized.Unbounded (Unbounded)
-import Life.Types.Life as Life
+import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
+import Life.Types.Game.Life as Life
+import Life.Types.Grid.Cell (Cell)
 
 main :: Effect Unit
 main = defaultMain

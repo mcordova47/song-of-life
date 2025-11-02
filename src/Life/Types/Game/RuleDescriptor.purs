@@ -1,4 +1,4 @@
-module Life.Types.RuleDescriptor
+module Life.Types.Game.RuleDescriptor
   ( (|/|)
   , B(..)
   , RuleDescriptor(..)

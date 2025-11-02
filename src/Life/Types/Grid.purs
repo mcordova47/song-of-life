@@ -19,10 +19,10 @@ import Data.Set as Set
 import Data.Traversable (maximum, minimum)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
-import Life.Types.Cell (Cell)
 import Life.Types.Codec (Codec, (</>))
 import Life.Types.Grid.Bounds (Bounds)
 import Life.Types.Grid.Bounds as Bounds
+import Life.Types.Grid.Cell (Cell)
 import Life.Types.Grid.Instruction (Instruction(..))
 import Life.Types.Grid.Instruction as Instructions
 

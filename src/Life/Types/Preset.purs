@@ -41,14 +41,14 @@ import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Random as R
-import Life.Types.Cell (Cell)
-import Life.Types.Cell as Cell
 import Life.Types.Codec (Codec, (/>), (</>), (<\>))
 import Life.Types.Codec as Codec
+import Life.Types.Game.Life (class CellularAutomaton)
+import Life.Types.Game.Life as Life
 import Life.Types.Grid as Grid
+import Life.Types.Grid.Cell (Cell)
+import Life.Types.Grid.Cell as Cell
 import Life.Types.Grid.Compressed as GridCompressed
-import Life.Types.Life (class CellularAutomaton)
-import Life.Types.Life as Life
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat, natural)
 import Life.Types.Music.PitchClass (PitchClass, (//))

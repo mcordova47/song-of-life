@@ -39,10 +39,10 @@ import Life.Components.Scene (UseScene, useScene)
 import Life.Components.Scene as Scene
 import Life.HTML.Events.WheelEvent (WheelEvent(..))
 import Life.HTML.Events.WheelEvent as WE
-import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
-import Life.Types.Life as Life
-import Life.Types.NamedRule (NamedRule)
-import Life.Types.NamedRule as NamedRule
+import Life.Types.Game.Life (class CellularAutomaton, class InteractiveAutomaton)
+import Life.Types.Game.Life as Life
+import Life.Types.Game.NamedRule (NamedRule)
+import Life.Types.Game.NamedRule as NamedRule
 import Life.Utils as U
 import Life.Utils.Record ((><))
 import Life.Utils.Record as R

@@ -13,8 +13,8 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Elmish (ReactElement, Dispatch, (<|))
 import Elmish.HTML.Styled as H
-import Life.Types.Life (class InteractiveAutomaton)
-import Life.Types.Life as Life
+import Life.Types.Game.Life (class InteractiveAutomaton)
+import Life.Types.Game.Life as Life
 import Life.Types.Music.Note ((\\))
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
