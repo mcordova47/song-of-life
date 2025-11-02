@@ -18,7 +18,7 @@ import Life.Types.Music.Degree (Degree)
 import Life.Types.Music.Degree as Degree
 import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.PitchClass (PitchClass)
-import Life.Utils ((>>>>))
+import Life.Utils.Function ((>>>>))
 
 type ScaleInput = { key :: PitchClass, root :: Int, length :: Int }
 

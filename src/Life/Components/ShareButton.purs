@@ -14,7 +14,7 @@ import Life.Types.Life (class CellularAutomaton, class VisibleAutomaton)
 import Life.Types.Life as Life
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
-import Life.Utils as U
+import Life.Utils.Function as F
 import Promise as Promise
 import Web.Clipboard as Clipboard
 import Web.HTML (window)
@@ -67,7 +67,7 @@ view className args { onCopied } =
 
     shareUrl origin path = fold
       [ origin
-      , U.transaction path (String.stripSuffix $ Pattern "/")
+      , F.transaction path (String.stripSuffix $ Pattern "/")
       , "/#/"
       , args.shareHash # fromMaybe (shareHash args)
       ]

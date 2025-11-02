@@ -16,7 +16,7 @@ import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Life.Types.Cell (Cell)
 import Life.Types.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps)
-import Life.Utils as U
+import Life.Utils.Array as A
 
 newtype Bounded a = Bounded
   { grid :: Array (Array a)
@@ -77,7 +77,7 @@ instance VisibleAutomaton Bounded where
 
 instance InteractiveAutomaton Bounded where
   update f row col (Bounded b) = Bounded b
-    { grid = U.tryModifyAt row (U.tryModifyAt col f) b.grid }
+    { grid = A.tryModifyAt row (A.tryModifyAt col f) b.grid }
 
 instance Life Bounded where
   label = "bounded"

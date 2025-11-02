@@ -46,7 +46,7 @@ import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Types.Route as Route
 import Life.Utils (scrollIntoView)
-import Life.Utils as U
+import Life.Utils.Array as A
 import Web.HTML (window)
 import Web.HTML.Location as Loc
 import Web.HTML.Window (location)
@@ -177,8 +177,8 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      U.grid state.notes state.beatsPerMeasure
-      # U.transpose
+      A.grid state.notes state.beatsPerMeasure
+      # Array.transpose
       # foldr (connectCells cells) []
       <#> Array.filter (\(_ /\ cell) -> Set.member cell cells)
       <#> map (\(n /\ (row /\ _)) -> n /\ row)

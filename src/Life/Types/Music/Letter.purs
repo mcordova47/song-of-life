@@ -11,10 +11,9 @@ module Life.Types.Music.Letter
 import Prelude hiding (degree)
 
 import Data.Array as Array
-import Data.Codec as C
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Life.Types.Codec (Codec)
+import Life.Types.Codec as Codec
 import Life.Types.Music.Modifier (Modifier, flat, natural, sharp)
 
 data Letter
@@ -29,26 +28,14 @@ derive instance Eq Letter
 derive instance Generic Letter _
 
 codec :: Codec String Letter
-codec = C.codec decode encode
-  where
-    decode = case _ of
-      "C" -> Just C
-      "D" -> Just D
-      "E" -> Just E
-      "F" -> Just F
-      "G" -> Just G
-      "A" -> Just A
-      "B" -> Just B
-      _ -> Nothing
-
-    encode = case _ of
-      C -> "C"
-      D -> "D"
-      E -> "E"
-      F -> "F"
-      G -> "G"
-      A -> "A"
-      B -> "B"
+codec = Codec.enum case _ of
+  C -> "C"
+  D -> "D"
+  E -> "E"
+  F -> "F"
+  G -> "G"
+  A -> "A"
+  B -> "B"
 
 halfSteps :: Letter -> Int
 halfSteps = case _ of

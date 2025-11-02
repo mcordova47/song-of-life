@@ -13,7 +13,7 @@ import Life.Game.Optimized.Unbounded as Optimized
 import Life.Types.Cell (Cell)
 import Life.Types.Life (class Automaton, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton)
 import Life.Types.Rule as Rule
-import Life.Utils as U
+import Life.Utils.Array as A
 
 newtype Unbounded a = Unbounded
   { cells :: Map Cell a
@@ -32,7 +32,7 @@ instance CellularAutomaton Unbounded where
 
 instance VisibleAutomaton Unbounded where
   grid rows cols (Unbounded u) =
-    U.grid rows cols <#> map \cell ->
+    A.grid rows cols <#> map \cell ->
       Map.lookup cell u.cells # fromMaybe u.default
 
 instance InteractiveAutomaton Unbounded where

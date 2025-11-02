@@ -23,7 +23,7 @@ import Life.HTML.Events.WheelEvent (WheelEvent)
 import Life.HTML.Events.WheelEvent as WheelEvent
 import Life.Hooks.UseMutableRef (UseMutableRef, useMutableRef)
 import Life.Utils ((:=))
-import Life.Utils as U
+import Life.Utils.Record as R
 import Web.DOM.Element (toEventTarget)
 import Web.Event.Event (EventType(..))
 import Web.Event.EventTarget (addEventListenerWithOptions, eventListener)
@@ -102,7 +102,7 @@ type UseScene p s t = UseMutableRef p <> UseMutableRef (State s) <> UseRef HTMLC
 
 component :: forall props state. Eq props => Eq state => Args props state -> ReactElement
 component args =
-  useScene (U.trim args) =/> flip args.render
+  useScene (R.trim args) =/> flip args.render
 
 useScene :: forall p s. Eq p => Eq s => HookArgs p s -> Hook (UseScene p s) ((String -> ReactElement) /\ SetState s)
 useScene args = Hooks.do

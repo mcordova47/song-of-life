@@ -43,8 +43,9 @@ import Life.Types.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Life as Life
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.NamedRule as NamedRule
-import Life.Utils ((><))
 import Life.Utils as U
+import Life.Utils.Record ((><))
+import Life.Utils.Record as R
 import Web.DOM.Element (getBoundingClientRect)
 import Web.Event.Event (preventDefault, stopPropagation)
 
@@ -192,7 +193,7 @@ update args props state@(State s) = case _ of
   Scene.Tick _ ->
     pure' s { buffer = 0.0 }
   Scene.MouseDown (MouseEvent e) -> do
-    let offsetX /\ offsetY = offset (U.trim args) state
+    let offsetX /\ offsetY = offset (R.trim args) state
     pure' s
       { dragging = Just
           { startX: e.clientX - offsetX
@@ -215,8 +216,8 @@ update args props state@(State s) = case _ of
         if args.dragged then
           pure' s
             { origin =
-                (numCols (U.trim args) state / 2.0 - offsetX' / s.zoom - 0.5) /\
-                (numRows (U.trim args) state / 2.0 - offsetY' / s.zoom - 0.5)
+                (numCols (R.trim args) state / 2.0 - offsetX' / s.zoom - 0.5) /\
+                (numRows (R.trim args) state / 2.0 - offsetY' / s.zoom - 0.5)
             }
         else
           pure state
@@ -229,7 +230,7 @@ update args props state@(State s) = case _ of
     else do
       rect <- getBoundingClientRect e.target
       let
-        offsetX /\ offsetY = offset (U.trim args) state
+        offsetX /\ offsetY = offset (R.trim args) state
         x = e.clientX - rect.left - offsetX
         y = e.clientY - rect.top - offsetY
         col = Int.floor (x / s.zoom)

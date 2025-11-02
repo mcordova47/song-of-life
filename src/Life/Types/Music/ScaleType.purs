@@ -12,16 +12,15 @@ module Life.Types.Music.ScaleType
 
 import Prelude
 
-import Data.Codec as C
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Life.Types.Codec (class Serializable, Codec)
+import Life.Types.Codec as Codec
 import Life.Types.Music.Note (Note)
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.Scale (Scale)
 import Life.Types.Music.Scale as Scale
-import Life.Utils as U
+import Life.Utils.Generic as G
 
 data ScaleType
   = Diatonic
@@ -33,24 +32,16 @@ instance Serializable ScaleType where
   codec = codec
 
 codec :: Codec String ScaleType
-codec = C.codec decode encode
-  where
-    decode str
-      | str == "7" = Just Diatonic
-      | str == "6" = Just Hexatonic
-      | str == "5" = Just Pentatonic
-      | otherwise = Nothing
-
-    encode = case _ of
-      Diatonic -> "7"
-      Hexatonic -> "6"
-      Pentatonic -> "5"
+codec = Codec.enum case _ of
+  Diatonic -> "7"
+  Hexatonic -> "6"
+  Pentatonic -> "5"
 
 all :: Array ScaleType
-all = U.tags
+all = G.tags
 
 random :: Effect ScaleType
-random = U.randomTag
+random = G.randomTag
 
 default :: ScaleType
 default = Hexatonic

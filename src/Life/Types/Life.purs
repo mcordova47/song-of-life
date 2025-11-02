@@ -38,8 +38,8 @@ import Life.Types.Cell (Cell)
 import Life.Types.Cell as Cell
 import Life.Types.NamedRule (NamedRule)
 import Life.Types.Rule as Rule
-import Life.Utils (times)
-import Life.Utils as U
+import Life.Utils.Array as A
+import Life.Utils.Function (times)
 
 class Comonad f <= CellularComonad f where
   focusCell :: forall a. Cell -> f a -> f a
@@ -126,7 +126,7 @@ renderInteractive args =
 
 comonadicGrid :: forall f a. CellularComonad f => CellularAutomaton f => Int -> Int -> f a -> Array (Array a)
 comonadicGrid rows cols f =
-  U.grid rows cols <#> map \cell ->
+  A.grid rows cols <#> map \cell ->
     extract $ focusCell cell f
 
 comonadicStep :: forall f. CellularComonad f => NamedRule -> f Boolean -> f Boolean

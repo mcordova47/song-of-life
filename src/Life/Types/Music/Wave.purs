@@ -13,15 +13,13 @@ module Life.Types.Music.Wave
 import Prelude
 
 import Data.Bounded.Generic (genericBottom)
-import Data.Codec as C
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Elmish (ReactElement)
 import Life.Icons as I
 import Life.Types.Codec (class Serializable, Codec)
-import Life.Utils (tags)
-import Life.Utils as U
+import Life.Types.Codec as Codec
+import Life.Utils.Generic as G
 
 data Wave
   = Triangle
@@ -36,29 +34,20 @@ instance Serializable Wave where
   codec = codec
 
 codec ∷ Codec String Wave
-codec = C.codec decode encode
-  where
-    encode = case _ of
-      Triangle -> "W"
-      Sine -> "S"
-      Square -> "E"
-      Sawtooth -> "Z"
-
-    decode s
-      | s == "S" = Just Sine
-      | s == "W" = Just Triangle
-      | s == "Z" = Just Sawtooth
-      | s == "E" = Just Square
-      | otherwise = Nothing
+codec = Codec.enum case _ of
+  Triangle -> "W"
+  Sine -> "S"
+  Square -> "E"
+  Sawtooth -> "Z"
 
 all :: Array Wave
-all = tags
+all = G.tags
 
 default :: Wave
 default = genericBottom
 
 random :: Effect Wave
-random = U.randomTag
+random = G.randomTag
 
 display :: Wave -> String
 display = case _ of

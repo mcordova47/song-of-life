@@ -14,7 +14,7 @@ import Elmish (Dispatch, ReactElement, (<?|))
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Life.Types.Codec (class Serializable, codec)
-import Life.Utils as U
+import Life.Utils.Generic as G
 
 type Props a =
   { display :: a -> String
@@ -36,7 +36,7 @@ view { display, onChange, value } =
         C.decode codec (E.selectSelectedValue e)
     , value: C.encode codec value
     } $
-    (U.tags :: Array _) <#> \s ->
+    (G.tags :: Array _) <#> \s ->
       H.option_ ""
         { value: C.encode codec s } $
         display s

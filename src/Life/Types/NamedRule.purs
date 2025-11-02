@@ -13,6 +13,7 @@ import Data.Codec as C
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Life.Types.Codec (class Serializable, Codec)
+import Life.Types.Codec as Codec
 import Life.Types.RuleDescriptor (RuleDescriptor)
 import Life.Types.RuleDescriptor as D
 
@@ -35,40 +36,21 @@ derive instance Eq NamedRule
 derive instance Generic NamedRule _
 
 instance Serializable NamedRule where
-  codec = C.codec decode encode
-    where
-      decode = case _ of
-        "Life" -> Just Life
-        "HighLife" -> Just HighLife
-        "Seeds" -> Just Seeds
-        "LifeWithoutDeath" -> Just LifeWithoutDeath
-        "DayAndNight" -> Just DayAndNight
-        "Morley" -> Just Morley
-        "Replicator" -> Just Replicator
-        "Maze" -> Just Maze
-        "MazeWithMice" -> Just MazeWithMice
-        "Stains" -> Just Stains
-        "DotLife" -> Just DotLife
-        "WalledCities" -> Just WalledCities
-        "Gnarl" -> Just Gnarl
-        "Diamoeba" -> Just Diamoeba
-        _ -> Nothing
-
-      encode = case _ of
-        Life -> "Life"
-        HighLife -> "HighLife"
-        Seeds -> "Seeds"
-        LifeWithoutDeath -> "LifeWithoutDeath"
-        DayAndNight -> "DayAndNight"
-        Morley -> "Morley"
-        Replicator -> "Replicator"
-        Maze -> "Maze"
-        MazeWithMice -> "MazeWithMice"
-        Stains -> "Stains"
-        DotLife -> "DotLife"
-        WalledCities -> "WalledCities"
-        Gnarl -> "Gnarl"
-        Diamoeba -> "Diamoeba"
+  codec = Codec.enum case _ of
+    Life -> "Life"
+    HighLife -> "HighLife"
+    Seeds -> "Seeds"
+    LifeWithoutDeath -> "LifeWithoutDeath"
+    DayAndNight -> "DayAndNight"
+    Morley -> "Morley"
+    Replicator -> "Replicator"
+    Maze -> "Maze"
+    MazeWithMice -> "MazeWithMice"
+    Stains -> "Stains"
+    DotLife -> "DotLife"
+    WalledCities -> "WalledCities"
+    Gnarl -> "Gnarl"
+    Diamoeba -> "Diamoeba"
 
 descriptorCodec :: Codec RuleDescriptor NamedRule
 descriptorCodec = C.codec decode encode

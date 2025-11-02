@@ -11,6 +11,7 @@ module Life.Types.Codec
   , codec
   , discardFirst
   , discardSecond
+  , enum
   , int
   , join
   , literal
@@ -28,7 +29,10 @@ import Prelude hiding (join)
 
 import Control.Alternative (guard)
 import Data.Array as Array
+import Data.Bounded.Generic (class GenericBottom)
 import Data.Codec as C
+import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum)
+import Data.Generic.Rep (class Generic)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (dimap)
@@ -39,6 +43,7 @@ import Data.String.Regex (Regex)
 import Data.String.Regex as R
 import Data.Traversable (foldMap, traverse)
 import Data.Tuple.Nested (type (/\), (/\))
+import Life.Utils.Generic as G
 
 class Serializable a where
   codec :: Codec String a
@@ -129,3 +134,14 @@ match regex codec = C.codec decode encode
 chars :: Codec String (Array String)
 chars =
   C.codec (Just <<< String.split (Pattern "")) Array.fold
+
+enum :: forall @a rep
+  . Generic a rep
+  => GenericBottom rep
+  => GenericEnum rep
+  => GenericBoundedEnum rep
+  => (a -> String)
+  -> Codec String a
+enum encode = C.codec decode encode
+  where
+    decode = G.decodeTag encode

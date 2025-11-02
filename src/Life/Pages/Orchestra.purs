@@ -40,10 +40,11 @@ import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.ScaleType (ScaleType)
 import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave as Wave
+import Life.Types.NamedRule as NamedRule
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
-import Life.Types.NamedRule as NamedRule
 import Life.Utils as U
+import Life.Utils.Array as A
 import Record as Record
 
 data Message f
@@ -158,8 +159,8 @@ update state = case _ of
         liftEffect $ dispatch AutoStep
 
     measure cells =
-      U.grid state.notes state.beatsPerMeasure
-      # U.transpose
+      A.grid state.notes state.beatsPerMeasure
+      # Array.transpose
       # foldr (connectCells cells) []
       <#> Array.filter (\(_ /\ cell) -> Set.member cell cells)
       <#> map (\(n /\ (row /\ _)) -> n /\ row)

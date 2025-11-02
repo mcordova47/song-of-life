@@ -7,7 +7,7 @@ import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.Note as Note
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.PitchClass as PitchClass
-import Life.Utils ((>>>>))
+import Life.Utils.Function ((>>>>))
 
 type Degree = PitchClass -> Note -> Note
 
