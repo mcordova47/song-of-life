@@ -87,6 +87,8 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
       , rule: state.rule
       , step: state.step
       , onStep: dispatch <<< SetStep
+      , backgroundColor: "#f5f5f5"
+      , cellColor: "#ff75aa"
       , controls: \{ next, reset, currentStep } ->
           H.div "container pt-3" $
             H.div "d-inline-flex align-items-center mb-3"

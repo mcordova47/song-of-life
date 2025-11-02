@@ -7,10 +7,10 @@ const outDir = "./public"
 
 const entryPoints = fs.readdirSync(entryDir)
   .filter(d => d.startsWith("EntryPoints."))
-  .map(f => path.join(entryDir, f, "index.js"))
+  .map(d => path.join(entryDir, d, "index.js"))
 
 const ctx = await esbuild.context({
-  entryPoints,
+  entryPoints: [...entryPoints, path.join(entryDir, "NotFound", "index.js")],
   outdir: outDir,
   bundle: true,
   format: "iife",
@@ -18,7 +18,8 @@ const ctx = await esbuild.context({
   sourcemap: true,
 })
 
-fs.cpSync("assets", `${outDir}/assets`, { recursive: true })
+fs.cpSync("assets", path.join(outDir, "assets"), { recursive: true })
+fs.cpSync("404.html", path.join(outDir, "404.html"))
 
 entryPoints.forEach(file => {
   const scriptName = file.replace(/^.*EntryPoints\./, "").replace(/\/index.js$/, "")

@@ -48,6 +48,8 @@ type Args r =
   , rule :: NamedRule
   , step :: Int
   , onStep :: Dispatch Int
+  , backgroundColor :: String
+  , cellColor :: String
   | r
   }
 
@@ -118,7 +120,7 @@ useGridScene args = Hooks.do
       { id: "canvas"
       , width: args.width
       , height: args.height
-      , fill: "#f5f5f5"
+      , fill: args.backgroundColor
       , init: init args
       , props: props args.step
       , update: update $ args' >< { dragged, setDragged }
@@ -223,7 +225,7 @@ view args state@(State s) = fold
               }
           , height: s.zoom
           , width: s.zoom
-          , fill: "#ff75aa"
+          , fill: args.cellColor
           }
   , gridLineConfig # foldMap \config ->
       Scene.Fragment
