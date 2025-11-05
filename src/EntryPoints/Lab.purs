@@ -8,10 +8,12 @@ import Prelude
 import Control.Alternative (guard)
 import Data.Array ((!!))
 import Data.Array as Array
+import Data.Array.NonEmpty as NA
 import Data.Foldable (foldMap, maximumBy)
 import Data.Int as Int
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Ord.Down (Down(..))
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Time.Duration (Milliseconds(..))
@@ -20,7 +22,6 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (delay)
 import Effect.Class (liftEffect)
-import Effect.Random as R
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe)
@@ -143,9 +144,7 @@ update state = case _ of
     playMelody s prev =
       if not state.melodyPlaying then do
         let bornCells = Set.difference (Life.toCells s.game) (Life.toCells prev.game) # Array.fromFoldable
-        index <- R.randomInt 0 (Array.length bornCells - 1)
-        let cell = bornCells !! index
-        case cell of
+        case melodyCell bornCells of
           Just (row /\ col) -> do
             let
               neighbors = Set.fromFoldable do
@@ -207,6 +206,27 @@ view _ dispatch = Hooks.component Hooks.do
         body { padding-bottom: 0 !important; }
       """
     ]
+
+melodyCell :: Array (Int /\ Int) -> Maybe (Int /\ Int)
+melodyCell bornCells =
+  if Array.null bornCells then Nothing
+  else
+    let
+      groupedByCol =
+        bornCells
+        # Array.groupBy (\(_ /\ c1) (_ /\ c2) -> c1 == c2)
+        # Array.sortBy (comparing $ Down <<< NA.length)
+    in case Array.head groupedByCol of
+      Nothing -> Nothing
+      Just colGroup ->
+        let
+          groupedByRow =
+            colGroup
+            # Array.fromFoldable
+            # Array.groupBy (\(r1 /\ _) (r2 /\ _) -> r1 == r2)
+            # Array.sortBy (comparing $ Down <<< NA.length)
+        in
+          Array.head groupedByRow <#> NA.head
 
 height :: Int
 height = 500
