@@ -16,7 +16,6 @@ import Elmish.HTML.Styled as H
 import Elmish.Hooks ((=/>))
 import Elmish.Hooks as Hooks
 import Life.Components.GridScene (useGridScene)
-import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.TagSelect as TagSelect
 import Life.Hooks.UseBoundingBox (useBoundingBox)
@@ -155,10 +154,10 @@ grid args =
     H.fragment
     [ args.controls
         { next: do
-            setScene \(GridScene.State s) -> GridScene.State s { game = Life.steps 1 args.rule s.game }
+            setScene \s -> s { game = Life.steps 1 args.rule s.game }
             args.onStep (args.step + 1)
         , reset: do
-            setScene \(GridScene.State s) -> GridScene.State s { game = Life.empty 0 0 }
+            setScene _ { game = Life.empty 0 0 }
             args.onStep 0
         , currentStep: args.step
         }

@@ -12,7 +12,7 @@ import Elmish (ReactElement)
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
-import Life.Components.GridScene (State(..), useGridScene)
+import Life.Components.GridScene (useGridScene)
 import Life.Components.Header as Header
 import Life.Hooks.UseBoundingBox (useBoundingBox)
 import Life.NotFound.Mazes (mazes)
@@ -57,7 +57,7 @@ grid { width, height } = Hooks.component Hooks.do
         { head, tail } = NA.uncons games
         games' = NA.snoc' tail head
       setGames games'
-      setScene \(State s) -> State s { game = NA.head games' }
+      setScene _ { game = NA.head games' }
       setStep 0
 
   Hooks.pure $

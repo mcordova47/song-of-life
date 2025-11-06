@@ -33,10 +33,12 @@ import Life.Components.GridScene (useGridScene)
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.Icons as I
+import Life.Components.TagSelect as TagSelect
 import Life.Hooks.UseMutableRef (useMutableRef)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
 import Life.Types.Game.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Game.Life as Life
+import Life.Types.Game.NamedRule (NamedRule)
 import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Grid.Cell (Cell)
 import Life.Types.Music.Letter (Letter(..))
@@ -68,6 +70,7 @@ type State =
   , harmonyPlaying :: Boolean
   , melodyPlaying :: Boolean
   , playing :: Boolean
+  , rule :: NamedRule
   , scale :: ScaleType
   , step :: Int
   , zoom :: Number
@@ -78,6 +81,7 @@ data Message f
   | Play
   | PlayMelody Milliseconds
   | Reset
+  | SelectRule NamedRule
   | SetChord { root :: Maybe Note, stop :: Effect Unit }
   | Step
   | StopMelody
@@ -103,6 +107,7 @@ init = pure
   , harmonyPlaying: false
   , melodyPlaying: false
   , playing: false
+  , rule: NamedRule.default
   , scale: ScaleType.Pentatonic
   , step: 0
   , zoom: defaultZoom
@@ -122,6 +127,8 @@ update state = case _ of
     pure state { melodyPlaying = true }
   Reset ->
     pure state { step = 0 }
+  SelectRule rule ->
+    pure state { rule = rule }
   SetChord c ->
     pure state { chord = c }
   Step ->
@@ -202,49 +209,59 @@ view state dispatch = Hooks.component Hooks.do
   Hooks.pure $
     H.fragment
     [ Header.view
-    , H.div "d-flex justify-content-center align-items-center mt-4" scene
-    , H.div "d-flex mt-4" $
-        H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
-        [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2"
-            { onClick: E.handleEffect do
-                dispatch Reset
-                setScene \(GridScene.State s) -> GridScene.State s
-                  { game = Life.fromCells (height / Int.floor state.zoom) (width / Int.floor state.zoom) Set.empty }
-            , title: "Reset"
-            } $
-            I.trash { size: 32 }
-        , H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2 me-0"
-            { onClick: dispatch <| if state.playing then Pause else Play
-            , title: if state.playing then "Pause" else "Play"
-            }
-            if state.playing then
-              I.pause { size: 64 }
-            else
-              I.play { size: 64 }
-        , H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
-            { onClick: E.handleEffect do
-                dispatch Step
-                setScene \(GridScene.State s) -> GridScene.State s
-                  { game = Life.step NamedRule.default s.game }
-            , title: "Step"
-            } $
-            I.arrowBarRight { size: 32 }
-        ]
+    , H.div_ "container" { style: H.css { maxWidth: "800px" } }
+      [ H.div "d-flex justify-content-center align-items-center mt-4" scene
+      , H.div "d-flex mt-4" $
+          H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
+          [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2"
+              { onClick: E.handleEffect do
+                  dispatch Reset
+                  setScene _
+                    { game = Life.fromCells (height / Int.floor state.zoom) (width / Int.floor state.zoom) Set.empty }
+              , title: "Reset"
+              } $
+              I.trash { size: 32 }
+          , H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2 me-0"
+              { onClick: dispatch <| if state.playing then Pause else Play
+              , title: if state.playing then "Pause" else "Play"
+              }
+              if state.playing then
+                I.pause { size: 64 }
+              else
+                I.play { size: 64 }
+          , H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
+              { onClick: E.handleEffect do
+                  dispatch Step
+                  setScene \s -> s { game = Life.step state.rule s.game }
+              , title: "Step"
+              } $
+              I.arrowBarRight { size: 32 }
+          ]
+      , H.div "mt-3" $
+          H.div_ ""
+            { style: H.css { maxWidth: "300px" } } $
+            TagSelect.view
+              { display: NamedRule.display
+              , onChange: dispatch <<< SelectRule
+              , value: state.rule
+              }
+      ]
     , H.style "" """
         body { padding-bottom: 0 !important; }
       """
     ]
   where
     sceneArgs bufferRef =
-      { playing: state.playing
+      { defaultOrigin
       , game: Life.fromCells@f (height / Int.floor state.zoom) (width / Int.floor state.zoom) start
       , height
-      , width
-      , zoom: state.zoom
-      , speed: 35
-      , defaultOrigin
       , onTick: \dur -> dispatch <<< Tick bufferRef dur
       , onZoom: dispatch <<< Zoom
+      , playing: state.playing
+      , rule: state.rule
+      , speed: 35
+      , width
+      , zoom: state.zoom
       }
 
 melodyCell :: Array (Int /\ Int) -> Maybe (Int /\ Int)

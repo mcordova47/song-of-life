@@ -2,6 +2,7 @@ module Life.Components.GridScene
   ( Args
   , ComponentArgs
   , Props
+  , State'
   , State(..)
   , component
   , init
@@ -69,7 +70,7 @@ type Args f r =
 type HookArgs f = Args f ()
 
 type ComponentArgs f = Args f
-  ( render :: Opt (Scene.SetState (State f) -> ReactElement -> ReactElement) )
+  ( render :: Opt (Scene.SetState (State' f) -> ReactElement -> ReactElement) )
 
 type UpdateArgs f = Args f
   ( setDragged :: Dispatch Boolean, dragged :: Boolean )
@@ -82,7 +83,9 @@ type Props =
   , zoom :: Maybe Number
   }
 
-newtype State f = State
+newtype State f = State (State' f)
+
+type State' f =
   { buffer :: Number
   , dragging :: Maybe { startX :: Number, startY :: Number, offsetX :: Number, offsetY :: Number }
   , game :: f Boolean
@@ -127,14 +130,14 @@ useGridScene :: forall args f
   => InteractiveAutomaton f
   => Closed.Coerce args (HookArgs f)
   => args
-  -> Hook (UseGridScene f) (ReactElement /\ Scene.SetState (State f))
+  -> Hook (UseGridScene f) (ReactElement /\ Scene.SetState (State' f))
 useGridScene args = Hooks.do
   dragged /\ setDragged <- Hooks.useState false
   scene /\ setScene <- useScene $ sceneArgs { dragged, setDragged }
   Hooks.pure $
     scene (if dragged then "cursor-grabbing" else "cursor-pointer")
     /\
-    setScene
+    (\f -> setScene \(State s) -> State $ f s)
   where
     args' :: HookArgs f
     args' = hookArgs args
