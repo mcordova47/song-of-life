@@ -23,6 +23,7 @@ newtype Bounded a = Bounded
   , focus :: Cell
   , default :: a
   }
+derive newtype instance Eq a => Eq (Bounded a)
 
 instance Functor Bounded where
   map f (Bounded b) =

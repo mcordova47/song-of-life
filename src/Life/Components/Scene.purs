@@ -50,7 +50,7 @@ type Args' props state r =
   , init :: state
   , props :: props
   , update :: props -> state -> Message -> Effect state
-  , view :: state -> Element
+  , view :: props -> state -> Element
   | r
   }
 
@@ -130,7 +130,7 @@ useScene args = Hooks.do
         { capture: false, once: false, passive: false }
 
     C.getCanvasElementById args.id >>= traverse_ \canvas ->
-      C.getContext2D canvas >>= renderLoop stateRef
+      C.getContext2D canvas >>= renderLoop propsRef stateRef
 
   Hooks.useEffect' args.props (liftEffect <<< (propsRef := _))
 
@@ -179,15 +179,16 @@ useScene args = Hooks.do
       delay interval
       updateLoop propsRef stateRef
 
-    renderLoop stateRef ctx = do
+    renderLoop propsRef stateRef ctx = do
+      props <- Ref.read propsRef
       { current, previous } <- Ref.read stateRef
 
       when (Just current /= previous) do
         clearScene ctx
-        drawElement ctx $ args.view current
+        drawElement ctx $ args.view props current
         stateRef := { current, previous: Just current }
 
-      void $ window >>= requestAnimationFrame (renderLoop stateRef ctx)
+      void $ window >>= requestAnimationFrame (renderLoop propsRef stateRef ctx)
 
     handleEvent propsRef stateRef handler = E.handleEffect \e -> do
       props <- Ref.read propsRef

@@ -18,7 +18,7 @@ import Data.Array (fold, (..))
 import Data.Array as Array
 import Data.Foldable (foldMap)
 import Data.Int as Int
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
 import Data.Number as Number
 import Data.Set as Set
@@ -55,6 +55,7 @@ type Args f r =
   , backgroundColor :: Opt String
   , cellColor :: Opt String
   , originColor :: Opt String
+  , defaultOrigin :: Opt (Number /\ Number)
   , defaultZoom :: Opt Number
   , width :: Int
   , height :: Int
@@ -78,6 +79,7 @@ type Props =
   , rule :: NamedRule
   , step :: Int
   , speed :: Int
+  , zoom :: Maybe Number
   }
 
 newtype State f = State
@@ -109,6 +111,7 @@ component args = useGridScene hookArgs' =/> flip (args'.render ! const identity)
       , step: args'.step
       , backgroundColor: args'.backgroundColor
       , cellColor: args'.cellColor
+      , defaultOrigin: args'.defaultOrigin
       , defaultZoom: args'.defaultZoom
       , width: args'.width
       , height: args'.height
@@ -141,6 +144,7 @@ useGridScene args = Hooks.do
       , rule: args'.rule ! NamedRule.default
       , step
       , speed: args'.speed ! 50
+      , zoom: Opt.toMaybe args'.zoom
       }
 
     sceneArgs { dragged, setDragged } =
@@ -159,8 +163,8 @@ init args = State
   { buffer: 0.0
   , dragging: Nothing
   , game: unwrap args.game
-  , origin: 0.0 /\ 0.0
-  , zoom: args.defaultZoom ! 5.0
+  , origin: args.defaultOrigin ! (0.0 /\ 0.0)
+  , zoom: args.zoom ! (args.defaultZoom ! 5.0)
   }
 
 update :: forall f
@@ -191,7 +195,7 @@ update args props state@(State s) = case _ of
   Scene.Tick _ ->
     pure $ State s { buffer = 0.0 }
   Scene.MouseDown (MouseEvent e) -> do
-    let offsetX /\ offsetY = offset (R.trim args) state
+    let offsetX /\ offsetY = offset (R.trim args) props state
     pure $ State s
       { dragging = Just
           { startX: e.clientX - offsetX
@@ -214,8 +218,8 @@ update args props state@(State s) = case _ of
         if args.dragged then
           pure $ State s
             { origin =
-                (numCols (R.trim args) state / 2.0 - offsetX' / s.zoom - 0.5) /\
-                (numRows (R.trim args) state / 2.0 - offsetY' / s.zoom - 0.5)
+                (numCols (R.trim args) props state / 2.0 - offsetX' / zoom - 0.5) /\
+                (numRows (R.trim args) props state / 2.0 - offsetY' / zoom - 0.5)
             }
         else
           pure state
@@ -228,22 +232,25 @@ update args props state@(State s) = case _ of
     else do
       rect <- getBoundingClientRect e.target
       let
-        offsetX /\ offsetY = offset (R.trim args) state
+        offsetX /\ offsetY = offset (R.trim args) props state
         x = e.clientX - rect.left - offsetX
         y = e.clientY - rect.top - offsetY
-        col = Int.floor (x / s.zoom)
-        row = Int.floor (y / s.zoom)
+        col = Int.floor (x / zoom)
+        row = Int.floor (y / zoom)
       pure $ State s { dragging = Nothing, game = Life.toggle row col s.game }
   Scene.Wheel we@(WheelEvent e) -> do
     preventDefault e
     stopPropagation e
     let
       zoomFactor = clamp 0.85 1.15 (1.0 - 0.015 * WE.deltaY we)
-      zoom = max 1.0 $ min 50.0 (s.zoom * zoomFactor)
-    pure $ State s { zoom = zoom }
+      zoom' = max 1.0 $ min 50.0 (zoom * zoomFactor)
+    (args.onZoom ! const (pure unit)) zoom'
+    pure $ State s { zoom = zoom' }
+  where
+    zoom = props.zoom # fromMaybe s.zoom
 
-view :: forall f. CellularAutomaton f => HookArgs f -> State f -> Scene.Element
-view args state@(State s) = fold
+view :: forall f. CellularAutomaton f => HookArgs f -> Props -> State f -> Scene.Element
+view args props state@(State s) = fold
   [ Opt.toMaybe args.originColor # foldMap \color ->
       Scene.Rect
       { position:
@@ -268,14 +275,14 @@ view args state@(State s) = fold
   , gridLineConfig # foldMap \config ->
       Scene.Fragment
       [ Scene.Fragment $
-          (0 .. Int.ceil (numCols args state)) <#> \col ->
+          (0 .. Int.ceil (numCols args props state)) <#> \col ->
             Scene.Line
               { start: { x: colX config col, y: 0.0 }
               , end: { x: colX config col, y: Int.toNumber args.height }
               , stroke: config.stroke
               }
       , Scene.Fragment $
-          (0 .. Int.ceil (numRows args state)) <#> \row ->
+          (0 .. Int.ceil (numRows args props state)) <#> \row ->
             Scene.Line
               { start: { x: 0.0, y: rowY config row }
               , end: { x: Int.toNumber args.width, y: rowY config row }
@@ -284,13 +291,13 @@ view args state@(State s) = fold
       ]
   ]
   where
-    zoom = args.zoom ! s.zoom
+    zoom = props.zoom # fromMaybe s.zoom
 
-    offsetX /\ offsetY = offset args state
+    offsetX /\ offsetY = offset args props state
 
     bounds =
-      { maxX: Int.ceil (numCols args state - offsetX / zoom)
-      , maxY: Int.ceil (numRows args state - offsetY / zoom)
+      { maxX: Int.ceil (numCols args props state - offsetX / zoom)
+      , maxY: Int.ceil (numRows args props state - offsetY / zoom)
       , minX: Int.floor (-offsetX / zoom)
       , minY: Int.floor (-offsetY / zoom)
       }
@@ -318,18 +325,18 @@ view args state@(State s) = fold
         , adjustY
         }
 
-offset :: forall f. HookArgs f -> State f -> Number /\ Number
-offset args state@(State { origin: originX /\ originY, zoom }) =
-  (zoom' * (numCols args state / 2.0 - originX - 0.5)) /\
-  zoom' * (numRows args state / 2.0 - originY - 0.5)
+offset :: forall f. HookArgs f -> Props -> State f -> Number /\ Number
+offset args props state@(State { origin: originX /\ originY, zoom }) =
+  (zoom' * (numCols args props state / 2.0 - originX - 0.5)) /\
+  zoom' * (numRows args props state / 2.0 - originY - 0.5)
   where
-    zoom' = args.zoom ! zoom
+    zoom' = props.zoom # fromMaybe zoom
 
-numRows :: forall f. HookArgs f -> State f -> Number
-numRows args (State state) = Int.toNumber args.height / (args.zoom ! state.zoom)
+numRows :: forall f. HookArgs f -> Props -> State f -> Number
+numRows args props (State state) = Int.toNumber args.height / (props.zoom # fromMaybe state.zoom)
 
-numCols :: forall f. HookArgs f -> State f -> Number
-numCols args (State state) = Int.toNumber args.width / (args.zoom ! state.zoom)
+numCols :: forall f. HookArgs f -> Props -> State f -> Number
+numCols args props (State state) = Int.toNumber args.width / (props.zoom # fromMaybe state.zoom)
 
 componentArgs :: forall args f. Closed.Coerce args (ComponentArgs f) => args -> ComponentArgs f
 componentArgs = Closed.coerce

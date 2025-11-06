@@ -5,6 +5,7 @@ module Life.Types.Music.ScaleType
   , default
   , display
   , notes
+  , notes'
   , random
   , toScale
   )
@@ -12,6 +13,7 @@ module Life.Types.Music.ScaleType
 
 import Prelude
 
+import Data.Array as A
 import Data.Generic.Rep (class Generic)
 import Effect (Effect)
 import Life.Types.Codec (class Serializable, Codec)
@@ -20,6 +22,7 @@ import Life.Types.Music.Note (Note)
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.Scale (Scale)
 import Life.Types.Music.Scale as Scale
+import Life.Types.Music.Voicing as V
 import Life.Utils.Generic as G
 
 data ScaleType
@@ -59,9 +62,13 @@ toScale = case _ of
   Pentatonic -> Scale.pentatonic
 
 notes :: forall r. Int -> { key :: PitchClass, notes :: Int, root :: Int, scale :: ScaleType | r } -> Array Note
-notes octave args =
+notes = notes' V.default
+
+notes' :: forall r. V.Voicing -> Int -> { key :: PitchClass, notes :: Int, root :: Int, scale :: ScaleType | r } -> Array Note
+notes' voicing octave args =
   (Scale.shift args.root $ toScale args.scale).notes
     { key: args.key
     , root: octave
     , length: args.notes
     }
+    # A.mapWithIndex voicing

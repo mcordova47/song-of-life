@@ -52,8 +52,8 @@ diatonic = scale
   [ Degree.tonal
   , Degree.third
   , Degree.fifth
-  , Degree.second
   , Degree.seventh
+  , Degree.second
   , Degree.fourth
   , Degree.sixth
   ]

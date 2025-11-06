@@ -1,6 +1,5 @@
 module Life.Types.Music.Chord
   ( Chord(..)
-  , defaultVoicing
   , display
   , intervals
   , notes
@@ -12,7 +11,6 @@ import Prelude
 
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Generic.Rep (class Generic)
-import Data.Int as Int
 import Data.Time.Duration (Milliseconds)
 import Effect (Effect)
 import Life.Types.Codec (class Serializable)
@@ -23,6 +21,7 @@ import Life.Types.Music.NamedInterval as NI
 import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.Note as N
 import Life.Types.Music.PitchClass (PitchClass)
+import Life.Types.Music.Voicing (Voicing)
 import Life.Types.Music.Wave (Wave)
 
 data Chord
@@ -72,13 +71,6 @@ notes pitchClass octave =
   intervals >>>
   map NI.toInterval >>>
   map (I.addTo (pitchClass \\ octave))
-
-type Voicing = Int -> Note -> Note
-
-defaultVoicing :: Voicing
-defaultVoicing i (pc \\ o)
-  | Int.even i = pc \\ o
-  | otherwise = pc \\ (o + 1)
 
 play :: Milliseconds -> Wave -> PitchClass -> Int -> Chord -> Voicing -> Effect Unit
 play dur wave pitchClass octave chord voicing =

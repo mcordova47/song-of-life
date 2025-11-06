@@ -261,30 +261,30 @@ view state dispatch = H.fragment
                   I.pause { size: 64 }
                 else
                   I.play { size: 64 }
-              , H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
-                  { onClick: dispatch <| Step
-                  , title: "Step"
+            , H.button_ "btn text-salmon hover:text-salmon-highlight p-0"
+                { onClick: dispatch <| Step
+                , title: "Step"
+                } $
+                I.arrowBarRight { size: 32 }
+            , H.div "position-relative ms-2"
+              [ ShareButton.view "btn text-salmon hover:text-salmon-highlight px-0"
+                  state
+                  { onCopied: dispatch ShowCopiedFeedback
                   } $
-                  I.arrowBarRight { size: 32 }
-              , H.div "position-relative ms-2"
-                [ ShareButton.view "btn text-salmon hover:text-salmon-highlight px-0"
-                    state
-                    { onCopied: dispatch ShowCopiedFeedback
-                    } $
-                    I.share { size: 32 }
-                , M.guard state.showCopiedFeedback $
-                    H.div_ "position-absolute d-flex align-items-center ms-2"
-                    { style: H.css
-                        { top: "50%"
-                        , left: "100%"
-                        , transform: "translateY(-50%)"
-                        }
-                    }
-                    [ H.div "callout-left callout-secondary translucent" H.empty
-                    , H.div "rounded py-2 px-3 bg-secondary text-white translucent text-nowrap" "Copied link to clipboard!"
-                    ]
-                ]
+                  I.share { size: 32 }
+              , M.guard state.showCopiedFeedback $
+                  H.div_ "position-absolute d-flex align-items-center ms-2"
+                  { style: H.css
+                      { top: "50%"
+                      , left: "100%"
+                      , transform: "translateY(-50%)"
+                      }
+                  }
+                  [ H.div "callout-left callout-secondary translucent" H.empty
+                  , H.div "rounded py-2 px-3 bg-secondary text-white translucent text-nowrap" "Copied link to clipboard!"
+                  ]
               ]
+            ]
         , H.div "mt-3"
           [ H.h5 "" "Controls"
           , H.div "row mb-3"

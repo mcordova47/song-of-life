@@ -14,6 +14,7 @@ import Life.Types.Game.Life (class Automaton, class CellularComonad, class Inter
 import Life.Types.Grid.Cell (Cell)
 
 newtype Toroidal a = Toroidal (Bounded a)
+derive newtype instance Eq a => Eq (Toroidal a)
 derive newtype instance Functor Toroidal
 derive newtype instance Extend Toroidal
 derive newtype instance Comonad Toroidal
