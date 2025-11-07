@@ -73,9 +73,9 @@ grid { width, height } = Hooks.component Hooks.do
 
     args game step onStep =
       { playing: step <= maxStep
-      , speed: 75
       , rule: NamedRule.Maze
       , step
+      , stepsPerSecond: 30.0
       , onStep
       , width
       , height

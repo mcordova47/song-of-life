@@ -9,7 +9,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
-import Elmish (Dispatch, ReactElement, Transition, (<?|), (<|))
+import Elmish (Dispatch, ReactElement, Transition, (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
@@ -17,6 +17,7 @@ import Elmish.Hooks ((=/>))
 import Elmish.Hooks as Hooks
 import Life.Components.GridScene (useGridScene)
 import Life.Components.Header as Header
+import Life.Components.LogSlider as LogSlider
 import Life.Components.TagSelect as TagSelect
 import Life.Hooks.UseBoundingBox (useBoundingBox)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
@@ -29,13 +30,13 @@ import Record as Record
 type State =
   { playing :: Boolean
   , rule :: NamedRule
-  , speed :: Int
+  , stepsPerSecond :: Number
   , step :: Int
   }
 
 data Message
   = SelectRule NamedRule
-  | SetSpeed Int
+  | SetStepsPerSecond Number
   | SetStep Int
   | TogglePlaying
 
@@ -43,7 +44,7 @@ type Game = Unbounded
 
 type SharedArgs r =
   { playing :: Boolean
-  , speed :: Int
+  , stepsPerSecond :: Number
   , rule :: NamedRule
   , step :: Int
   , onStep :: Dispatch Int
@@ -71,7 +72,7 @@ init :: Transition Message State
 init = pure
   { playing: false
   , rule: NamedRule.default
-  , speed: 50
+  , stepsPerSecond: 10.0
   , step: 0
   }
 
@@ -79,10 +80,10 @@ update :: State -> Message -> Transition Message State
 update state = case _ of
   SelectRule rule ->
     pure state { rule = rule }
-  SetSpeed n ->
-    pure state { speed = n }
   SetStep n ->
     pure state { step = n }
+  SetStepsPerSecond n ->
+    pure state { stepsPerSecond = n }
   TogglePlaying ->
     pure state { playing = not state.playing }
 
@@ -91,7 +92,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
   [ Header.view
   , gridContainer
       { playing: state.playing
-      , speed: state.speed
+      , stepsPerSecond: state.stepsPerSecond
       , rule: state.rule
       , step: state.step
       , onStep: dispatch <<< SetStep
@@ -118,16 +119,14 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
                   , value: state.rule
                   }
             , H.div "ms-2" "Speed:"
-            , H.input_ "form-range ms-2"
-                { type: "range"
-                , min: "1"
-                , max: "150"
-                , step: "1"
-                , value: show state.speed
-                , onChange: dispatch <?| map SetSpeed <<< Int.fromString <<< E.inputText
-                , id: "speed-input"
-                , style: H.css { maxWidth: "150px" }
-                }
+            , H.div_ "ms-2 d-flex" { style: H.css { maxWidth: "150px" } } $
+                LogSlider.view ""
+                  { min: 1.0
+                  , max: 1000.0
+                  , value: state.stepsPerSecond
+                  , onChange: dispatch <<< SetStepsPerSecond
+                  , id: "speed-input"
+                  }
             , H.div "d-flex align-items-center ms-2"
               [ H.div "text-nowrap" "Step #"
               , H.div "h4 text-salmon ms-1 mb-0" $ show currentStep
@@ -166,7 +165,7 @@ grid args =
   where
     hookArgs =
       { playing: args.playing
-      , speed: args.speed
+      , stepsPerSecond: args.stepsPerSecond
       , rule: args.rule
       , step: args.step
       , onStep: args.onStep

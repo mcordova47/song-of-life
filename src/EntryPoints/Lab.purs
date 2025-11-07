@@ -286,7 +286,7 @@ view state dispatch = Hooks.component Hooks.do
       , onZoom: dispatch <<< Zoom
       , playing: state.playing
       , rule: state.rule
-      , speed: 35
+      , stepsPerSecond: 5.0
       , width
       , zoom: state.zoom
       }

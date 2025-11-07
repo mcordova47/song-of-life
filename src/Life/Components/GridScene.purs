@@ -50,9 +50,9 @@ import Web.Event.Event (preventDefault, stopPropagation)
 type Args f r =
   { game :: Req (f Boolean)
   , playing :: Boolean
-  , speed :: Opt Int
   , rule :: Opt NamedRule
   , step :: Opt Int
+  , stepsPerSecond :: Opt Number
   , backgroundColor :: Opt String
   , cellColor :: Opt String
   , originColor :: Opt String
@@ -79,7 +79,7 @@ type Props =
   { playing :: Boolean
   , rule :: NamedRule
   , step :: Int
-  , speed :: Int -- TODO: Make this stepsPerSecond and move logarithmic logic to slider
+  , stepsPerSecond :: Number
   , zoom :: Maybe Number
   }
 
@@ -109,9 +109,9 @@ component args = useGridScene hookArgs' =/> flip (args'.render ! const identity)
     args' = componentArgs args :: ComponentArgs f
     hookArgs' =
       { playing: args'.playing
-      , speed: args'.speed
       , rule: args'.rule
       , step: args'.step
+      , stepsPerSecond: args'.stepsPerSecond
       , backgroundColor: args'.backgroundColor
       , cellColor: args'.cellColor
       , defaultOrigin: args'.defaultOrigin
@@ -146,7 +146,7 @@ useGridScene args = Hooks.do
       { playing: args'.playing
       , rule: args'.rule ! NamedRule.default
       , step
-      , speed: args'.speed ! 50
+      , stepsPerSecond: args'.stepsPerSecond ! 50.0
       , zoom: Opt.toMaybe args'.zoom
       }
 
@@ -181,8 +181,7 @@ update args props state@(State s) = case _ of
   Scene.Tick dur@(Milliseconds ms) | props.playing -> do
     let
       duration = ms / 1000.0
-      stepsPerSecond = Int.floor $ Number.pow 10.0 (Int.toNumber props.speed / 50.0)
-      newSteps = if props.playing then Int.toNumber stepsPerSecond * duration else 0.0
+      newSteps = if props.playing then props.stepsPerSecond * duration else 0.0
       accumulatedSteps = s.buffer + newSteps
       presentSteps = Int.floor accumulatedSteps
       buffer = max 0.0 (accumulatedSteps - Int.toNumber presentSteps)
