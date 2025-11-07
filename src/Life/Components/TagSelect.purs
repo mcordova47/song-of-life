@@ -4,15 +4,13 @@ module Life.Components.TagSelect
   )
   where
 
-import Prelude
 
 import Data.Bounded.Generic (class GenericBottom)
 import Data.Codec as C
 import Data.Enum.Generic (class GenericBoundedEnum, class GenericEnum)
 import Data.Generic.Rep (class Generic)
-import Elmish (Dispatch, ReactElement, (<?|))
-import Elmish.HTML.Events as E
-import Elmish.HTML.Styled as H
+import Elmish (Dispatch, ReactElement)
+import Life.Components.Select as Select
 import Life.Types.Codec (class Serializable, codec)
 import Life.Utils.Generic as G
 
@@ -31,12 +29,11 @@ view :: forall @a rep
   => Props a
   -> ReactElement
 view { display, onChange, value } =
-  H.select_ "form-select"
-    { onChange: onChange <?| \e ->
-        C.decode codec (E.selectSelectedValue e)
-    , value: C.encode codec value
-    } $
-    (G.tags :: Array _) <#> \s ->
-      H.option_ ""
-        { value: C.encode codec s } $
-        display s
+  Select.view
+    { decode: C.decode codec
+    , display
+    , encode: C.encode codec
+    , onChange
+    , options: G.tags
+    , value
+    }

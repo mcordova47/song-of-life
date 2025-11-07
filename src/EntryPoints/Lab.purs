@@ -9,6 +9,7 @@ import Control.Alternative (guard)
 import Data.Array ((!!))
 import Data.Array as Array
 import Data.Array.NonEmpty as NA
+import Data.Codec as C
 import Data.Foldable (foldMap, maximumBy)
 import Data.Int as Int
 import Data.Map as Map
@@ -33,8 +34,10 @@ import Life.Components.GridScene (useGridScene)
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.Icons as I
+import Life.Components.Select as Select
 import Life.Components.TagSelect as TagSelect
 import Life.Hooks.UseMutableRef (useMutableRef)
+import Life.Types.Codec (codec)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
 import Life.Types.Game.Life (class CellularAutomaton, class InteractiveAutomaton)
 import Life.Types.Game.Life as Life
@@ -45,7 +48,8 @@ import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (natural)
 import Life.Types.Music.Note (Note)
 import Life.Types.Music.Note as N
-import Life.Types.Music.PitchClass ((//))
+import Life.Types.Music.PitchClass (PitchClass, (//))
+import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.ScaleType (ScaleType)
 import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Voicing (Voicing)
@@ -68,6 +72,7 @@ type State =
       , root :: Maybe Note
       }
   , harmonyPlaying :: Boolean
+  , key :: PitchClass
   , melodyPlaying :: Boolean
   , playing :: Boolean
   , rule :: NamedRule
@@ -81,7 +86,9 @@ data Message f
   | Play
   | PlayMelody Milliseconds
   | Reset
+  | SelectKey PitchClass
   | SelectRule NamedRule
+  | SelectScale ScaleType
   | SetChord { root :: Maybe Note, stop :: Effect Unit }
   | Step
   | StopMelody
@@ -105,6 +112,7 @@ init = pure
       , root: Nothing
       }
   , harmonyPlaying: false
+  , key: C // natural
   , melodyPlaying: false
   , playing: false
   , rule: NamedRule.default
@@ -127,8 +135,12 @@ update state = case _ of
     pure state { melodyPlaying = true }
   Reset ->
     pure state { step = 0 }
+  SelectKey key ->
+    pure state { key = key }
   SelectRule rule ->
     pure state { rule = rule }
+  SelectScale scale ->
+    pure state { scale = scale }
   SetChord c ->
     pure state { chord = c }
   Step ->
@@ -148,8 +160,8 @@ update state = case _ of
     numRows = Int.ceil (Int.toNumber height / state.zoom)
     rowCount acc (r /\ _) = Map.alter (fromMaybe 0 >>> (+) 1 >>> Just) r acc
     rowCounts s = s.game # Life.toCells # Array.fromFoldable # Array.foldl rowCount Map.empty # Map.toUnfoldable :: Array (Int /\ Int)
-    chordNotes' = chordNotes state.scale
-    melodyNotes' = melodyNotes state.scale
+    chordNotes' = chordNotes state
+    melodyNotes' = melodyNotes state
     chord row =
       chordNotes'
       <> chordNotes'
@@ -237,14 +249,29 @@ view state dispatch = Hooks.component Hooks.do
               } $
               I.arrowBarRight { size: 32 }
           ]
-      , H.div "mt-3" $
-          H.div_ ""
-            { style: H.css { maxWidth: "300px" } } $
+      , H.div "row"
+        [ H.div "col col-md-6 pt-3" $
             TagSelect.view
               { display: NamedRule.display
               , onChange: dispatch <<< SelectRule
               , value: state.rule
               }
+        , H.div "col-4 col-md-2 pt-3" $
+            Select.view
+              { decode: C.decode codec
+              , display: PitchClass.display
+              , encode: C.encode codec
+              , onChange: dispatch <<< SelectKey
+              , options: PitchClass.all
+              , value: state.key
+              }
+        , H.div "col-8 col-md-4 pt-3" $
+            TagSelect.view
+              { display: ScaleType.display
+              , onChange: dispatch <<< SelectScale
+              , value: state.scale
+              }
+        ]
       ]
     , H.style "" """
         body { padding-bottom: 0 !important; }
@@ -330,14 +357,14 @@ start =
     adjustOrigin (row /\ col) =
       (row + Int.floor originRow) /\ (col + Int.floor originCol)
 
-chordNotes :: ScaleType -> Array Note
+chordNotes :: State -> Array Note
 chordNotes = notes 14 Voicing.spaced
 
-melodyNotes :: ScaleType -> Array Note
+melodyNotes :: State -> Array Note
 melodyNotes = notes 22 Voicing.default
 
-notes :: Int -> Voicing -> ScaleType -> Array Note
-notes n voicing scale = ScaleType.notes' voicing 3 { key: C // natural, notes: n, root: 0, scale }
+notes :: Int -> Voicing -> State -> Array Note
+notes n voicing { key, scale } = ScaleType.notes' voicing 3 { key, notes: n, root: 0, scale }
 
 measureDuration :: Number
 measureDuration = 2000.0

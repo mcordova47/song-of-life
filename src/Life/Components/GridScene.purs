@@ -79,7 +79,7 @@ type Props =
   { playing :: Boolean
   , rule :: NamedRule
   , step :: Int
-  , speed :: Int
+  , speed :: Int -- TODO: Make this stepsPerSecond and move logarithmic logic to slider
   , zoom :: Maybe Number
   }
 
