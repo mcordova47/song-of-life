@@ -42,6 +42,7 @@ type Args props state = Args' props state ( render :: (SetState state) -> (Strin
 
 type HookArgs props state = Args' props state ()
 
+-- TODO: readOnly
 type Args' props state r =
   { id :: String
   , height :: Int

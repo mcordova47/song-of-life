@@ -13,7 +13,8 @@ import Data.Codec as C
 import Data.Foldable (foldMap, maximumBy)
 import Data.Int as Int
 import Data.Map as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Number as Number
 import Data.Ord.Down (Down(..))
 import Data.Set (Set)
 import Data.Set as Set
@@ -25,9 +26,9 @@ import Effect.Aff (delay)
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
-import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, (<|))
+import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, (<?|), (<|))
 import Elmish.Boot (defaultMain)
-import Elmish.Dispatch as E
+import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Life.Components.GridScene (useGridScene)
@@ -46,6 +47,8 @@ import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Grid.Cell (Cell)
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (natural)
+import Life.Types.Music.NamedDuration (NamedDuration)
+import Life.Types.Music.NamedDuration as ND
 import Life.Types.Music.Note (Note)
 import Life.Types.Music.Note as N
 import Life.Types.Music.PitchClass (PitchClass, (//))
@@ -59,26 +62,27 @@ import Life.Utils ((:=))
 
 -- Volume of chord based on density of grid
 -- n voices (voicesPlaying :: Int, get n - voicesPlaying notes to play)
--- enable editing
 -- presets
 -- select wave for voices, chords
--- select key
--- select rule
 -- exclude off-grid cells
 
 type State =
-  { chord ::
-      { stop :: Effect Unit
-      , root :: Maybe Note
-      }
+  { chord :: Chord
   , harmonyPlaying :: Boolean
   , key :: PitchClass
+  , measureDuration :: Number
   , melodyPlaying :: Boolean
+  , noteDuration :: NamedDuration
   , playing :: Boolean
   , rule :: NamedRule
   , scale :: ScaleType
   , step :: Int
   , zoom :: Number
+  }
+
+type Chord =
+  { stop :: Effect Unit
+  , root :: Maybe Note
   }
 
 data Message f
@@ -87,9 +91,11 @@ data Message f
   | PlayMelody Milliseconds
   | Reset
   | SelectKey PitchClass
+  | SelectNoteDuration NamedDuration
   | SelectRule NamedRule
   | SelectScale ScaleType
-  | SetChord { root :: Maybe Note, stop :: Effect Unit }
+  | SetChord Chord
+  | SetMeasureDuration Number
   | Step
   | StopMelody
   | Tick (Ref Number) Milliseconds { current :: GridScene.State f, previous :: GridScene.State f }
@@ -113,7 +119,9 @@ init = pure
       }
   , harmonyPlaying: false
   , key: C // natural
+  , measureDuration: 1500.0
   , melodyPlaying: false
+  , noteDuration: ND.Eighth
   , playing: false
   , rule: NamedRule.default
   , scale: ScaleType.Pentatonic
@@ -137,12 +145,16 @@ update state = case _ of
     pure state { step = 0 }
   SelectKey key ->
     pure state { key = key }
+  SelectNoteDuration dur ->
+    pure state { noteDuration = dur }
   SelectRule rule ->
     pure state { rule = rule }
   SelectScale scale ->
     pure state { scale = scale }
   SetChord c ->
     pure state { chord = c }
+  SetMeasureDuration md ->
+    pure state { measureDuration = md }
   Step ->
     pure state { step = state.step + 1 }
   StopMelody ->
@@ -158,8 +170,15 @@ update state = case _ of
     pure state
   where
     numRows = Int.ceil (Int.toNumber height / state.zoom)
+    numCols = Int.ceil (Int.toNumber width / state.zoom)
     rowCount acc (r /\ _) = Map.alter (fromMaybe 0 >>> (+) 1 >>> Just) r acc
-    rowCounts s = s.game # Life.toCells # Array.fromFoldable # Array.foldl rowCount Map.empty # Map.toUnfoldable :: Array (Int /\ Int)
+    rowCounts s =
+      s.game
+      # Life.toCells
+      # Array.fromFoldable
+      # Array.filter visible
+      # Array.foldl rowCount Map.empty
+      # Map.toUnfoldable :: Array _
     chordNotes' = chordNotes state
     melodyNotes' = melodyNotes state
     chord row =
@@ -178,25 +197,22 @@ update state = case _ of
       | otherwise = playNote melodyCell s prev
 
     playNote cellSelector s prev = do
-      let bornCells = Set.difference (Life.toCells s.game) (Life.toCells prev.game) # Array.fromFoldable
-      case cellSelector bornCells of
-        Just (row /\ col) -> do
-          let
-            neighbors = Set.fromFoldable do
-              row' <- [row - 1, row, row + 1]
-              col' <- [col - 1, col, col + 1]
-              guard (row' /= 0 || col' /= 0)
-              pure (row' /\ col')
-            livingNeighbors = Set.intersection (Life.toCells s.game) neighbors # Set.size
-            ms = Int.toNumber livingNeighbors * 62.5
-          case melody row of
-            Just note | ms > 0.0 -> do
-              N.play (Milliseconds ms) W.Triangle note
-              pure $ Just $ PlayMelody (Milliseconds ms)
-            _ ->
-              pure Nothing
-        _ ->
-          pure Nothing
+      let bornCells = Set.difference (Life.toCells s.game) (Life.toCells prev.game) # Array.fromFoldable # Array.filter visible
+      cellSelector bornCells # maybe (pure Nothing) \(row /\ col) -> do
+        let
+          neighbors = Set.fromFoldable do
+            row' <- [row - 1, row, row + 1]
+            col' <- [col - 1, col, col + 1]
+            guard (row' /= 0 || col' /= 0)
+            pure (row' /\ col')
+          livingNeighbors = Set.intersection (Life.toCells s.game) neighbors # Set.size
+          ms = Int.toNumber livingNeighbors * 62.5
+        case melody row of
+          Just note | ms > 0.0 -> do
+            N.play (Milliseconds ms) W.Triangle note
+            pure $ Just $ PlayMelody (Milliseconds ms)
+          _ ->
+            pure Nothing
 
     playChord bufferRef ms s = do
       buffer <- Ref.read bufferRef
@@ -205,8 +221,8 @@ update state = case _ of
         row = rowCounts s # maximumBy (comparing snd) <#> fst # fromMaybe 0
         notes' = chord row
         root = Array.head notes'
-      if root /= state.chord.root && buffer' >= measureDuration then do
-        bufferRef := buffer' - measureDuration
+      if root /= state.chord.root && buffer' >= state.measureDuration then do
+        bufferRef := buffer' - state.measureDuration
         state.chord.stop
         { stop } <- foldMap (N.drone W.Sawtooth) notes'
         pure $ Just $ SetChord { root, stop }
@@ -214,9 +230,13 @@ update state = case _ of
         bufferRef := buffer'
         pure Nothing
 
+    visible (row /\ col) =
+      (row >= minRow state && row <= (minRow state + numRows)) &&
+      (col >= minCol state && col <= (minCol state + numCols))
+
 view :: forall @f. InteractiveAutomaton f => Eq (f Boolean) => State -> Dispatch (Message f) -> ReactElement
 view state dispatch = Hooks.component Hooks.do
-  bufferRef <- useMutableRef measureDuration
+  bufferRef <- useMutableRef state.measureDuration
   scene /\ setScene <- useGridScene $ sceneArgs bufferRef
   Hooks.pure $
     H.fragment
@@ -271,6 +291,18 @@ view state dispatch = Hooks.component Hooks.do
               , onChange: dispatch <<< SelectScale
               , value: state.scale
               }
+        , H.div "col-6 col-md-3 pt-3" $
+            TagSelect.view
+              { display: ND.display
+              , onChange: dispatch <<< SelectNoteDuration
+              , value: state.noteDuration
+              }
+        , H.div "col-6 col-md-3 pt-3" $
+            H.input_ "form-control"
+              { onChange: dispatch <<< SetMeasureDuration <?| Number.fromString <<< E.inputText
+              , type: "number"
+              , value: show state.measureDuration
+              }
         ]
       ]
     , H.style "" """
@@ -286,7 +318,7 @@ view state dispatch = Hooks.component Hooks.do
       , onZoom: dispatch <<< Zoom
       , playing: state.playing
       , rule: state.rule
-      , stepsPerSecond: 5.0
+      , stepsPerSecond: 1.0 / (state.noteDuration # ND.toSeconds (Milliseconds state.measureDuration))
       , width
       , zoom: state.zoom
       }
@@ -324,15 +356,19 @@ minRow :: State -> Int
 minRow { zoom } =
   Int.floor (fst defaultOrigin - Int.toNumber height / zoom / 2.0)
 
+minCol :: State -> Int
+minCol { zoom } =
+  Int.floor (fst defaultOrigin - Int.toNumber width / zoom / 2.0)
+
 defaultOrigin :: Number /\ Number
 defaultOrigin =
   (Int.toNumber height / defaultZoom / 2.0) /\ (Int.toNumber width / defaultZoom / 2.0)
 
 height :: Int
-height = 500
+height = 600
 
 width :: Int
-width = 500
+width = 600
 
 defaultZoom :: Number
 defaultZoom = 10.0
@@ -364,7 +400,4 @@ melodyNotes :: State -> Array Note
 melodyNotes = notes 22 Voicing.default
 
 notes :: Int -> Voicing -> State -> Array Note
-notes n voicing { key, scale } = ScaleType.notes' voicing 3 { key, notes: n, root: 0, scale }
-
-measureDuration :: Number
-measureDuration = 2000.0
+notes n voicing { key, scale } = ScaleType.notes' voicing 2 { key, notes: n, root: 0, scale }
