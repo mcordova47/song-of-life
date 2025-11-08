@@ -20,6 +20,10 @@ import Life.Types.Grid.Cell (Cell)
 import Life.Types.Grid.Cell as Cell
 import Life.Utils (truthy)
 
+-- | A comonadic implementation of an unbounded cellular automaton. It's
+-- | represented as a map of cells with a focus and a default value (since the
+-- | map can be empty). It's theoretically unbounded — i.e. the cell positions
+-- | have no limit — but it's practically bounded by the size of the Int type.
 newtype Unbounded a = Unbounded
   { cells :: Map Cell a
   , focus :: Cell

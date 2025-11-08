@@ -18,6 +18,12 @@ import Life.Types.Game.Rule as Rule
 import Life.Types.Grid.Cell (Cell)
 import Life.Utils.Array as A
 
+-- | A performance-optimized implementation of a cellular automaton. It can't be
+-- | expressed as a comonad because it calculates several steps at a time all in
+-- | the JS FFI. The PureScript representation is a map of cell states and a
+-- | default, but it's turned into a more efficient, mutable JS set in the FFI.
+-- | It's theoretically unbounded, but because of how it's represented in the
+-- | FFI, has a practical limit of 2^16 on each axis.
 newtype Unbounded a = Unbounded
   { cells :: Map Cell a
   , default :: a

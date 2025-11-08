@@ -37,6 +37,9 @@ import Data.Tuple.Nested ((/\))
 import Life.Types.Codec (class Serializable, Codec, codec)
 import Life.Types.Codec as Codec
 
+-- | A rule descriptor is more general than a named rule. It's defined by how
+-- | many living neighbors cause a cell to be born or survive. It uses the B/S
+-- | notation. E.g. B3/S23 would be constructed with `B [2] |/| S [2, 3]`.
 data RuleDescriptor = RuleDescriptor B S
 derive instance Eq RuleDescriptor
 

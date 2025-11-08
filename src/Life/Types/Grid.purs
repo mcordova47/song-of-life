@@ -26,6 +26,8 @@ import Life.Types.Grid.Cell (Cell)
 import Life.Types.Grid.Instruction (Instruction(..))
 import Life.Types.Grid.Instruction as Instructions
 
+-- | A type made for serializing a grid of cells as a set of instructions, used
+-- | for storing grid states in a URL.
 type Grid = 
   { bounds :: Bounds
   , instructions :: Array Instruction

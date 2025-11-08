@@ -17,6 +17,8 @@ import Life.Types.Codec as Codec
 import Life.Types.Game.RuleDescriptor (RuleDescriptor)
 import Life.Types.Game.RuleDescriptor as D
 
+-- | The most constrained type of rule — a known rule which is named. These are
+-- | mapped to rule descriptors and rules.
 data NamedRule
   = Life
   | HighLife

@@ -15,6 +15,9 @@ import Life.Types.Codec as Codec
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 
+-- | Most routes are defined as separate entrypoints which are turned into
+-- | separate html pages. These routes are for client-side routing, like sharing
+-- | a given preset (living/dead cells, sound wave type, key, etc.).
 newtype Route
   = Share Preset
 derive instance Newtype Route _

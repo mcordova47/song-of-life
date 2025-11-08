@@ -18,6 +18,10 @@ import Life.Types.Game.Life (class Automaton, class CellularComonad, class Inter
 import Life.Types.Grid.Cell (Cell)
 import Life.Utils.Array as A
 
+-- | A comonadic implementation of a bounded cellular automaton. It's
+-- | represented by a grid of cell states, a focused cell, and a default value
+-- | (in case the grid is empty). When looking at a cell's neighbors, cells
+-- | outside the bounds are considered to have the default state (e.g. dead).
 newtype Bounded a = Bounded
   { grid :: Array (Array a)
   , focus :: Cell

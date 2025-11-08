@@ -1,3 +1,4 @@
+-- | Cominators for creating codecs.
 module Life.Types.Codec
   ( (/>)
   , (</)

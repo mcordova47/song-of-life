@@ -1,3 +1,5 @@
+-- | This module contains all of the typeclasses which define different
+-- | algorithms for cellular automata.
 module Life.Types.Game.Life
   ( class Automaton
   , class CellularAutomaton
@@ -41,23 +43,30 @@ import Life.Types.Grid.Cell as Cell
 import Life.Utils.Array as A
 import Life.Utils.Function (times)
 
+-- | If an implementation can be expressed as a comonad with a focused cell, it
+-- | gets free instances for Automaton and VisibleAutomaton.
 class Comonad f <= CellularComonad f where
   focusCell :: forall a. Cell -> f a -> f a
   extractCell :: forall a. f a -> Cell
 
+-- | This is the core typeclass that defines an algorithm for cellular automata.
 class Automaton f where
   steps :: Int -> NamedRule -> f Boolean -> f Boolean
 
+-- | An automata which can be transformed to/from a set of cells.
 class Automaton f <= CellularAutomaton f where
   fromCells :: Int -> Int -> Set Cell -> f Boolean
   toCells :: f Boolean -> Set Cell
 
+-- | This provides a way to render an automaton as a grid of cell states.
 class CellularAutomaton f <= VisibleAutomaton f where
   grid :: forall a. Int -> Int -> f a -> Array (Array a)
 
+-- | This provides a function for updating a given cell.
 class VisibleAutomaton f <= InteractiveAutomaton f where
   update :: forall a. (a -> a) -> Int -> Int -> f a -> f a
 
+-- | Adds metadata to describe the different implementations.
 class InteractiveAutomaton f <= Life f where
   label :: String
   description :: String

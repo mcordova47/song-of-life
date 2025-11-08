@@ -58,6 +58,8 @@ import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 
+-- | Represents a configuration for the game grid. It's versioned to avoid link
+-- | rot.
 data Preset
   = V0 PresetV0
   | V1 PresetV1

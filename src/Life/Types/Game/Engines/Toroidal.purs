@@ -13,6 +13,11 @@ import Life.Types.Game.Engines.Bounded as Bounded
 import Life.Types.Game.Life (class Automaton, class CellularComonad, class InteractiveAutomaton, class Life, class CellularAutomaton, class VisibleAutomaton, comonadicGrid, comonadicSteps, extractCell, focusCell, fromCells, toCells, update)
 import Life.Types.Grid.Cell (Cell)
 
+-- | A comonadic implementation of an automaton on a torus. I.e. the left and
+-- | right sides of the grid are connected, as are the top and bottom. A glider
+-- | would endlessly loop, exiting one boundary and entering at another. The
+-- | representation is based on the Bounded implementation, the only difference
+-- | being that when a cell is focused, it's focused modulo the bounds.
 newtype Toroidal a = Toroidal (Bounded a)
 derive newtype instance Eq a => Eq (Toroidal a)
 derive newtype instance Functor Toroidal
