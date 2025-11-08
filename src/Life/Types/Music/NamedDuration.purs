@@ -11,7 +11,7 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (unwrap)
-import Data.Time.Duration (Milliseconds(..), Seconds)
+import Data.Time.Duration (Milliseconds(..), Minutes(..), Seconds)
 import Data.Time.Duration as D
 import Life.Types.Codec (class Serializable)
 import Life.Types.Codec as Codec
@@ -61,14 +61,17 @@ toDuration = case _ of
   ThirtySecond -> Duration 1 32
   SixtyFourth -> Duration 1 64
 
-toSeconds :: forall d. D.Duration d => d -> NamedDuration -> Number
-toSeconds measureDuration =
-  toTime (D.convertDuration measureDuration :: Seconds) >>> unwrap
+toSeconds :: Number -> NamedDuration -> Number
+toSeconds bpm =
+  toTime@Seconds bpm >>> unwrap
 
-toTime :: forall @d. D.Duration d => d -> NamedDuration -> d
-toTime measureDuration =
+toTime :: forall @d. D.Duration d => Number -> NamedDuration -> d
+toTime bpm =
   toDuration >>>
   MD.toNumber >>>
   (*) (measureDuration # D.fromDuration # unwrap) >>>
   Milliseconds >>>
   D.toDuration
+  where
+    measureDuration =
+      Minutes (4.0 / bpm)

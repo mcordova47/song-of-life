@@ -70,10 +70,10 @@ import Life.Utils.Math as M
 -- look at origin instead of defaultOrigin
 
 type State =
-  { chord :: Chord
+  { bpm :: Number
+  , chord :: Chord
   , harmonyPlaying :: Boolean
   , key :: PitchClass
-  , measureDuration :: Number
   , melodyPlaying :: Boolean
   , noteDuration :: NamedDuration
   , playing :: Boolean
@@ -97,8 +97,8 @@ data Message f
   | SelectNoteDuration NamedDuration
   | SelectRule NamedRule
   | SelectScale ScaleType
+  | SetBpm Number
   | SetChord Chord
-  | SetMeasureDuration Number
   | Step
   | StopMelody
   | Tick (Ref Number) Milliseconds { current :: GridScene.State f, previous :: GridScene.State f }
@@ -116,13 +116,13 @@ main = defaultMain
 
 init :: forall f. Transition (Message f) State
 init = pure
-  { chord:
+  { bpm: 160.0
+  , chord:
       { stop: pure unit
       , root: Nothing
       }
   , harmonyPlaying: false
   , key: C // natural
-  , measureDuration: 1500.0
   , melodyPlaying: false
   , noteDuration: ND.Eighth
   , playing: false
@@ -154,10 +154,10 @@ update state = case _ of
     pure state { rule = rule }
   SelectScale scale ->
     pure state { scale = scale }
+  SetBpm bpm ->
+    pure state { bpm = bpm }
   SetChord c ->
     pure state { chord = c }
-  SetMeasureDuration md ->
-    pure state { measureDuration = md }
   Step ->
     pure state { step = state.step + 1 }
   StopMelody ->
@@ -230,8 +230,9 @@ update state = case _ of
         row = rowCounts s # maximumBy (comparing snd) <#> fst # fromMaybe 0
         notes' = chord row
         root = Array.head notes'
-      if root /= state.chord.root && buffer' >= state.measureDuration then do
-        bufferRef := buffer' - state.measureDuration
+        measureDuration = 4.0 * 60_000.0 / state.bpm
+      if root /= state.chord.root && buffer' >= measureDuration then do
+        bufferRef := buffer' - measureDuration
         state.chord.stop
         { stop } <- foldMap (N.drone W.Sawtooth) notes'
         pure $ Just $ SetChord { root, stop }
@@ -245,7 +246,8 @@ update state = case _ of
 
 view :: forall @f. InteractiveAutomaton f => Eq (f Boolean) => State -> Dispatch (Message f) -> ReactElement
 view state dispatch = Hooks.component Hooks.do
-  bufferRef <- useMutableRef state.measureDuration
+  let measureDuration = 4.0 * 60_000.0 / state.bpm
+  bufferRef <- useMutableRef measureDuration
   scene /\ setScene <- useGridScene $ sceneArgs bufferRef
   Hooks.pure $
     H.fragment
@@ -279,13 +281,7 @@ view state dispatch = Hooks.component Hooks.do
               I.arrowBarRight { size: 32 }
           ]
       , H.div "row"
-        [ H.div "col col-md-6 pt-3" $
-            TagSelect.view
-              { display: NamedRule.display
-              , onChange: dispatch <<< SelectRule
-              , value: state.rule
-              }
-        , H.div "col-4 col-md-2 pt-3" $
+        [ H.div "col-4 col-md-2 pt-3" $
             Select.view
               { decode: C.decode codec
               , display: PitchClass.display
@@ -308,9 +304,15 @@ view state dispatch = Hooks.component Hooks.do
               }
         , H.div "col-6 col-md-3 pt-3" $
             H.input_ "form-control"
-              { onChange: dispatch <<< SetMeasureDuration <?| Number.fromString <<< E.inputText
+              { onChange: dispatch <<< SetBpm <?| Number.fromString <<< E.inputText
               , type: "number"
-              , value: show state.measureDuration
+              , value: show state.bpm
+              }
+        , H.div "col col-md-6 pt-3" $
+            TagSelect.view
+              { display: NamedRule.display
+              , onChange: dispatch <<< SelectRule
+              , value: state.rule
               }
         ]
       ]
@@ -327,7 +329,7 @@ view state dispatch = Hooks.component Hooks.do
       , onZoom: dispatch <<< Zoom
       , playing: state.playing
       , rule: state.rule
-      , stepsPerSecond: 1.0 / (state.noteDuration # ND.toSeconds (Milliseconds state.measureDuration))
+      , stepsPerSecond: 1.0 / (state.noteDuration # ND.toSeconds state.bpm)
       , width
       , zoom: state.zoom
       }
