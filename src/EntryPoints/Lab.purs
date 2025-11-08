@@ -6,16 +6,17 @@ module EntryPoints.Lab
 import Prelude
 
 import Control.Alternative (guard)
-import Data.Array ((!!))
 import Data.Array as Array
 import Data.Array.NonEmpty as NA
 import Data.Codec as C
 import Data.Foldable (foldMap, maximumBy)
+import Data.Function (on)
 import Data.Int as Int
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Number as Number
 import Data.Ord.Down (Down(..))
+import Data.Semigroup.Foldable (minimum)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Time.Duration (Milliseconds(..))
@@ -59,12 +60,14 @@ import Life.Types.Music.Voicing (Voicing)
 import Life.Types.Music.Voicing as Voicing
 import Life.Types.Music.Wave as W
 import Life.Utils ((:=))
+import Life.Utils.Math as M
 
 -- Volume of chord based on density of grid
 -- n voices (voicesPlaying :: Int, get n - voicesPlaying notes to play)
 -- presets
 -- select wave for voices, chords
 -- exclude off-grid cells
+-- look at origin instead of defaultOrigin
 
 type State =
   { chord :: Chord
@@ -179,14 +182,21 @@ update state = case _ of
       # Array.filter visible
       # Array.foldl rowCount Map.empty
       # Map.toUnfoldable :: Array _
+    distanceFromEdge (row /\ col) = minimum $
+      NA.cons'
+        (row - minRow state)
+        [ minRow state + numRows - row
+        , col - minCol state
+        , minCol state + numCols - col
+        ]
     chordNotes' = chordNotes state
-    melodyNotes' = melodyNotes state
     chord row =
       chordNotes'
       <> chordNotes'
       # Array.drop ((row - minRow state) * Array.length chordNotes' / numRows)
       # Array.take 3
-    melody row = melodyNotes' !! ((row - minRow state) * Array.length melodyNotes' / numRows)
+    melodyNotes' = melodyNotes state
+    melodyNote = distanceFromEdge >>> (_ `mod` Array.length melodyNotes') >>> Array.index melodyNotes'
 
     playHarmony s prev
       | state.harmonyPlaying = pure Nothing
@@ -198,7 +208,7 @@ update state = case _ of
 
     playNote cellSelector s prev = do
       let bornCells = Set.difference (Life.toCells s.game) (Life.toCells prev.game) # Array.fromFoldable # Array.filter visible
-      cellSelector bornCells # maybe (pure Nothing) \(row /\ col) -> do
+      cellSelector state bornCells >>= (\cell -> melodyNote cell <#> \note -> { cell, note }) # maybe (pure Nothing) \{ cell: row /\ col, note } -> do
         let
           neighbors = Set.fromFoldable do
             row' <- [row - 1, row, row + 1]
@@ -207,12 +217,11 @@ update state = case _ of
             pure (row' /\ col')
           livingNeighbors = Set.intersection (Life.toCells s.game) neighbors # Set.size
           ms = Int.toNumber livingNeighbors * 62.5
-        case melody row of
-          Just note | ms > 0.0 -> do
-            N.play (Milliseconds ms) W.Triangle note
-            pure $ Just $ PlayMelody (Milliseconds ms)
-          _ ->
-            pure Nothing
+        if ms > 0.0 then do
+          N.play (Milliseconds ms) W.Triangle note
+          pure $ Just $ PlayMelody (Milliseconds ms)
+        else
+          pure Nothing
 
     playChord bufferRef ms s = do
       buffer <- Ref.read bufferRef
@@ -323,34 +332,27 @@ view state dispatch = Hooks.component Hooks.do
       , zoom: state.zoom
       }
 
-melodyCell :: Array (Int /\ Int) -> Maybe (Int /\ Int)
-melodyCell bornCells =
-  groupedCells bornCells
+melodyCell :: State -> Array Cell -> Maybe Cell
+melodyCell state bornCells =
+  groupedCells state bornCells
     # Array.head
-    <#> NA.head
+    <#> M.geometricMedian
 
-harmonyCell :: Array (Int /\ Int) -> Maybe (Int /\ Int)
-harmonyCell bornCells =
-  groupedCells bornCells
+harmonyCell :: State -> Array Cell -> Maybe Cell
+harmonyCell state bornCells =
+  groupedCells state bornCells
     # flip Array.index 1
-    <#> NA.head
+    <#> M.geometricMedian
 
-groupedCells :: Array (Int /\ Int) -> Array (NA.NonEmptyArray (Int /\ Int))
-groupedCells bornCells =
-  if Array.null bornCells then []
-  else
-    let
-      groupedByCol =
-        bornCells
-        # Array.groupBy (\(_ /\ c1) (_ /\ c2) -> c1 == c2)
-        # Array.sortBy (comparing $ Down <<< NA.length)
-    in case Array.head groupedByCol of
-      Nothing -> []
-      Just colGroup ->
-        colGroup
-        # Array.fromFoldable
-        # Array.groupBy (\(r1 /\ _) (r2 /\ _) -> r1 == r2)
-        # Array.sortBy (comparing $ Down <<< NA.length)
+groupedCells :: State -> Array Cell -> Array (NA.NonEmptyArray Cell)
+groupedCells state =
+  Array.groupBy ((==) `on` tile) >>>
+  Array.sortWith (Down <<< NA.length)
+  where
+    numRows = Int.ceil (Int.toNumber height / state.zoom)
+    numCols = Int.ceil (Int.toNumber width / state.zoom)
+    tr /\ tc = tiles
+    tile (row /\ col) = ((row - minRow state) * tr / numRows) * tc + (col - minCol state) * tc / numCols
 
 minRow :: State -> Int
 minRow { zoom } =
@@ -397,7 +399,10 @@ chordNotes :: State -> Array Note
 chordNotes = notes 14 Voicing.spaced
 
 melodyNotes :: State -> Array Note
-melodyNotes = notes 22 Voicing.default
+melodyNotes state = notes 20 Voicing.default state
 
 notes :: Int -> Voicing -> State -> Array Note
 notes n voicing { key, scale } = ScaleType.notes' voicing 2 { key, notes: n, root: 0, scale }
+
+tiles :: Int /\ Int
+tiles = 8 /\ 8
