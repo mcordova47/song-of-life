@@ -38,6 +38,7 @@ import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.Wave (Wave)
 import Life.Types.Music.Wave as Wave
 
+-- | A note is a pitch class combined with a certain octave. E.g. A♭3
 data Note = Note PitchClass Int
 derive instance Eq Note
 

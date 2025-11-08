@@ -10,6 +10,8 @@ import Prelude
 import Data.Int as Int
 import Life.Types.Music.Note (Note, (\\))
 
+-- | For now, a voicing just says "given this note position, this is how the
+-- | note should be phrased."
 type Voicing = Int -> Note -> Note
 
 default :: Voicing

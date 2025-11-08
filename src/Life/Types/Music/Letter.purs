@@ -16,6 +16,7 @@ import Life.Types.Codec (Codec)
 import Life.Types.Codec as Codec
 import Life.Types.Music.Modifier (Modifier, flat, natural, sharp)
 
+-- | All of the letter notes (without sharp/flat modifiers) in Western music.
 data Letter
   = C
   | D
@@ -57,6 +58,8 @@ degree = case _ of
   A -> 6
   B -> 7
 
+-- | For a given key, this returns the modifier for a given letter in that key.
+-- | E.g. B is flat in the key of F.
 modifier :: Letter -> Letter -> Modifier
 modifier key letter =
   if isSharp then

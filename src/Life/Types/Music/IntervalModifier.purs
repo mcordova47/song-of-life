@@ -15,6 +15,8 @@ import Prelude
 
 import Life.Types.Music.Modifier (Modifier(..))
 
+-- | Wraps the number of half steps a certain modifier adjusts an interval by.
+-- | E.g. minor subtracts one half step compared to the major scale degree.
 newtype IntervalModifier = IntervalModifier Int
 
 none :: IntervalModifier

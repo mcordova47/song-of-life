@@ -15,6 +15,9 @@ import Life.Types.Music.Interval (Interval(..))
 import Life.Types.Music.IntervalModifier (IntervalModifier)
 import Life.Types.Music.IntervalModifier as M
 
+-- | A selection of known intervals, specifically meant to be used in chords,
+-- | which is why ninths are here but not octaves — so I can make chords like
+-- | add9.
 data NamedInterval
   = Unison
   | Second MajMin

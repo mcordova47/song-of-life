@@ -9,6 +9,12 @@ import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.PitchClass as PitchClass
 import Life.Utils.Function ((>>>>))
 
+-- | Closes around an Int, n, to represent n degrees from a given note in a
+-- | given key. Composing multiple degrees is just function composition, using
+-- | a special >>>> operator, which composes functions taking two arguments.
+-- | E.g.:
+-- |
+-- | degree 2 >>>> degree 3 = degree 5
 type Degree = PitchClass -> Note -> Note
 
 degree :: Int -> Degree

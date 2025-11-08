@@ -8,6 +8,8 @@ import Prelude
 
 import Data.Int as Int
 
+-- | The fraction of a measure that a note takes up. E.g., a quarter note would
+-- | be Duration 1 4.
 data Duration = Duration Int Int
 derive instance Eq Duration
 

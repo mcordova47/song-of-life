@@ -12,6 +12,10 @@ import Life.Types.Music.IntervalModifier as I
 import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.PitchClass ((//))
 
+-- | An interval is a degree in the the major scale combined with a modifier,
+-- | like minor or augmented. So a major third is just the third degree without
+-- | a modifier and a diminished fifth is the fifth with the diminished modifier
+-- | which subtracts one half-step.
 data Interval = Interval Degree IntervalModifier
 
 addTo :: Note -> Interval -> Note

@@ -20,12 +20,15 @@ import Life.Types.Music.Note (Note, (\\))
 import Life.Types.Music.PitchClass (PitchClass)
 import Life.Utils.Function ((>>>>))
 
-type ScaleInput = { key :: PitchClass, root :: Int, length :: Int }
-
+-- | For the purposes of this app, a scale is essentially an array of degrees.
+-- | The length is the length of the canonical scale, and the inputs let you
+-- | instantiate the scale with a given length, root, and key.
 type Scale =
   { length :: Int
   , notes :: ScaleInput -> Array Note
   }
+
+type ScaleInput = { key :: PitchClass, root :: Int, length :: Int }
 
 scale :: Array Degree -> Scale
 scale degrees =

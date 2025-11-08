@@ -19,6 +19,8 @@ import Data.Maybe (Maybe(..))
 import Data.String as S
 import Life.Types.Codec (Codec)
 
+-- | Wraps the number of half steps to modify a given letter by to form a pitch
+-- | class. Sharp is +1, flat is -1, and they can stack.
 newtype Modifier = Modifier Int
 derive instance Eq Modifier
 derive newtype instance Semiring Modifier

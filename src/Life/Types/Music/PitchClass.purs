@@ -21,8 +21,8 @@ import Life.Types.Music.Letter as Letter
 import Life.Types.Music.Modifier (Modifier, flat, natural, sharp)
 import Life.Types.Music.Modifier as Modifier
 
-data PitchClass
-  = PitchClass Letter Modifier
+-- | A pitch class is a letter plus a modifier. E.g. C♯
+data PitchClass = PitchClass Letter Modifier
 derive instance Eq PitchClass
 derive instance Generic PitchClass _
 

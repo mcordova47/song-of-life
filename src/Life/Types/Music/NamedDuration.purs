@@ -18,6 +18,8 @@ import Life.Types.Codec as Codec
 import Life.Types.Music.Duration (Duration(..))
 import Life.Types.Music.Duration as MD
 
+-- | A selection of known durations of notes which can be turned into fractional
+-- | Durations.
 data NamedDuration
   = Whole
   | Half

@@ -21,6 +21,7 @@ import Life.Types.Codec (class Serializable, Codec)
 import Life.Types.Codec as Codec
 import Life.Utils.Generic as G
 
+-- | Waves to play the note with.
 data Wave
   = Triangle
   | Sine

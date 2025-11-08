@@ -25,6 +25,7 @@ import Life.Types.Music.Scale as Scale
 import Life.Types.Music.Voicing as V
 import Life.Utils.Generic as G
 
+-- | A set of known scale types, which can be turned into Scales.
 data ScaleType
   = Diatonic
   | Hexatonic

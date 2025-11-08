@@ -24,6 +24,7 @@ import Life.Types.Music.PitchClass (PitchClass)
 import Life.Types.Music.Voicing (Voicing)
 import Life.Types.Music.Wave (Wave)
 
+-- | Pre-defined chords which can be turned into a list of intervals or notes
 data Chord
   = Diminished
   | Minor
