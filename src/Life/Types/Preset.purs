@@ -302,9 +302,6 @@ pulsar = presetV1'
   } $
   Cell.adjust (1 /\ 1) P.pulsar
 
--- Configuration
--- TODO: Make all of these configurable
-
 defaultBeatsPerMeasure :: Int
 defaultBeatsPerMeasure = 16
 
