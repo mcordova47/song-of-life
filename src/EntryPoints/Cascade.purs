@@ -424,7 +424,6 @@ width = 600
 defaultZoom :: Number
 defaultZoom = 10.0
 
--- "rabbits"
 start :: Set Cell
 start =
   P.rabbits

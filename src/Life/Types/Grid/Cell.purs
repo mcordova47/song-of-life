@@ -3,6 +3,7 @@ module Life.Types.Grid.Cell
   , add
   , adjust
   , fromAscii
+  , fromRLE
   , neighbors
   , random
   , randomSet
@@ -15,7 +16,9 @@ import Prelude hiding (add)
 import Control.Alternative (guard)
 import Data.Array ((..))
 import Data.Array as Array
+import Data.Codec as C
 import Data.Foldable (fold)
+import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.String as S
@@ -23,6 +26,8 @@ import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Random as R
+import Life.Types.Codec (codec)
+import Life.Types.Game.RLE as RLE
 import Life.Utils.Array as A
 
 type Cell = Int /\ Int
@@ -76,6 +81,9 @@ fromAscii =
     # Array.filter (not S.null <<< S.trim)
     # A.findIndices ((==) "#")
     <#> ((/\) row)
+
+fromRLE :: String -> Set Cell
+fromRLE = C.decode codec >>> fromMaybe RLE.empty >>> RLE.toCells
 
 add :: Cell -> Cell -> Cell
 add (r1 /\ c1) (r2 /\ c2) = (r1 + r2) /\ (c1 + c2)
