@@ -61,9 +61,9 @@ neighbors (row /\ col) = do
 -- | E.g., a glider would be:
 -- |
 -- | fromAscii """
--- |   ..#
--- |   #.#
--- |   .##
+-- |   . . #
+-- |   # . #
+-- |   . # #
 -- | """
 fromAscii :: String -> Array Cell
 fromAscii =
