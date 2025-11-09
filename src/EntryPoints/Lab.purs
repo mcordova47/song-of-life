@@ -14,7 +14,6 @@ import Data.Function (on)
 import Data.Int as Int
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Number as Number
 import Data.Ord.Down (Down(..))
 import Data.Semigroup.Foldable (minimum)
 import Data.Set (Set)
@@ -72,7 +71,7 @@ import Life.Utils.Math as M
 -- look at origin instead of defaultOrigin
 
 type State =
-  { bpm :: Number
+  { bpm :: Int
   , chord :: Chord
   , harmonyPlaying :: Boolean
   , key :: PitchClass
@@ -99,7 +98,7 @@ data Message f
   | SelectNoteDuration NamedDuration
   | SelectRule NamedRule
   | SelectScale ScaleType
-  | SetBpm Number
+  | SetBpm Int
   | SetChord Chord
   | Step
   | StopMelody
@@ -118,7 +117,7 @@ main = defaultMain
 
 init :: forall f. Transition (Message f) State
 init = pure
-  { bpm: 160.0
+  { bpm: 160
   , chord:
       { stop: pure unit
       , root: Nothing
@@ -232,7 +231,7 @@ update state = case _ of
         row = rowCounts s # maximumBy (comparing snd) <#> fst # fromMaybe 0
         notes' = chord row
         root = Array.head notes'
-        measureDuration = 4.0 * 60_000.0 / state.bpm
+        measureDuration = 4.0 * 60_000.0 / Int.toNumber state.bpm
       if root /= state.chord.root && buffer' >= measureDuration then do
         bufferRef := buffer' - measureDuration
         state.chord.stop
@@ -248,14 +247,39 @@ update state = case _ of
 
 view :: forall @f. InteractiveAutomaton f => Eq (f Boolean) => State -> Dispatch (Message f) -> ReactElement
 view state dispatch = Hooks.component Hooks.do
-  let measureDuration = 4.0 * 60_000.0 / state.bpm
+  let measureDuration = 4.0 * 60_000.0 / Int.toNumber state.bpm
   bufferRef <- useMutableRef measureDuration
   scene /\ setScene <- useGridScene $ sceneArgs bufferRef
   Hooks.pure $
     H.fragment
     [ Header.view
     , H.div_ "container" { style: H.css { maxWidth: "800px" } }
-      [ H.div "d-flex justify-content-center align-items-center mt-4" scene
+      [ H.p "mt-3"
+        [ H.text "Click some cells to change the starting conditions, then press play and "
+        , H.a_ ""
+            { href: "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life"
+            , target: "_blank"
+            }
+            [ H.text "Conway’s Game of Life "
+            , I.externalLink { size: 16 }
+            ]
+        , H.text """
+            will play out. Each step is a fraction of a measure. The fraction
+            is defined by the controls below. The row with the most living cells
+            determines a background chord and the melody and harmony notes are
+            determined by newly-born cells. Each concentric square corresponds
+            to a given note.
+          """
+        ]
+      , H.p ""
+        [ H.text """
+            While the game is paused, you can scroll to zoom and click and drag to
+            change the origin. You can see v1 of Songs of Life
+          """
+        , H.a_ "" { href: "/" } "here"
+        , H.text "."
+        ]
+      , H.div "d-flex justify-content-center align-items-center mt-4" scene
       , H.div "d-flex mt-4" $
           H.div "d-inline-flex align-items-center mx-auto bg-lightblue rounded-pill py-1 px-4"
           [ H.button_ "btn text-salmon hover:text-salmon-highlight p-0 ms-2"
@@ -282,40 +306,60 @@ view state dispatch = Hooks.component Hooks.do
               } $
               I.arrowBarRight { size: 32 }
           ]
-      , H.div "row"
+      , H.h5 "mt-3" "Controls"
+      , H.div "row mb-3"
         [ H.div "col-4 col-md-2 pt-3" $
-            Select.view
-              { decode: C.decode codec
-              , display: PitchClass.display
-              , encode: C.encode codec
-              , onChange: dispatch <<< SelectKey
-              , options: PitchClass.all
-              , value: state.key
-              }
+            H.label "form-label fw-bold w-100"
+            [ H.div "mb-2" "Key"
+            , Select.view
+                { decode: C.decode codec
+                , display: PitchClass.display
+                , encode: C.encode codec
+                , onChange: dispatch <<< SelectKey
+                , options: PitchClass.all
+                , value: state.key
+                }
+            ]
         , H.div "col-8 col-md-4 pt-3" $
-            TagSelect.view
-              { display: ScaleType.display
-              , onChange: dispatch <<< SelectScale
-              , value: state.scale
-              }
+            H.label "form-label fw-bold w-100"
+            [ H.div "mb-2" "Scale"
+            , TagSelect.view
+                { display: ScaleType.display
+                , onChange: dispatch <<< SelectScale
+                , value: state.scale
+                }
+            ]
         , H.div "col-6 col-md-3 pt-3" $
-            TagSelect.view
-              { display: ND.display
-              , onChange: dispatch <<< SelectNoteDuration
-              , value: state.noteDuration
-              }
+            H.label "form-label fw-bold w-100"
+            [ H.div "mb-2" "Note duration"
+            , TagSelect.view
+                { display: ND.display
+                , onChange: dispatch <<< SelectNoteDuration
+                , value: state.noteDuration
+                }
+            ]
         , H.div "col-6 col-md-3 pt-3" $
-            H.input_ "form-control"
-              { onChange: dispatch <<< SetBpm <?| Number.fromString <<< E.inputText
-              , type: "number"
-              , value: show state.bpm
-              }
+            H.label "form-label fw-bold w-100"
+            [ H.div "mb-2" "BPM"
+            , H.div "d-flex align-items-center"
+              [ H.span "h3 mb-0 text-nowrap" "♩"
+              , H.span "mb-0 text-nowrap mx-1" "="
+              , H.input_ "form-control"
+                  { onChange: dispatch <<< SetBpm <?| Int.fromString <<< E.inputText
+                  , type: "number"
+                  , value: show state.bpm
+                  }
+              ]
+            ]
         , H.div "col col-md-6 pt-3" $
-            TagSelect.view
-              { display: NamedRule.display
-              , onChange: dispatch <<< SelectRule
-              , value: state.rule
-              }
+            H.label "form-label fw-bold w-100"
+            [ H.div "mb-2" "Rule"
+            , TagSelect.view
+                { display: NamedRule.display
+                , onChange: dispatch <<< SelectRule
+                , value: state.rule
+                }
+            ]
         ]
       ]
     , H.style "" """
@@ -324,7 +368,8 @@ view state dispatch = Hooks.component Hooks.do
     ]
   where
     sceneArgs bufferRef =
-      { defaultOrigin
+      { backgroundColor: "#f8f9fa"
+      , defaultOrigin
       , game: Life.fromCells@f (height / Int.floor state.zoom) (width / Int.floor state.zoom) start
       , height
       , onTick: \dur -> dispatch <<< Tick bufferRef dur

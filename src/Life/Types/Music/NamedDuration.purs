@@ -10,6 +10,7 @@ module Life.Types.Music.NamedDuration
 import Prelude
 
 import Data.Generic.Rep (class Generic)
+import Data.Int as Int
 import Data.Newtype (unwrap)
 import Data.Time.Duration (Milliseconds(..), Minutes(..), Seconds)
 import Data.Time.Duration as D
@@ -61,9 +62,9 @@ toDuration = case _ of
   ThirtySecond -> Duration 1 32
   SixtyFourth -> Duration 1 64
 
-toSeconds :: Number -> NamedDuration -> Number
+toSeconds :: Int -> NamedDuration -> Number
 toSeconds bpm =
-  toTime@Seconds bpm >>> unwrap
+  toTime@Seconds (Int.toNumber bpm) >>> unwrap
 
 toTime :: forall @d. D.Duration d => Number -> NamedDuration -> d
 toTime bpm =
