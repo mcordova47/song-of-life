@@ -56,6 +56,15 @@ neighbors (row /\ col) = do
   guard (row' /= row || col' /= col)
   pure (row' /\ col')
 
+-- | Parses a set of cells from an ASCII representation of a grid, where "#"
+-- | represents living cells and any non-whitespace character is a dead cell.
+-- | E.g., a glider would be:
+-- |
+-- | fromAscii """
+-- |   ..#
+-- |   #.#
+-- |   .##
+-- | """
 fromAscii :: String -> Array Cell
 fromAscii =
   S.split (S.Pattern "\n") >>>
