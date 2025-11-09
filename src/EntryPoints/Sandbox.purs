@@ -1,4 +1,7 @@
-module EntryPoints.Sandbox where
+module EntryPoints.Sandbox
+  ( main
+  )
+  where
 
 import Prelude
 
@@ -19,12 +22,14 @@ import Life.Components.GridScene (useGridScene)
 import Life.Components.Header as Header
 import Life.Components.LogSlider as LogSlider
 import Life.Components.TagSelect as TagSelect
+import Life.Game.Patterns as P
 import Life.Hooks.UseBoundingBox (useBoundingBox)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
 import Life.Types.Game.Life as Life
 import Life.Types.Game.NamedRule (NamedRule)
 import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Grid.Cell (Cell)
+import Life.Types.Grid.Cell as C
 import Record as Record
 
 type State =
@@ -176,48 +181,6 @@ grid args =
       }
 
 gliderGunWithEater :: Set Cell
-gliderGunWithEater = Set.fromFoldable
-  [ -71 /\ -42
-  , -70 /\ -44
-  , -70 /\ -42
-  , -69 /\ -54
-  , -69 /\ -53
-  , -69 /\ -46
-  , -69 /\ -45
-  , -69 /\ -32
-  , -69 /\ -31
-  , -68 /\ -55
-  , -68 /\ -51
-  , -68 /\ -46
-  , -68 /\ -45
-  , -68 /\ -32
-  , -68 /\ -31
-  , -67 /\ -66
-  , -67 /\ -65
-  , -67 /\ -56
-  , -67 /\ -50
-  , -67 /\ -46
-  , -67 /\ -45
-  , -66 /\ -66
-  , -66 /\ -65
-  , -66 /\ -56
-  , -66 /\ -52
-  , -66 /\ -50
-  , -66 /\ -49
-  , -66 /\ -44
-  , -66 /\ -42
-  , -65 /\ -56
-  , -65 /\ -50
-  , -65 /\ -42
-  , -64 /\ -55
-  , -64 /\ -51
-  , -63 /\ -54
-  , -63 /\ -53
-  , 42 /\ 60
-  , 42 /\ 61
-  , 43 /\ 60
-  , 44 /\ 61
-  , 44 /\ 62
-  , 44 /\ 63
-  , 45 /\ 63
-  ]
+gliderGunWithEater = Set.fromFoldable $
+  C.adjust (-71 /\ -66) P.gliderGun <>
+  C.adjust (42 /\ 60) P.eater

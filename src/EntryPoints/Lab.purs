@@ -38,6 +38,7 @@ import Life.Components.Header as Header
 import Life.Components.Icons as I
 import Life.Components.Select as Select
 import Life.Components.TagSelect as TagSelect
+import Life.Game.Patterns as P
 import Life.Hooks.UseMutableRef (useMutableRef)
 import Life.Types.Codec (codec)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
@@ -46,6 +47,7 @@ import Life.Types.Game.Life as Life
 import Life.Types.Game.NamedRule (NamedRule)
 import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Grid.Cell (Cell)
+import Life.Types.Grid.Cell as Cell
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (natural)
 import Life.Types.Music.NamedDuration (NamedDuration)
@@ -380,22 +382,12 @@ defaultZoom = 10.0
 -- "rabbits"
 start :: Set Cell
 start =
-  [ 0 /\ -1
-  , 0 /\ 4
-  , 1 /\ -3
-  , 1 /\ -2
-  , 2 /\ -2
-  , 2 /\ -1
-  , 2 /\ 1
-  , 2 /\ 2
-  , 2 /\ 3
-  ]
-  <#> adjustOrigin
+  P.rabbits
+  # Cell.adjust (0 /\ -3)
+  # Cell.adjust (Int.floor originRow /\ Int.floor originCol)
   # Set.fromFoldable
   where
     originRow /\ originCol = defaultOrigin
-    adjustOrigin (row /\ col) =
-      (row + Int.floor originRow) /\ (col + Int.floor originCol)
 
 chordNotes :: State -> Array Note
 chordNotes = notes 14 Voicing.spaced

@@ -1,6 +1,7 @@
 module Life.Utils.Array
   ( chunksOf
   , fill
+  , findIndices
   , grid
   , tryModifyAt
   )
@@ -10,9 +11,9 @@ import Prelude
 
 import Data.Array ((..))
 import Data.Array as Array
+import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Maybe (fromMaybe)
-import Data.Tuple.Nested ((/\))
-import Life.Types.Grid.Cell (Cell)
+import Data.Tuple.Nested (type (/\), (/\))
 
 chunksOf :: forall a. Int -> Array a -> Array (Array a)
 chunksOf n xs = Array.splitAt n xs # go
@@ -29,9 +30,14 @@ fill n x xs =
 tryModifyAt :: forall a. Int -> (a -> a) -> Array a -> Array a
 tryModifyAt i g xs = Array.modifyAt i g xs # fromMaybe xs
 
-grid :: Int -> Int -> Array (Array Cell)
+grid :: Int -> Int -> Array (Array (Int /\ Int))
 grid numRows numCols =
   rows <#> \row -> cols <#> \col -> row /\ col
   where
     rows = 0 .. (numRows - 1)
     cols = 0 .. (numCols - 1)
+
+findIndices :: forall a. (a -> Boolean) -> Array a -> Array Int
+findIndices p =
+  [] # foldlWithIndex \i acc x ->
+    if p x then acc <> [i] else acc
