@@ -11,7 +11,6 @@ import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Life.Types.Game.Life (class VisibleAutomaton)
 import Life.Types.Game.Life as Life
-import Life.Types.Grid.Cell (Cell)
 import Life.Types.Grid.Cell as C
 
 mazes :: forall @f. VisibleAutomaton f => NonEmptyArray (f Boolean)
@@ -19,7 +18,14 @@ mazes = Life.fromCells 0 0 <<< Set.fromFoldable <$> cells
   where
     cells =
       NA.cons'
-        defaultMaze $
+        ( C.fromAscii """
+            . # # . . .
+            # . . # . #
+            # . # . # .
+            . . # . . .
+          """
+          # C.adjust (-1 /\ -3)
+        )
         [ C.fromAscii """
             # . # . . . # . # . . . # . # . # . . . # . # . . . # . # .
             . # . # . . . # . # . . . # . # . # . . . # . # . . . # . #
@@ -264,13 +270,3 @@ mazes = Life.fromCells 0 0 <<< Set.fromFoldable <$> cells
           """
           # C.adjust (-31 /\ -31)
         ]
-
-defaultMaze :: Array Cell
-defaultMaze =
-  C.fromAscii """
-    . # # . . .
-    # . . # . #
-    # . # . # .
-    . . # . . .
-  """
-  # C.adjust (-1 /\ -3)
