@@ -235,9 +235,9 @@ view state dispatch = H.fragment
             will change and the next measure will play. The
           """
         , H.a_ "" { href: "#rules" } "rules"
-        , H.text " are explained below and you can also try "
-        , variantLinks
-        , H.text " versions of the game."
+        , H.text " are explained below and there is also a "
+        , H.a_ "" { href: "/cascade" } "large-grid variant"
+        , H.text "."
         ]
       , gridView
       , H.div ""

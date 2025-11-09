@@ -1,4 +1,4 @@
-module EntryPoints.Lab
+module EntryPoints.Cascade
   ( main
   )
   where
