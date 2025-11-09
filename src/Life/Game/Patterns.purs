@@ -9,6 +9,7 @@ module Life.Game.Patterns
   , headphones
   , heart
   , octocat
+  , p128Oscillator
   , p36Oscillator
   , pulsar
   , rabbits
@@ -238,4 +239,22 @@ p36Oscillator = C.fromRLE
     35bo$7bo8b2o15bobobo$5bo2bo7b2o14bobob2o$5bobo8b2o14bobo$33b2o$4b2o$4b
     o2bo4b2o$6b2o3bo2bo13bo$11b3o2b6obobobobo2b2o$14b2o6bo2bo7bo$13bo9bo4b
     2obo$13b2obo14b2o$24bo$18b3obobo$23bobo$23bo!
+  """
+
+p128Oscillator :: Set Cell
+p128Oscillator = C.fromRLE
+  """
+    #N p128honeyfarmhassler.rle
+    #C https://conwaylife.com/wiki/Honey_farm_hasslers
+    #C https://www.conwaylife.com/patterns/p128honeyfarmhassler.rle
+    x = 39, y = 46, rule = B3/S23
+    2o3bo27bo3b2o$4bob2o23b2obo$5b3o23b3o$bo6bo21bo6bo$obobobo2bo19bo2bobo
+    bobo$b2obob3o21b3obob2o2$b2obob3o21b3obob2o$obobobo2bo19bo2bobobobo$bo
+    6bo21bo6bo$5b3o23b3o$4bob2o23b2obo$2o3bo27bo3b2o3$12b3o9b3o$11bo3bo7bo
+    3bo$10bo5bo5bo5bo$10bo5bo5bo5bo$10bo5bo5bo5bo$11bo3bo7bo3bo$12b3o9b3o
+    3$12b3o9b3o$11bo3bo7bo3bo$10bo5bo5bo5bo$10bo5bo5bo5bo$10bo5bo5bo5bo$
+    11bo3bo7bo3bo$12b3o9b3o3$2o3bo27bo3b2o$4bob2o23b2obo$5b3o23b3o$bo6bo
+    21bo6bo$obobobo2bo19bo2bobobobo$b2obob3o21b3obob2o2$b2obob3o21b3obob2o
+    $obobobo2bo19bo2bobobobo$bo6bo21bo6bo$5b3o23b3o$4bob2o23b2obo$2o3bo27b
+    o3b2o!
   """
