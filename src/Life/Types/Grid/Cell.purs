@@ -71,7 +71,11 @@ fromAscii =
   map S.trim >>>
   Array.filter (not S.null) >>>
   Array.mapWithIndex (\row str -> { row, str }) >=>
-  \{ row, str } -> str # S.split (S.Pattern "") # A.findIndices ((==) "#") <#> ((/\) row)
+  \{ row, str } -> str
+    # S.split (S.Pattern "")
+    # Array.filter (not S.null <<< S.trim)
+    # A.findIndices ((==) "#")
+    <#> ((/\) row)
 
 add :: Cell -> Cell -> Cell
 add (r1 /\ c1) (r2 /\ c2) = (r1 + r2) /\ (c1 + c2)
