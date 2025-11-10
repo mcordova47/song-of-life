@@ -1,6 +1,9 @@
 module Life.Game.Patterns
-  ( buckaroo
+  ( acorn
+  , bHeptomino
+  , buckaroo
   , collision
+  , copperhead
   , eater
   , flower
   , galaxy
@@ -10,9 +13,11 @@ module Life.Game.Patterns
   , headphones
   , heart
   , octocat
+  , piHeptomino
   , pufferFish
   , pufferFishSpaceship
   , pulsar
+  , rPentomino
   , rabbits
   , shipsPassing
   , sky
@@ -53,6 +58,56 @@ gliderSeNw = C.fromAscii
 collision :: Array Cell
 collision =
   glider <> C.adjust (11 /\ 11) gliderSeNw
+
+rPentomino :: Array Cell
+rPentomino = C.fromAscii
+  """
+    . # #
+    # # .
+    . # .
+  """
+
+acorn :: Array Cell
+acorn = C.fromAscii
+  """
+    . # . . . . .
+    . . . # . . .
+    # # . . # # #
+  """
+
+piHeptomino :: Array Cell
+piHeptomino = C.fromAscii
+  """
+    # # #
+    # . #
+    # . #
+  """
+
+bHeptomino :: Array Cell
+bHeptomino = C.fromAscii
+  """
+    # . # #
+    # # # .
+    . # . .
+  """
+
+copperhead :: Array Cell
+copperhead = C.fromAscii
+  """
+    . . . . # # . . . .
+    . . . # # # # . . .
+    . . . . . . . . . .
+    . . # # # # # # . .
+    . . . # # # # . . .
+    . . . . . . . . . .
+    . . # # . . # # . .
+    # # . # . . # . # #
+    . . . # . . # . . .
+    . . . . . . . . . .
+    . . . . . . . . . .
+    . . . . # # . . . .
+    . . . . # # . . . .
+  """
 
 galaxy :: Array Cell
 galaxy = C.fromAscii
@@ -103,6 +158,15 @@ flower = C.fromAscii
     . . . . . # . # . . . . .
     . . . . . # . # . . . . .
     . . . . . . # . . . . . .
+  """
+
+eater :: Array Cell
+eater = C.fromAscii
+  """
+    # # . .
+    # . . .
+    . # # #
+    . . . #
   """
 
 spaceship :: Array Cell
@@ -199,15 +263,6 @@ octocat = C.fromAscii
     . # # . # . # . . .
     . . . # . . . # . .
     . . . # . . . # . .
-  """
-
-eater :: Array Cell
-eater = C.fromAscii
-  """
-    # # . .
-    # . . .
-    . # # #
-    . . . #
   """
 
 gliderGun :: Array Cell

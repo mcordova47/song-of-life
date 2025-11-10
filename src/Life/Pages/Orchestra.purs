@@ -31,6 +31,7 @@ import Life.Components.ShareButton as ShareButton
 import Life.Components.TagSelect as TagSelect
 import Life.Types.Game.Life (class InteractiveAutomaton, class CellularAutomaton)
 import Life.Types.Game.Life as Life
+import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Music.Letter (Letter(..))
 import Life.Types.Music.Modifier (flat)
 import Life.Types.Music.Note (Note)
@@ -40,7 +41,6 @@ import Life.Types.Music.PitchClass as PitchClass
 import Life.Types.Music.ScaleType (ScaleType)
 import Life.Types.Music.ScaleType as ScaleType
 import Life.Types.Music.Wave as Wave
-import Life.Types.Game.NamedRule as NamedRule
 import Life.Types.Preset (Preset)
 import Life.Types.Preset as Preset
 import Life.Utils as U
@@ -311,8 +311,9 @@ view state dispatch = H.fragment
           PresetButton.component
             { name
             , life
-            , rows: state.notes
             , cols: state.beatsPerMeasure
+            , rows: state.notes
+            , rule: NamedRule.default
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
                 U.scrollIntoView Header.id

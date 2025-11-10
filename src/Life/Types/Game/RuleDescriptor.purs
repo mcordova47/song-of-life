@@ -7,6 +7,7 @@ module Life.Types.Game.RuleDescriptor
   , diamoeba
   , display
   , dotLife
+  , dryLife
   , gnarl
   , highLife
   , life
@@ -70,6 +71,9 @@ life = B [3] |/| S [2, 3]
 
 highLife :: RuleDescriptor
 highLife = B [3, 6] |/| S [2, 3]
+
+dryLife :: RuleDescriptor
+dryLife = B [3, 7] |/| S [2, 3]
 
 seeds :: RuleDescriptor
 seeds = B [2] |/| S []

@@ -435,8 +435,9 @@ view state dispatch = H.fragment
           PresetButton.component
             { name
             , life
-            , rows: state.notes
             , cols: state.beatsPerMeasure
+            , rows: state.notes
+            , rule: NamedRule.default
             , onClick: E.handleEffect do
                 dispatch $ LoadPreset p
                 scrollIntoView Header.id

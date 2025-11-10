@@ -22,6 +22,7 @@ import Life.Types.Game.RuleDescriptor as D
 data NamedRule
   = Life
   | HighLife
+  | DryLife
   | Seeds
   | LifeWithoutDeath
   | DayAndNight
@@ -41,6 +42,7 @@ instance Serializable NamedRule where
   codec = Codec.enum case _ of
     Life -> "Life"
     HighLife -> "HighLife"
+    DryLife -> "DryLife"
     Seeds -> "Seeds"
     LifeWithoutDeath -> "LifeWithoutDeath"
     DayAndNight -> "DayAndNight"
@@ -60,6 +62,7 @@ descriptorCodec = C.codec decode encode
     decode descriptor
       | descriptor == D.life = Just Life
       | descriptor == D.highLife = Just HighLife
+      | descriptor == D.dryLife = Just DryLife
       | descriptor == D.seeds = Just Seeds
       | descriptor == D.lifeWithoutDeath = Just LifeWithoutDeath
       | descriptor == D.dayAndNight = Just DayAndNight
@@ -76,6 +79,7 @@ descriptorCodec = C.codec decode encode
     encode = case _ of
       Life -> D.life
       HighLife -> D.highLife
+      DryLife -> D.dryLife
       Seeds -> D.seeds
       LifeWithoutDeath -> D.lifeWithoutDeath
       DayAndNight -> D.dayAndNight
@@ -102,6 +106,7 @@ name :: NamedRule -> String
 name = case _ of
   Life -> "Life"
   HighLife -> "High Life"
+  DryLife -> "Dry Life"
   Seeds -> "Seeds"
   LifeWithoutDeath -> "Life Without Death"
   DayAndNight -> "Day And Night"

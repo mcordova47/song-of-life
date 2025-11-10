@@ -390,6 +390,8 @@ view state dispatch = Hooks.component Hooks.do
       [ RP.highLifeReplicator
       , RP.p36Oscillator
       , RP.p128Oscillator
+      , RP.goldenhead
+      , RP.p24PiHeptominoHassler
       ] # Array.mapMaybe \rle@(RLE { name }) -> name <#> { name: _, rle }
 
     presets setScene =

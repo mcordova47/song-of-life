@@ -1,7 +1,9 @@
 module Life.Game.Patterns.RLE
   ( fermatPrimeCalculator
+  , goldenhead
   , highLifeReplicator
   , p128Oscillator
+  , p24PiHeptominoHassler
   , p36Oscillator
   )
   where
@@ -60,6 +62,31 @@ p128Oscillator = decode
     o3b2o!
   """
 
+goldenhead :: RLE
+goldenhead = decode
+  """
+    #N goldenhead.rle
+    #C https://conwaylife.com/wiki/Copperhead
+    #C https://www.conwaylife.com/patterns/goldenhead.rle
+    x = 10, y = 13, rule = B37/S23
+    4b2o$3b4o$4b2o$2b6o$3b4o2$2b2o2b2o$2obo2bob2o$3bo2bo3$4b2o$4b2o!
+  """
+
+p24PiHeptominoHassler :: RLE
+p24PiHeptominoHassler = decode
+  """
+    #N p24piheptominohassler2.rle
+    #C https://conwaylife.com/wiki/Pi-heptomino_hasslers
+    #C https://www.conwaylife.com/patterns/p24piheptominohassler2.rle
+    x = 41, y = 41, rule = B3/S23
+    10b2o4b2o$9bobo4b2o$9bo13b2o$6b2ob2o11bo2bo$6b2obobo11b3o$9bob12o$9bob
+    ob8o2bo12b2o$10bo5b4o2b2o12b2o2$34b6o$33bo3bo2bo$34b3o2b2o$35bo$34b2o$
+    17b3o14b2o$3b2o12bo16b2o$2bobo12b3o13b3o3b2o$2bobob2o16b3o6b3o3b2o$3bo
+    bobo16bobo6b3o$5bo18bobo6b3o$5b2o27b2o$5b3o6bobo18bo$5b3o6bobo16bobobo
+    $2o3b3o6b3o16b2obobo$2o3b3o13b3o12bobo$5b2o16bo12b2o$5b2o14b3o$5b2o$5b
+    o$2o2b3o$o2bo3bo$b6o2$3b2o12b2o2b4o5bo$3b2o12bo2b8obobo$18b12obo$15b3o
+    11bobob2o$15bo2bo11b2ob2o$16b2o13bo$23b2o4bobo$23b2o4b2o!
+  """
 
 fermatPrimeCalculator :: RLE
 fermatPrimeCalculator = decode
