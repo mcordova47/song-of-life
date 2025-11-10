@@ -19,6 +19,9 @@ import Life.Types.Codec (Codec)
 import Life.Types.Codec as Codec
 import Partial.Unsafe (unsafePartial)
 
+-- | The expressions in an RLE pattern. E.g., `bo$2bo$3o!` is parsed as:
+-- |
+-- | [Dead 1, Alive 1, Newline 1, Dead 2, Alive 2, Newline 1, Alive 3, End]
 data Expr
   = Alive Int
   | Dead Int

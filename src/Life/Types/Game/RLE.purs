@@ -12,6 +12,7 @@ import Data.Foldable (fold, foldMap, maximum, minimum)
 import Data.Int as Int
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.String as S
@@ -22,6 +23,7 @@ import Life.Types.Game.RLE.Expr (Expr(..))
 import Life.Types.Game.RLE.Expr as Expr
 import Life.Types.Game.RuleDescriptor (B(..), RuleDescriptor, S(..), (|/|))
 
+-- | A type for .rle (Run Length Encoded) formatted patterns
 newtype RLE = RLE
   { author :: Maybe String
   , bounds :: Maybe
@@ -34,6 +36,7 @@ newtype RLE = RLE
   , rule :: Maybe RuleDescriptor
   , topLeft :: Maybe (Int /\ Int)
   }
+derive instance Newtype RLE _
 
 instance Serializable RLE where
   codec = C.codec decode encode
@@ -67,15 +70,20 @@ instance Serializable RLE where
 
       decodeRule = S.split (S.Pattern "/") >>> \parts -> do
         guard (A.length parts == 2)
-        bPart <- parts !! 0 <#> S.split (S.Pattern "")
-        bParts <- A.uncons bPart
-        sPart <- parts !! 1 <#> S.split (S.Pattern "")
-        sParts <- A.uncons sPart
-        guard (bParts.head == "B" && sParts.head == "S")
-        let
-          b = bParts.tail # A.mapMaybe Int.fromString
-          s = sParts.tail # A.mapMaybe Int.fromString
-        pure (B b |/| S s)
+        first <- parts !! 0 <#> S.split (S.Pattern "")
+        bParts <- A.uncons first
+        second <- parts !! 1 <#> S.split (S.Pattern "")
+        sParts <- A.uncons second
+        if bParts.head == "B" && sParts.head == "S" then do
+          let
+            b = bParts.tail # A.mapMaybe Int.fromString
+            s = sParts.tail # A.mapMaybe Int.fromString
+          pure (B b |/| S s)
+        else do
+          let
+            s = first # A.mapMaybe Int.fromString
+            b = second # A.mapMaybe Int.fromString
+          pure (B b |/| S s)
 
       decodeHeader rle =
         S.replaceAll (S.Pattern " ") (S.Replacement "") >>>

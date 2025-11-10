@@ -35,9 +35,11 @@ import Life.Components.GridScene (useGridScene)
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
 import Life.Components.Icons as I
+import Life.Components.PresetButton as PresetButton
 import Life.Components.Select as Select
 import Life.Components.TagSelect as TagSelect
 import Life.Game.Patterns as P
+import Life.Game.Patterns.RLE as RP
 import Life.Hooks.UseMutableRef (useMutableRef)
 import Life.Types.Codec (codec)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
@@ -45,6 +47,8 @@ import Life.Types.Game.Life (class CellularAutomaton, class InteractiveAutomaton
 import Life.Types.Game.Life as Life
 import Life.Types.Game.NamedRule (NamedRule)
 import Life.Types.Game.NamedRule as NamedRule
+import Life.Types.Game.RLE (RLE(..))
+import Life.Types.Game.RLE as RLE
 import Life.Types.Grid.Cell (Cell)
 import Life.Types.Grid.Cell as Cell
 import Life.Types.Music.Letter (Letter(..))
@@ -65,7 +69,6 @@ import Life.Utils.Math as M
 
 -- Volume of chord based on density of grid
 -- n voices (voicesPlaying :: Int, get n - voicesPlaying notes to play)
--- presets
 -- select wave for voices, chords
 -- exclude off-grid cells
 -- look at origin instead of defaultOrigin
@@ -361,6 +364,8 @@ view state dispatch = Hooks.component Hooks.do
                 }
             ]
         ]
+      , H.h5 "mt-3" "Presets"
+      , presets setScene
       ]
     , H.style "" """
         body { padding-bottom: 0 !important; }
@@ -380,6 +385,29 @@ view state dispatch = Hooks.component Hooks.do
       , width
       , zoom: state.zoom
       }
+
+    patterns =
+      [ RP.highLifeReplicator
+      , RP.p36Oscillator
+      , RP.p128Oscillator
+      ] # Array.mapMaybe \rle@(RLE { name }) -> name <#> { name: _, rle }
+
+    presets setScene =
+      H.div "row mt-3" $ patterns <#> \{ name, rle: rle@(RLE { rule }) } ->
+        let rule' = fromMaybe NamedRule.default $ C.decode NamedRule.descriptorCodec =<< rule
+        in
+        H.div_ "col-6 col-sm-4 col-md-3 pb-3"
+          { key: name } $
+          PresetButton.component
+            { name
+            , life: Life.fromCells@f 0 0 $ RLE.toCells rle
+            , cols: 15
+            , rows: 15
+            , rule: rule'
+            , onClick: E.handleEffect do
+                dispatch $ SelectRule rule'
+                setScene _ { game = Life.fromCells 0 0 $ RLE.toCells rle }
+            }
 
 melodyCell :: State -> Array Cell -> Maybe Cell
 melodyCell state bornCells =
