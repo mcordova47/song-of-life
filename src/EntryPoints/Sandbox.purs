@@ -5,14 +5,18 @@ module EntryPoints.Sandbox
 
 import Prelude
 
-import Data.Foldable (foldMap)
+import Control.Alt ((<|>))
+import Data.Codec as CO
+import Data.Foldable (foldMap, for_)
 import Data.Int as Int
+import Data.Maybe (fromMaybe)
+import Data.MediaType (MediaType(..))
 import Data.Monoid (guard)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
-import Elmish (Dispatch, ReactElement, Transition, (<|))
+import Elmish (ReactElement, Transition, Dispatch, (<|))
 import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
@@ -24,13 +28,20 @@ import Life.Components.LogSlider as LogSlider
 import Life.Components.TagSelect as TagSelect
 import Life.Game.Patterns as P
 import Life.Hooks.UseBoundingBox (useBoundingBox)
+import Life.Types.Codec (codec)
 import Life.Types.Game.Engines.Optimized.Unbounded (Unbounded)
 import Life.Types.Game.Life as Life
 import Life.Types.Game.NamedRule (NamedRule)
 import Life.Types.Game.NamedRule as NamedRule
+import Life.Types.Game.RLE (RLE(..))
+import Life.Types.Game.RLE as RLE
 import Life.Types.Grid.Cell (Cell)
 import Life.Types.Grid.Cell as C
+import Life.Utils.HTML (RClipboardEvent(..))
+import Life.Utils.HTML as HTML
 import Record as Record
+import Web.Clipboard.ClipboardEvent as CE
+import Web.HTML.Event.DataTransfer as DT
 
 type State =
   { playing :: Boolean
@@ -53,6 +64,7 @@ type SharedArgs r =
   , rule :: NamedRule
   , step :: Int
   , onStep :: Dispatch Int
+  , onRuleChange :: Dispatch NamedRule
   , controls :: Controls -> ReactElement
   | r
   }
@@ -101,6 +113,7 @@ view state dispatch = H.div "d-flex flex-column vh-100 overflow-auto"
       , rule: state.rule
       , step: state.step
       , onStep: dispatch <<< SetStep
+      , onRuleChange: dispatch <<< SelectRule
       , controls: \{ next, reset, currentStep } ->
           H.div "container pt-3" $
             H.div "d-inline-flex align-items-center mb-3"
@@ -155,7 +168,13 @@ gridContainer args = Hooks.component Hooks.do
 grid :: GridArgs -> ReactElement
 grid args =
   useGridScene hookArgs =/> \scene setScene ->
-    H.fragment
+    HTML.div_ ""
+      { onPaste: E.handleEffect \(RClipboardEvent e) ->
+          unless args.playing $
+            for_ (CE.clipboardData e) \dt -> do
+              text <- DT.getData (MediaType "text/plain") dt
+              loadRLEText setScene text
+      }
     [ args.controls
         { next: do
             setScene \s -> s { game = Life.steps 1 args.rule s.game }
@@ -179,6 +198,21 @@ grid args =
       , originColor: "#bad5ff50"
       , game: Life.fromCells@Game 0 0 gliderGunWithEater
       }
+
+    loadRLEText setScene text =
+      for_ (CO.decode codec text) $ loadRLE setScene
+
+    loadRLE setScene (RLE rle) = do
+      let
+        rule = fromMaybe NamedRule.default $ CO.decode NamedRule.descriptorCodec =<< rle.rule
+        topLeft = rle.bounds <#> \{ x, y } -> -(Int.floor (Int.toNumber y / 2.0)) /\ -(Int.floor (Int.toNumber x / 2.0))
+      args.onRuleChange rule
+      setScene _
+        { game =
+            RLE.toCells (RLE rle { topLeft = topLeft <|> rle.topLeft })
+              # Set.fromFoldable
+              # Life.fromCells 0 0
+        }
 
 gliderGunWithEater :: Set Cell
 gliderGunWithEater = Set.fromFoldable $

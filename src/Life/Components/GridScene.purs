@@ -47,6 +47,8 @@ import Life.Utils.Record as R
 import Web.DOM.Element (getBoundingClientRect)
 import Web.Event.Event (preventDefault, stopPropagation)
 
+-- TODO: Fix toggling off cells
+
 type Args f r =
   { game :: Req (f Boolean)
   , playing :: Boolean

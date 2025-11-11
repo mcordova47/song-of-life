@@ -29,10 +29,7 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, (<?|), (<|))
 import Elmish.Boot (defaultMain)
-import Elmish.Foreign (class CanReceiveFromJavaScript, ValidationResult(..))
-import Elmish.HTML (Props_div)
 import Elmish.HTML.Events as E
-import Elmish.HTML.Internal (StyledTag_, styledTag_)
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Foreign (unsafeFromForeign)
@@ -71,8 +68,9 @@ import Life.Types.Music.Voicing (Voicing)
 import Life.Types.Music.Voicing as Voicing
 import Life.Types.Music.Wave as W
 import Life.Utils ((:=))
+import Life.Utils.HTML (RClipboardEvent(..))
+import Life.Utils.HTML as HTML
 import Life.Utils.Math as M
-import Web.Clipboard.ClipboardEvent (ClipboardEvent)
 import Web.Clipboard.ClipboardEvent as CE
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.File.File as F
@@ -269,7 +267,7 @@ view state dispatch = Hooks.component Hooks.do
   Hooks.pure $
     H.fragment
     [ Header.view
-    , div_ "container"
+    , HTML.div_ "container"
       { style: H.css { maxWidth: "800px" }
       , onPaste: E.handleEffect \(RClipboardEvent e) ->
           unless state.playing $
@@ -532,15 +530,3 @@ notes n voicing { key, scale } = ScaleType.notes' voicing 2 { key, notes: n, roo
 
 tiles :: Int /\ Int
 tiles = 8 /\ 8
-
-type Props_div' =
-  ( onPaste :: E.EventHandler RClipboardEvent
-  | Props_div
-  )
-
-newtype RClipboardEvent = RClipboardEvent ClipboardEvent
-instance CanReceiveFromJavaScript RClipboardEvent where
-  validateForeignType _ = Valid
-
-div_ :: StyledTag_ Props_div'
-div_ = styledTag_ "div"
