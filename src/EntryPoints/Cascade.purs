@@ -29,7 +29,10 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Elmish (Dispatch, ReactElement, Transition, fork, forkMaybe, forkVoid, (<?|), (<|))
 import Elmish.Boot (defaultMain)
+import Elmish.Foreign (class CanReceiveFromJavaScript, ValidationResult(..))
+import Elmish.HTML (Props_div)
 import Elmish.HTML.Events as E
+import Elmish.HTML.Internal (StyledTag_, styledTag_)
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
 import Foreign (unsafeFromForeign)
@@ -69,9 +72,12 @@ import Life.Types.Music.Voicing as Voicing
 import Life.Types.Music.Wave as W
 import Life.Utils ((:=))
 import Life.Utils.Math as M
+import Web.Clipboard.ClipboardEvent (ClipboardEvent)
+import Web.Clipboard.ClipboardEvent as CE
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.File.File as F
 import Web.File.FileReader as FR
+import Web.HTML.Event.DataTransfer as DT
 import Web.HTML.Event.EventTypes as ET
 
 -- Volume of chord based on density of grid
@@ -263,7 +269,14 @@ view state dispatch = Hooks.component Hooks.do
   Hooks.pure $
     H.fragment
     [ Header.view
-    , H.div_ "container" { style: H.css { maxWidth: "800px" } }
+    , div_ "container"
+      { style: H.css { maxWidth: "800px" }
+      , onPaste: E.handleEffect \(RClipboardEvent e) ->
+          unless state.playing $
+            for_ (CE.clipboardData e) \dt -> do
+              text <- DT.getData (MediaType "text/plain") dt
+              loadRLEText setScene text
+      }
       [ H.p "mt-3"
         [ H.text "Click some cells to change the starting conditions, then press play and "
         , H.a_ ""
@@ -283,9 +296,14 @@ view state dispatch = Hooks.component Hooks.do
         ]
       , H.p ""
         [ H.text """
-            While the game is paused, you can scroll to zoom and click and drag to
-            change the origin. You can see v1 of Songs of Life
+            While the game is paused, scroll to zoom, click and drag to change
+            the origin, or paste RLE-formatted patterns (e.g. from
           """
+        , H.a_ "" { href: "https://conwaylife.com/wiki/Barge_(spaceship)", target: "_blank" }
+          [ H.text "Life Wiki "
+          , I.externalLink { size: 16 }
+          ]
+        , H.text "). You can see v1 of Songs of Life "
         , H.a_ "" { href: "/" } "here"
         , H.text "."
         ]
@@ -514,3 +532,15 @@ notes n voicing { key, scale } = ScaleType.notes' voicing 2 { key, notes: n, roo
 
 tiles :: Int /\ Int
 tiles = 8 /\ 8
+
+type Props_div' =
+  ( onPaste :: E.EventHandler RClipboardEvent
+  | Props_div
+  )
+
+newtype RClipboardEvent = RClipboardEvent ClipboardEvent
+instance CanReceiveFromJavaScript RClipboardEvent where
+  validateForeignType _ = Valid
+
+div_ :: StyledTag_ Props_div'
+div_ = styledTag_ "div"
