@@ -5,7 +5,7 @@ module EntryPoints.Cascade
 
 import Prelude
 
-import Control.Alternative (guard)
+import Control.Alternative (guard, (<|>))
 import Data.Array as Array
 import Data.Array.NonEmpty as NA
 import Data.Codec as C
@@ -71,10 +71,7 @@ import Life.Utils ((:=))
 import Life.Utils.Math as M
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.File.File as F
-import Web.File.FileList as FL
 import Web.File.FileReader as FR
-import Web.HTML.Event.DataTransfer (getData)
-import Web.HTML.Event.DataTransfer as DT
 import Web.HTML.Event.EventTypes as ET
 
 -- Volume of chord based on density of grid
@@ -417,38 +414,42 @@ view state dispatch = Hooks.component Hooks.do
               , cols: 15
               , rows: 15
               , rule: rule'
-              , onClick: E.handleEffect do
-                  dispatch $ SelectRule rule'
-                  setScene _ { game = Life.fromCells 0 0 $ RLE.toCells rle }
+              , onClick: E.handleEffect $
+                  loadRLE setScene rle
               }
       , H.div "col-6 col-sm-4 col-md-3 pb-3 d-flex flex-column" $
-        [ FileDrop.view "preset d-flex rounded overflow-hidden border border-2 border-dashed rounded flex-grow-1 p-2"
-            { onDrop: \dataTransfer -> do
-                text <- getData (MediaType "text/plain") dataTransfer
-                case text of
-                  "" ->
-                    case dataTransfer # DT.files >>= FL.item 0 of
-                      Just file -> do
-                        fr <- FR.fileReader
-                        loadListener <- eventListener \_ -> do
-                          res <- FR.result fr
-                          loadRLEText setScene $ unsafeFromForeign res
-                        addEventListener ET.load loadListener false (FR.toEventTarget fr)
-                        FR.readAsText (F.toBlob file) fr
-                      Nothing -> pure unit
-                  _ ->
-                    loadRLEText setScene text
+        [ FileDrop.view "preset d-flex rounded overflow-hidden border border-2 border-dashed rounded flex-grow-1 p-2 d-flex align-items-center justify-content-center text-secondary"
+            { handleData: \getData -> do
+                text <- getData (MediaType "text/plain")
+                loadRLEText setScene text
+            , handleFile: \file -> do
+                fr <- FR.fileReader
+                loadListener <- eventListener \_ -> do
+                  res <- FR.result fr
+                  loadRLEText setScene $ unsafeFromForeign res
+                addEventListener ET.load loadListener false (FR.toEventTarget fr)
+                FR.readAsText (F.toBlob file) fr
             }
-            H.empty
-        , H.h6 "mt-1 text-center" "Custom (Upload RLE)"
+            "Upload .rle file"
+        , H.h6 "mt-1 text-center" "Custom"
         ]
       ]
 
     loadRLEText setScene text =
-      for_ (C.decode codec text) \rle@(RLE { rule }) -> do
-        let rule' = fromMaybe NamedRule.default $ C.decode NamedRule.descriptorCodec =<< rule
-        dispatch $ SelectRule rule'
-        setScene _ { game = Life.fromCells 0 0 $ RLE.toCells rle }
+      for_ (C.decode codec text) $ loadRLE setScene
+
+    loadRLE setScene (RLE rle) = do
+      let
+        rule = fromMaybe NamedRule.default $ C.decode NamedRule.descriptorCodec =<< rle.rule
+        topLeft = rle.bounds <#> \{ x, y } -> -(Int.floor (Int.toNumber y / 2.0)) /\ -(Int.floor (Int.toNumber x / 2.0))
+      dispatch $ SelectRule rule
+      setScene _
+        { game =
+            RLE.toCells (RLE rle { topLeft = topLeft <|> rle.topLeft })
+              # Set.fromFoldable
+              # Life.fromCells 0 0
+        }
+
 
 melodyCell :: State -> Array Cell -> Maybe Cell
 melodyCell state bornCells =
@@ -482,7 +483,7 @@ minCol { zoom } =
 
 defaultOrigin :: Number /\ Number
 defaultOrigin =
-  (Int.toNumber height / defaultZoom / 2.0) /\ (Int.toNumber width / defaultZoom / 2.0)
+  0.0 /\ 0.0
 
 height :: Int
 height = 600
