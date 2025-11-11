@@ -9,11 +9,12 @@ import Control.Alternative (guard)
 import Data.Array as Array
 import Data.Array.NonEmpty as NA
 import Data.Codec as C
-import Data.Foldable (foldMap, maximumBy)
+import Data.Foldable (foldMap, for_, maximumBy)
 import Data.Function (on)
 import Data.Int as Int
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.MediaType (MediaType(..))
 import Data.Ord.Down (Down(..))
 import Data.Semigroup.Foldable (minimum)
 import Data.Set (Set)
@@ -31,6 +32,8 @@ import Elmish.Boot (defaultMain)
 import Elmish.HTML.Events as E
 import Elmish.HTML.Styled as H
 import Elmish.Hooks as Hooks
+import Foreign (unsafeFromForeign)
+import Life.Components.FileDrop as FileDrop
 import Life.Components.GridScene (useGridScene)
 import Life.Components.GridScene as GridScene
 import Life.Components.Header as Header
@@ -66,6 +69,13 @@ import Life.Types.Music.Voicing as Voicing
 import Life.Types.Music.Wave as W
 import Life.Utils ((:=))
 import Life.Utils.Math as M
+import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.File.File as F
+import Web.File.FileList as FL
+import Web.File.FileReader as FR
+import Web.HTML.Event.DataTransfer (getData)
+import Web.HTML.Event.DataTransfer as DT
+import Web.HTML.Event.EventTypes as ET
 
 -- Volume of chord based on density of grid
 -- n voices (voicesPlaying :: Int, get n - voicesPlaying notes to play)
@@ -395,21 +405,50 @@ view state dispatch = Hooks.component Hooks.do
       ] # Array.mapMaybe \rle@(RLE { name }) -> name <#> { name: _, rle }
 
     presets setScene =
-      H.div "row mt-3" $ patterns <#> \{ name, rle: rle@(RLE { rule }) } ->
-        let rule' = fromMaybe NamedRule.default $ C.decode NamedRule.descriptorCodec =<< rule
-        in
-        H.div_ "col-6 col-sm-4 col-md-3 pb-3"
-          { key: name } $
-          PresetButton.component
-            { name
-            , life: Life.fromCells@f 0 0 $ RLE.toCells rle
-            , cols: 15
-            , rows: 15
-            , rule: rule'
-            , onClick: E.handleEffect do
-                dispatch $ SelectRule rule'
-                setScene _ { game = Life.fromCells 0 0 $ RLE.toCells rle }
+      H.div "row mt-3"
+      [ H.fragment $ patterns <#> \{ name, rle: rle@(RLE { rule }) } ->
+          let rule' = fromMaybe NamedRule.default $ C.decode NamedRule.descriptorCodec =<< rule
+          in
+          H.div_ "col-6 col-sm-4 col-md-3 pb-3"
+            { key: name } $
+            PresetButton.component
+              { name
+              , life: Life.fromCells@f 0 0 $ RLE.toCells rle
+              , cols: 15
+              , rows: 15
+              , rule: rule'
+              , onClick: E.handleEffect do
+                  dispatch $ SelectRule rule'
+                  setScene _ { game = Life.fromCells 0 0 $ RLE.toCells rle }
+              }
+      , H.div "col-6 col-sm-4 col-md-3 pb-3 d-flex flex-column" $
+        [ FileDrop.view "preset d-flex rounded overflow-hidden border border-2 border-dashed rounded flex-grow-1 p-2"
+            { onDrop: \dataTransfer -> do
+                text <- getData (MediaType "text/plain") dataTransfer
+                case text of
+                  "" ->
+                    case dataTransfer # DT.files >>= FL.item 0 of
+                      Just file -> do
+                        fr <- FR.fileReader
+                        loadListener <- eventListener \_ -> do
+                          res <- FR.result fr
+                          loadRLEText setScene $ unsafeFromForeign res
+                        addEventListener ET.load loadListener false (FR.toEventTarget fr)
+                        FR.readAsText (F.toBlob file) fr
+                      Nothing -> pure unit
+                  _ ->
+                    loadRLEText setScene text
             }
+            H.empty
+        , H.h6 "mt-1 text-center" "Custom (Upload RLE)"
+        ]
+      ]
+
+    loadRLEText setScene text =
+      for_ (C.decode codec text) \rle@(RLE { rule }) -> do
+        let rule' = fromMaybe NamedRule.default $ C.decode NamedRule.descriptorCodec =<< rule
+        dispatch $ SelectRule rule'
+        setScene _ { game = Life.fromCells 0 0 $ RLE.toCells rle }
 
 melodyCell :: State -> Array Cell -> Maybe Cell
 melodyCell state bornCells =
