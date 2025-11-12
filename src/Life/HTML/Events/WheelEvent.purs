@@ -2,7 +2,6 @@ module Life.HTML.Events.WheelEvent
   ( WheelEvent(..)
   , deltaX
   , deltaY
-  , fromEvent
   )
   where
 
@@ -17,9 +16,6 @@ type Fields =
   { deltaX :: Number
   , deltaY :: Number
   }
-
-fromEvent :: Event -> WheelEvent
-fromEvent = unsafeCoerce
 
 deltaX :: WheelEvent -> Number
 deltaX = _.deltaX <<< fields

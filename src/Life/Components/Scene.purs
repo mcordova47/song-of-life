@@ -19,8 +19,7 @@ import Elmish.HTML.Styled as H
 import Elmish.Hooks (type (<>), Hook, UseEffect, UseRef, (=/>))
 import Elmish.Hooks as Hooks
 import Graphics.Canvas as C
-import Life.HTML.Events.WheelEvent (WheelEvent)
-import Life.HTML.Events.WheelEvent as WheelEvent
+import Life.HTML.Events.WheelEvent (WheelEvent(..))
 import Life.Hooks.UseMutableRef (UseMutableRef, useMutableRef)
 import Life.Utils ((:=))
 import Life.Utils.Record as R
@@ -122,7 +121,7 @@ useScene args = Hooks.do
       listener <- eventListener \e -> do
         state <- Ref.read stateRef
         props <- Ref.read propsRef
-        state' <- args.update props state.current $ Wheel $ WheelEvent.fromEvent e
+        state' <- args.update props state.current $ Wheel $ WheelEvent e
         stateRef := state { current = state' }
 
       canvas # CE.toElement # toEventTarget # addEventListenerWithOptions
